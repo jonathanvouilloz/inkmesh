@@ -93,8 +93,8 @@
 	@media (min-width: 1024px) {
 		aside {
 			position: sticky;
-			top: 0;
-			height: 100vh;
+			top: var(--sticky-top, 0);
+			height: calc(100vh - var(--sticky-top, 0px));
 			overflow-y: auto;
 		}
 	}

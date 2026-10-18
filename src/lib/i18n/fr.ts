@@ -31,5 +31,19 @@ export const fr: Record<keyof typeof en, string> = {
 	'login.submit': 'Se connecter',
 	'login.failed': 'E-mail ou mot de passe incorrect',
 	'login.throttled': 'Trop de tentatives, réessayez dans quelques minutes',
-	'nav.logout': 'Se déconnecter'
+	'nav.logout': 'Se déconnecter',
+	'nav.workspaces': 'Espaces de travail',
+	'nav.members': 'Membres',
+	'nav.account': 'Compte',
+	'home.title': 'Vos espaces de travail',
+	'home.empty': 'Vous n’êtes membre d’aucun espace de travail pour l’instant. Demandez un lien d’invitation.',
+	'home.create': 'Nouvel espace de travail',
+	'home.name': 'Nom',
+	'home.slug': 'Identifiant',
+	'home.slugBad': 'Lettres minuscules, chiffres et tirets uniquement',
+	'home.exists': 'Un espace de travail utilise déjà cet identifiant',
+	'role.owner': 'Propriétaire',
+	'role.editor': 'Éditeur',
+	'role.reader': 'Lecteur',
+	'editor.readonly': 'Vous pouvez lire ce document ; le modifier demande le rôle éditeur'
 };

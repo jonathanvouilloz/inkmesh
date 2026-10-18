@@ -8,10 +8,16 @@
 	let {
 		value = $bindable(),
 		raw = false,
+		readonly = false,
 		locale,
 		onchange
-	}: { value: string; raw?: boolean; locale: Locale; onchange: (markdown: string) => void } =
-		$props();
+	}: {
+		value: string;
+		raw?: boolean;
+		readonly?: boolean;
+		locale: Locale;
+		onchange: (markdown: string) => void;
+	} = $props();
 
 	let host: HTMLDivElement;
 	// Loaded in onMount: until then (and without JavaScript) the textarea shows the Markdown.
@@ -33,6 +39,7 @@
 				// shortcut: only the placeholder is localised; Crepe's toolbar and slash-menu labels stay English, upgrade through featureConfigs when French users ask
 				featureConfigs: { [Crepe.Feature.Placeholder]: { text: t('editor.placeholder', locale) } }
 			});
+			crepe.setReadonly(untrack(() => readonly));
 			crepe.on((listener) =>
 				listener.markdownUpdated((_ctx, markdown) => {
 					value = markdown;
@@ -66,6 +73,7 @@
 	hidden={shown && !raw}
 	aria-label={t('editor.raw', locale)}
 	spellcheck="false"
+	{readonly}
 	bind:value
 	oninput={() => onchange(value)}
 ></textarea>

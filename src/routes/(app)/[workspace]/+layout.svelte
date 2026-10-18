@@ -3,6 +3,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
+	import Header from '#lib/ui/Header.svelte';
 	import Tree from '#lib/ui/Tree.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -34,48 +35,50 @@
 	}}
 />
 
-<div class="shell">
-	<header class="topbar">
-		<button
-			bind:this={opener}
-			class="opener"
-			aria-label={t('nav.open', data.locale)}
-			aria-expanded={open}
-			aria-controls="rail"
-			onclick={show}>{t('nav.open', data.locale)}</button
-		>
-		<span class="workspace">{data.workspace}</span>
-	</header>
+<Header
+	workspaces={data.workspaces}
+	current={data.workspace}
+	user={data.user}
+	role={data.role}
+	locale={data.locale}
+>
+	<button
+		bind:this={opener}
+		class="opener"
+		aria-expanded={open}
+		aria-controls="rail"
+		onclick={show}>{t('nav.open', data.locale)}</button
+	>
+</Header>
 
+<div class="shell">
 	<nav id="rail" class="rail" class:open tabindex="-1" bind:this={rail}>
 		<p class="workspace">{data.workspace}</p>
-		<details class="new" open={!!page.form?.createError}>
-			<summary>{t('tree.new', data.locale)}</summary>
-			<form method="POST" action="/{data.workspace}?/create">
-				<label>
-					{t('tree.newPath', data.locale)}
-					<input
-						name="path"
-						placeholder={t('tree.placeholder', data.locale)}
-						value={page.form?.path ?? ''}
-						required
-						aria-invalid={page.form?.createError ? 'true' : undefined}
-						aria-describedby={page.form?.createError ? 'new-error' : undefined}
-					/>
-				</label>
-				{#if page.form?.createError}
-					<p id="new-error" class="error">
-						{t(page.form.createError === 'exists' ? 'tree.exists' : 'tree.badPath', data.locale)}
-					</p>
-				{/if}
-				<button>{t('tree.create', data.locale)}</button>
-			</form>
-		</details>
+		{#if data.role !== 'reader'}
+			<details class="new" open={!!page.form?.createError}>
+				<summary>{t('tree.new', data.locale)}</summary>
+				<form method="POST" action="/{data.workspace}?/create">
+					<label>
+						{t('tree.newPath', data.locale)}
+						<input
+							name="path"
+							placeholder={t('tree.placeholder', data.locale)}
+							value={page.form?.path ?? ''}
+							required
+							aria-invalid={page.form?.createError ? 'true' : undefined}
+							aria-describedby={page.form?.createError ? 'new-error' : undefined}
+						/>
+					</label>
+					{#if page.form?.createError}
+						<p id="new-error" class="error">
+							{t(page.form.createError === 'exists' ? 'tree.exists' : 'tree.badPath', data.locale)}
+						</p>
+					{/if}
+					<button>{t('tree.create', data.locale)}</button>
+				</form>
+			</details>
+		{/if}
 		<Tree nodes={data.tree} workspace={data.workspace} current={current} />
-		<!-- shortcut: logout sits at the foot of the rail until Task 6 adds the shell header row. -->
-		<form class="logout" method="POST" action="/logout">
-			<button>{t('nav.logout', data.locale)}</button>
-		</form>
 	</nav>
 
 	{#if open}
@@ -86,18 +89,20 @@
 </div>
 
 <style>
+	/* Below the 44px sticky header, rails and the file strip stick under it. */
 	.shell {
+		--sticky-top: 44px;
 		display: grid;
 		grid-template-columns: 240px 1fr;
-		min-height: 100vh;
+		min-height: calc(100vh - var(--sticky-top));
 	}
-	.topbar {
+	.opener {
 		display: none;
 	}
 	.rail {
 		position: sticky;
-		top: 0;
-		height: 100vh;
+		top: var(--sticky-top);
+		height: calc(100vh - var(--sticky-top));
 		box-sizing: border-box;
 		overflow-y: auto;
 		padding: 16px 12px;
@@ -163,9 +168,6 @@
 	form button {
 		align-self: flex-start;
 	}
-	.logout {
-		margin-top: auto;
-	}
 	/* Secondary buttons: tree.new stays the one primary action. */
 	form button,
 	.opener {
@@ -186,17 +188,13 @@
 	}
 
 	@media (max-width: 767px) {
+		/* The phone header wraps and scrolls away, so nothing sticks under it. */
 		.shell {
+			--sticky-top: 0px;
 			display: block;
 		}
-		.topbar {
-			display: flex;
-			align-items: center;
-			gap: 12px;
-			height: 48px;
-			padding: 0 12px;
-			border-bottom: 1px solid var(--hairline);
-			font-size: 13px;
+		.opener {
+			display: block;
 		}
 		.rail {
 			position: fixed;

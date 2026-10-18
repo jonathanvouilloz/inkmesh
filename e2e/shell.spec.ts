@@ -42,11 +42,6 @@ test.describe('English', () => {
 		const response = await page.goto('/nope');
 		expect(response?.status()).toBe(404);
 	});
-
-	test('the root redirects to the demo workspace', async ({ page }) => {
-		await page.goto('/');
-		await expect(page).toHaveURL(/\/demo$/);
-	});
 });
 
 test.describe('French', () => {

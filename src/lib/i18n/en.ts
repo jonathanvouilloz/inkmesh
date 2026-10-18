@@ -29,5 +29,19 @@ export const en = {
 	'login.submit': 'Sign in',
 	'login.failed': 'Email or password is incorrect',
 	'login.throttled': 'Too many attempts, try again in a few minutes',
-	'nav.logout': 'Log out'
+	'nav.logout': 'Log out',
+	'nav.workspaces': 'Workspaces',
+	'nav.members': 'Members',
+	'nav.account': 'Account',
+	'home.title': 'Your workspaces',
+	'home.empty': 'You are not a member of any workspace yet. Ask for an invitation link.',
+	'home.create': 'New workspace',
+	'home.name': 'Name',
+	'home.slug': 'Slug',
+	'home.slugBad': 'Lowercase letters, digits and dashes only',
+	'home.exists': 'A workspace with this slug already exists',
+	'role.owner': 'Owner',
+	'role.editor': 'Editor',
+	'role.reader': 'Reader',
+	'editor.readonly': 'You can read this document; editing needs the editor role'
 };

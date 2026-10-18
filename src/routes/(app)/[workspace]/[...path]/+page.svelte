@@ -84,9 +84,12 @@
 	// The action URL is fixed per document, so a save flushed after navigating still targets it.
 	// Untracked: page.url also changes on hash navigation, which reloads no data and must keep this autosave.
 	// Keyed on the document, not on data: a reload of the same document (after a save) keeps it.
+	// Readers never save: the save action would answer 403 anyway.
+	const readonly = $derived(data.role === 'reader');
 	const doc = $derived(`${data.workspace}/${data.path}`);
 	const autosave = $derived.by(() => {
 		void doc;
+		if (readonly) return undefined;
 		return untrack(
 			() => new Autosave(`${page.url.pathname}?/save`, data.body, data.hash)
 		);
@@ -94,13 +97,13 @@
 	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
 	$effect(() => {
 		const current = autosave;
-		return () => void current.save();
+		return () => void current?.save();
 	});
 </script>
 
 <svelte:window
 	onbeforeunload={(event) => {
-		if (autosave.busy) event.preventDefault();
+		if (autosave?.busy) event.preventDefault();
 	}}
 />
 
@@ -109,7 +112,8 @@
 		<FileStrip
 			path={data.path}
 			locale={data.locale}
-			saveState={autosave.state}
+			saveState={autosave?.state ?? 'idle'}
+			{readonly}
 			bind:raw
 			bind:details
 			bind:opener
@@ -118,10 +122,11 @@
 			<!-- Keyed so another document gets a fresh editor with its own body. -->
 			{#key doc}
 				<Editor
-					value={autosave.value}
+					value={autosave?.value ?? data.body}
 					{raw}
+					{readonly}
 					locale={data.locale}
-					onchange={(markdown) => autosave.change(markdown)}
+					onchange={(markdown) => autosave?.change(markdown)}
 				/>
 			{/key}
 		</article>

@@ -1,6 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { deleteSession } from '#lib/core/accounts.ts';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = () => redirect(303, '/');
 
 export const actions: Actions = {
 	default: ({ cookies }) => {

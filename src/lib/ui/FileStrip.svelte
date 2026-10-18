@@ -9,6 +9,7 @@
 		path,
 		locale,
 		saveState,
+		readonly = false,
 		raw = $bindable(),
 		details = $bindable(),
 		opener = $bindable()
@@ -16,6 +17,7 @@
 		path: string;
 		locale: Locale;
 		saveState: SaveState;
+		readonly?: boolean;
 		raw: boolean;
 		details: boolean;
 		opener?: HTMLButtonElement;
@@ -24,8 +26,12 @@
 
 <div class="strip" data-testid="file-strip">
 	<span class="path"><bdi>{path}</bdi></span>
-	<span class="state {saveState}" role="status" aria-live="polite"
-		>{saveState === 'idle' ? '' : t(`save.${saveState}`, locale)}</span
+	<span class="state {saveState}" class:readonly role="status" aria-live="polite"
+		>{readonly
+			? t('editor.readonly', locale)
+			: saveState === 'idle'
+				? ''
+				: t(`save.${saveState}`, locale)}</span
 	>
 	<span class="actions">
 		<button
@@ -50,7 +56,7 @@
 		min-height: 36px;
 		padding: 0 32px;
 		position: sticky;
-		top: 0;
+		top: var(--sticky-top, 0);
 		z-index: 1;
 		background: var(--ground);
 		border-bottom: 1px solid var(--hairline);
@@ -79,7 +85,10 @@
 	}
 	.conflict {
 		color: var(--warn);
-		/* The full sentence wraps instead of pushing the buttons off a narrow strip. */
+	}
+	/* Full sentences wrap instead of pushing the buttons off a narrow strip. */
+	.conflict,
+	.readonly {
 		white-space: normal;
 	}
 	.error {
@@ -123,7 +132,8 @@
 			grid-area: state;
 			text-align: left;
 		}
-		.conflict {
+		.conflict,
+		.readonly {
 			padding-bottom: 8px;
 		}
 		.details {
