@@ -1,0 +1,20 @@
+import type { en } from './en.ts';
+
+export const fr: Record<keyof typeof en, string> = {
+	'app.name': 'inkmesh',
+	'nav.open': 'Ouvrir la navigation',
+	'tree.new': 'Nouveau document',
+	'tree.newPath': 'Chemin du nouveau document, ex. notes/idee.md',
+	'tree.search': 'Rechercher',
+	'strip.raw': 'Brut',
+	'strip.rich': 'Éditeur',
+	'save.saving': 'Enregistrement…',
+	'save.saved': 'Enregistré',
+	'save.conflict':
+		'Ce fichier a changé sur le disque depuis son ouverture. Rechargez pour voir la nouvelle version.',
+	'save.error': 'Enregistrement impossible',
+	'rail.file': 'Fichier',
+	'rail.history': 'Historique',
+	'rail.via': 'via',
+	'empty.pick': "Choisissez un document dans l'arborescence"
+};

@@ -1,0 +1,31 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/fragment-mono';
+
+:root {
+	--ground: #FBFBFA;
+	--panel: #F3F3F0;
+	--hairline: #E4E4E0;
+	--ink: #1C1C1A;
+	--muted: #6E6E68;
+	--accent: #2A47D1;
+	--ok: #1B7F3B;
+	--warn: #B26B00;
+	--error: #B3261E;
+	--font-text: 'Inter Variable', system-ui, sans-serif;
+	--font-mono: 'Fragment Mono', ui-monospace, monospace;
+	--radius: 6px;
+	--ease: 150ms ease-out;
+}
+
+body {
+	margin: 0;
+	background: var(--ground);
+	color: var(--ink);
+	font-family: var(--font-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+	}
+}
