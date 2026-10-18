@@ -72,6 +72,10 @@
 			</form>
 		</details>
 		<Tree nodes={data.tree} workspace={data.workspace} current={current} />
+		<!-- shortcut: logout sits at the foot of the rail until Task 6 adds the shell header row. -->
+		<form class="logout" method="POST" action="/logout">
+			<button>{t('nav.logout', data.locale)}</button>
+		</form>
 	</nav>
 
 	{#if open}
@@ -158,6 +162,9 @@
 	}
 	form button {
 		align-self: flex-start;
+	}
+	.logout {
+		margin-top: auto;
 	}
 	/* Secondary buttons: tree.new stays the one primary action. */
 	form button,

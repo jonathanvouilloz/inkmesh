@@ -13,5 +13,19 @@ export default defineConfig({
 	testDir: 'e2e',
 	// One worker: the files run in order (document, save, shell), so save.spec's commits come after
 	// document.spec reads the seeded history.
-	workers: 1
+	workers: 1,
+	projects: [
+		{ name: 'setup', testMatch: /auth\.setup\.ts/ },
+		{
+			name: 'chromium',
+			dependencies: ['setup'],
+			testIgnore: /login\.spec\.ts/,
+			use: { storageState: `${data}/owner.json` }
+		},
+		{
+			name: 'anonymous',
+			testMatch: /login\.spec\.ts/,
+			use: { storageState: { cookies: [], origins: [] } }
+		}
+	]
 });

@@ -24,5 +24,12 @@ export const fr: Record<keyof typeof en, string> = {
 	'empty.pick': 'Choisissez un document dans l’arborescence',
 	'error.notFound': 'Ce document n’existe pas',
 	'error.generic': 'Une erreur est survenue',
-	'error.back': 'Retour à l’espace de travail'
+	'error.back': 'Retour à l’espace de travail',
+	'login.title': 'Se connecter à inkmesh',
+	'login.email': 'E-mail',
+	'login.password': 'Mot de passe',
+	'login.submit': 'Se connecter',
+	'login.failed': 'E-mail ou mot de passe incorrect',
+	'login.throttled': 'Trop de tentatives, réessayez dans quelques minutes',
+	'nav.logout': 'Se déconnecter'
 };

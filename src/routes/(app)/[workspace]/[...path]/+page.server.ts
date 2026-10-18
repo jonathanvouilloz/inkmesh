@@ -1,16 +1,18 @@
 import { error, fail } from '@sveltejs/kit';
-import { currentActor } from '#lib/core/actor.ts';
 import { history, readDocument, writeDocument } from '#lib/core/documents.ts';
 import { frontmatterEntries } from '#lib/core/markdown.ts';
 import { Conflict, InvalidPath } from '#lib/core/paths.ts';
+import { requireRole } from '#lib/server/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const notFound = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals, parent }) => {
+	await parent();
+	const actor = locals.actor!;
 	let doc;
 	try {
-		doc = await readDocument(params.workspace, params.path);
+		doc = await readDocument(params.workspace, params.path, actor);
 	} catch (err) {
 		if (err instanceof InvalidPath || notFound.has((err as { code?: string }).code ?? ''))
 			error(404);
@@ -22,14 +24,14 @@ export const load: PageServerLoad = async ({ params }) => {
 		body: doc.body.replace(/\r\n/g, '\n'),
 		hash: doc.hash,
 		entries: frontmatterEntries(doc.frontmatter),
-		history: await history(params.workspace, params.path)
+		history: await history(params.workspace, params.path, actor)
 	};
 };
 
 export const actions: Actions = {
-	save: async ({ params, request }) => {
-		// Actions run before the layout load, so the single-workspace guard is repeated here.
-		if (params.workspace !== 'demo') error(404);
+	save: async ({ params, request, locals }) => {
+		// Actions run before the layout load, so the role check is repeated here.
+		requireRole(params.workspace, locals, 'editor');
 		const form = await request.formData();
 		const body = form.get('body');
 		const expectedHash = form.get('hash');
@@ -41,7 +43,7 @@ export const actions: Actions = {
 			const lf = body.replace(/\r\n/g, '\n');
 			const { hash } = await writeDocument(params.workspace, params.path, lf, {
 				expectedHash,
-				actor: currentActor()
+				actor: locals.actor!
 			});
 			return { hash };
 		} catch (err) {

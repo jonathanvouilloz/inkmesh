@@ -22,5 +22,12 @@ export const en = {
 	'empty.pick': 'Pick a document in the tree',
 	'error.notFound': 'This document does not exist',
 	'error.generic': 'Something went wrong',
-	'error.back': 'Back to the workspace'
+	'error.back': 'Back to the workspace',
+	'login.title': 'Sign in to inkmesh',
+	'login.email': 'Email',
+	'login.password': 'Password',
+	'login.submit': 'Sign in',
+	'login.failed': 'Email or password is incorrect',
+	'login.throttled': 'Too many attempts, try again in a few minutes',
+	'nav.logout': 'Log out'
 };
