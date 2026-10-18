@@ -7,7 +7,7 @@ Production runs on the owner's VPS as the user `hermes`: two systemd user servic
 - **Dev**: `~/personal-projects/inkmesh`, where work, dev builds and e2e runs happen (`npm run test:e2e` runs `npm run build` and would overwrite `build/` under a live process).
 - **Prod**: `~/inkmesh-app`, a clone of the dev repository (its `origin`) kept on `main`. Only `scripts/deploy.sh` touches it. The service runs there, and both units are linked from this clone (`~/inkmesh-app/deploy/*.service`), so the live unit always matches the deployed version.
 
-Create the prod clone once: `git clone ~/personal-projects/inkmesh ~/inkmesh-app`.
+Create the prod clone once: `git clone -b main ~/personal-projects/inkmesh ~/inkmesh-app`.
 
 While the dev folder is still named `comd`, a symlink `~/personal-projects/inkmesh -> comd` makes the dev path valid; production does not depend on it. To rename for good: `cd ~/personal-projects && rm inkmesh && mv comd inkmesh`, then `git -C ~/inkmesh-app remote set-url origin ~/personal-projects/inkmesh` if the clone recorded the `comd` path.
 

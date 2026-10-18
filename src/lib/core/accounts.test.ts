@@ -127,7 +127,8 @@ describe('accounts', () => {
 		expect(loginAllowed('k')).toBe(false);
 		loginSucceeded('k');
 		expect(loginAllowed('k')).toBe(true);
-	});	it('undoes one counted failure', () => {
+	});
+	it('undoes one counted failure', () => {
 		for (let i = 0; i < 10; i++) loginFailed('u');
 		loginUndo('u');
 		expect(loginAllowed('u')).toBe(true);
