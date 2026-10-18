@@ -78,8 +78,11 @@
 			</form>
 		{/if}
 	{:else}
-		<h1>{t('invite.invalid', locale)}</h1>
-		<a href="/">{t('app.name', locale)}</a>
+		<div>
+			<h1>{t('invite.invalid', locale)}</h1>
+			<p class="help">{t('invite.invalidHelp', locale)}</p>
+		</div>
+		<a class="action" href="/login">{t('login.submit', locale)}</a>
 	{/if}
 </main>
 
@@ -143,17 +146,23 @@
 	a {
 		color: var(--accent);
 	}
+	p.help {
+		margin: 8px 0 0;
+	}
+	a.action {
+		align-self: flex-start;
+		padding: 6px 10px;
+		border-radius: var(--radius);
+		background: var(--accent);
+		color: #fff;
+		font-weight: 500;
+		text-decoration: none;
+	}
 	:is(a, button, input):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
 	p.error {
 		color: var(--error);
-	}
-	@media (prefers-reduced-motion: no-preference) {
-		input,
-		button {
-			transition: outline-color var(--ease);
-		}
 	}
 </style>

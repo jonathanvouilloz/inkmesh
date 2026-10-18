@@ -34,7 +34,6 @@
 		<thead>
 			<tr>
 				<th>{t('invite.name', locale)}</th>
-				<th>{t('login.email', locale)}</th>
 				<th>{t('members.role', locale)}</th>
 				{#if owner}<td></td>{/if}
 			</tr>
@@ -42,8 +41,7 @@
 		<tbody>
 			{#each data.members as m (m.user.id)}
 				<tr>
-					<td>{m.user.name}</td>
-					<td class="mono">{m.user.email}</td>
+					<td>{m.user.name}<span class="mono email">{m.user.email}</span></td>
 					<td>
 						{#if owner}
 							<form class="row" method="POST" action="?/setRole">
@@ -117,7 +115,7 @@
 				{/each}
 			</select>
 		</label>
-		<button class="primary">{t('members.create', locale)}</button>
+		<button>{t('members.create', locale)}</button>
 	</form>
 	{#if form?.link}
 		{@const link = form.link}
@@ -182,8 +180,9 @@
 		font-size: 12.5px;
 		font-variant-numeric: tabular-nums;
 	}
-	td.mono {
-		overflow-wrap: anywhere;
+	.email {
+		display: block;
+		color: var(--muted);
 	}
 	.end {
 		padding-right: 0;
@@ -211,6 +210,10 @@
 	.link label {
 		font-weight: 600;
 	}
+	/* On a phone the role cell wraps its Save button rather than breaking the email. */
+	td .row {
+		flex-wrap: wrap;
+	}
 	.row input {
 		flex: 1;
 		min-width: 0;
@@ -234,12 +237,6 @@
 		padding: 6px 10px;
 		cursor: pointer;
 	}
-	.primary {
-		border-color: var(--accent);
-		background: var(--accent);
-		color: #fff;
-		font-weight: 500;
-	}
 	.link {
 		display: flex;
 		flex-direction: column;
@@ -255,11 +252,6 @@
 	:is(button, input, select):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
-	}
-	@media (prefers-reduced-motion: no-preference) {
-		:is(button, input, select) {
-			transition: outline-color var(--ease);
-		}
 	}
 	@media (max-width: 767px) {
 		.page {

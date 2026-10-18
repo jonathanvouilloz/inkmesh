@@ -39,7 +39,6 @@
 	workspaces={data.workspaces}
 	current={data.workspace}
 	user={data.user}
-	role={data.role}
 	locale={data.locale}
 >
 	<button
@@ -53,8 +52,13 @@
 
 <div class="shell">
 	<nav id="rail" class="rail" class:open tabindex="-1" bind:this={rail}>
-		<p class="workspace">{data.workspace}</p>
 		{#if data.role !== 'reader'}
+			<a
+				class="members"
+				href="/{data.workspace}/members"
+				aria-current={page.route.id === '/(app)/[workspace]/members' ? 'page' : undefined}
+				>{t('nav.members', data.locale)}</a
+			>
 			<details class="new" open={!!page.form?.createError}>
 				<summary>{t('tree.new', data.locale)}</summary>
 				<form method="POST" action="/{data.workspace}?/create">
@@ -120,9 +124,19 @@
 		outline: 2px solid var(--accent);
 		outline-offset: -2px;
 	}
-	.workspace {
-		margin: 0;
-		font-weight: 600;
+	/* A tree item, outside the tree. */
+	.members {
+		padding: 3px 6px;
+		border-radius: var(--radius);
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.members:hover {
+		background: var(--hairline);
+	}
+	.members[aria-current='page'] {
+		color: var(--accent);
+		font-weight: 500;
 	}
 	input {
 		box-sizing: border-box;
@@ -179,7 +193,7 @@
 		margin: 0;
 		color: var(--error);
 	}
-	:is(summary, button, input):focus-visible {
+	:is(a, summary, button, input):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
@@ -188,7 +202,7 @@
 	}
 
 	@media (max-width: 767px) {
-		/* The phone header wraps and scrolls away, so nothing sticks under it. */
+		/* The phone header scrolls away, so nothing sticks under it. */
 		.shell {
 			--sticky-top: 0px;
 			display: block;

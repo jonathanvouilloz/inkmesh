@@ -41,7 +41,7 @@ test.describe('English', () => {
 
 	test('the active document is current in the tree', async ({ page }) => {
 		await page.goto('/demo/project/prd.md');
-		await expect(page.getByRole('navigation').locator('a[aria-current="page"]')).toHaveAttribute(
+		await expect(page.locator('#rail').locator('a[aria-current="page"]')).toHaveAttribute(
 			'href',
 			'/demo/project/prd.md'
 		);
@@ -49,12 +49,12 @@ test.describe('English', () => {
 
 	test('a path with an accent opens and is current in the tree', async ({ page }) => {
 		await page.goto('/demo');
-		await page.getByRole('navigation').getByText('New document', { exact: true }).click();
+		await page.locator('#rail').getByText('New document', { exact: true }).click();
 		await page.getByLabel('Path of the new document, e.g. notes/idea.md').fill('notes/été.md');
 		await page.getByRole('button', { name: 'Create' }).click();
 		await expect(strip(page).getByText('notes/été.md', { exact: true })).toBeVisible();
 		await expect(page.locator('.milkdown h1')).toHaveText('été');
-		await expect(page.getByRole('navigation').locator('a[aria-current="page"]')).toHaveText('été');
+		await expect(page.locator('#rail').locator('a[aria-current="page"]')).toHaveText('été');
 	});
 
 	test('a missing document is a 404', async ({ page }) => {

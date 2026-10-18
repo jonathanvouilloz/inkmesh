@@ -40,7 +40,7 @@ test('an owner invites an editor who signs up and edits', async ({ page, browser
 	const invitee = await fresh(browser);
 	const visit = await invitee.newPage();
 	await visit.goto(editorLink);
-	await expect(visit.getByRole('heading', { name: 'You are invited to Demo as editor' })).toBeVisible();
+	await expect(visit.getByRole('heading', { name: 'Join Demo as editor' })).toBeVisible();
 	// The token lives in the URL only.
 	expect(await visit.content()).not.toContain(editorLink.split('/').pop()!);
 	await visit.close();
@@ -106,8 +106,9 @@ test('a reader sees no Members link and gets 403 on /demo/members', async ({ pag
 	const link = await newLink(page, 'Reader');
 	reader = await fresh(browser);
 	const ruth = await signUp(reader, link, 'Ruth', 'ruth@example.ch');
+	await ruth.getByRole('banner').getByText('Ruth', { exact: true }).click();
 	await expect(ruth.getByRole('banner').getByRole('link', { name: 'Account' })).toBeVisible();
-	await expect(ruth.getByRole('banner').getByRole('link', { name: 'Members' })).toHaveCount(0);
+	await expect(ruth.getByRole('link', { name: 'Members' })).toHaveCount(0);
 	const response = await ruth.goto('/demo/members');
 	expect(response?.status()).toBe(403);
 	await expect(ruth.getByRole('heading', { name: 'Something went wrong' })).toBeVisible();
@@ -120,7 +121,7 @@ test('a reader reads without editing', async () => {
 	await expect(page.locator('.milkdown .ProseMirror')).toHaveAttribute('contenteditable', 'false');
 	await page.getByRole('button', { name: 'Raw' }).click();
 	await expect(page.locator('textarea')).toHaveAttribute('readonly', '');
-	await expect(page.getByRole('navigation').getByText('New document', { exact: true })).toHaveCount(0);
+	await expect(page.locator('#rail').getByText('New document', { exact: true })).toHaveCount(0);
 });
 
 test('a non-admin cannot create a workspace', async () => {

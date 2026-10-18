@@ -104,7 +104,7 @@
 	}
 	li a {
 		color: var(--accent);
-		font-size: 14px;
+		font-size: 13px;
 		font-weight: 500;
 	}
 	.slug,
@@ -118,7 +118,7 @@
 	}
 	.role {
 		margin-left: auto;
-		font-variant-caps: small-caps;
+		color: var(--muted);
 	}
 	.empty {
 		margin: 0;

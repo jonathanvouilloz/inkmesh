@@ -5,7 +5,7 @@ test.describe('English', () => {
 
 	test('the shell lists the seeded tree', async ({ page }) => {
 		await page.goto('/demo');
-		const rail = page.getByRole('navigation');
+		const rail = page.locator('#rail');
 		await expect(rail.getByText('project', { exact: true })).toBeVisible();
 		await expect(rail.getByText('examples', { exact: true })).toBeVisible();
 		await expect(rail.getByText('New document', { exact: true })).toBeVisible();
@@ -14,7 +14,7 @@ test.describe('English', () => {
 
 	test('a bad path shows an error under the input', async ({ page }) => {
 		await page.goto('/demo');
-		await page.getByRole('navigation').getByText('New document', { exact: true }).click();
+		await page.locator('#rail').getByText('New document', { exact: true }).click();
 		await page.getByLabel('Path of the new document, e.g. notes/idea.md').fill('../escape.md');
 		await page.getByRole('button', { name: 'Create' }).click();
 		await expect(page.getByText('Enter a path ending in .md, without ..')).toBeVisible();
@@ -22,7 +22,7 @@ test.describe('English', () => {
 
 	test('an existing path says so and keeps the input', async ({ page }) => {
 		await page.goto('/demo');
-		await page.getByRole('navigation').getByText('New document', { exact: true }).click();
+		await page.locator('#rail').getByText('New document', { exact: true }).click();
 		const input = page.getByLabel('Path of the new document, e.g. notes/idea.md');
 		await input.fill('project/prd.md');
 		await page.getByRole('button', { name: 'Create' }).click();
@@ -33,7 +33,7 @@ test.describe('English', () => {
 	test('a missing document shows the error page inside the shell', async ({ page }) => {
 		await page.goto('/demo/nope.md');
 		await expect(page.getByRole('heading', { name: 'This document does not exist' })).toBeVisible();
-		await expect(page.getByRole('navigation')).toBeVisible();
+		await expect(page.locator('#rail')).toBeVisible();
 		await page.getByRole('link', { name: 'Back to the workspace' }).click();
 		await expect(page).toHaveURL(/\/demo$/);
 	});
@@ -51,7 +51,7 @@ test.describe('French', () => {
 		await page.goto('/demo');
 		await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
 		await expect(
-			page.getByRole('navigation').getByText('Nouveau document', { exact: true })
+			page.locator('#rail').getByText('Nouveau document', { exact: true })
 		).toBeVisible();
 		await expect(
 			page.getByRole('main').getByText('Choisissez un document dans l’arborescence')
@@ -64,7 +64,7 @@ test.describe('Mobile', () => {
 
 	test('the rail is a drawer behind the open button', async ({ page }) => {
 		await page.goto('/demo');
-		const rail = page.getByRole('navigation');
+		const rail = page.locator('#rail');
 		await expect(rail).toBeHidden();
 		await page.getByRole('button', { name: 'Open navigation' }).click();
 		await expect(rail).toBeInViewport();

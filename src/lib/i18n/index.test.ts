@@ -11,7 +11,7 @@ describe('t', () => {
 
 	it('fills placeholders', () => {
 		expect(t('invite.title', 'en', { workspace: 'Demo', role: 'Editor' })).toBe(
-			'You are invited to Demo as Editor'
+			'Join Demo as Editor'
 		);
 		expect(t('invite.join', 'en', { workspace: 'Demo' })).toBe('Join Demo as {role}');
 	});

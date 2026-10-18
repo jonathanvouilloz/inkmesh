@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import type { Role, Workspace } from '#lib/core/access.ts';
+	import type { Workspace } from '#lib/core/access.ts';
 	import type { User } from '#lib/core/accounts.ts';
 	import { t, type Locale } from '#lib/i18n/index.ts';
 
@@ -9,62 +9,65 @@
 		workspaces,
 		current,
 		user,
-		role,
 		locale,
 		children
 	}: {
 		workspaces: Workspace[];
 		current?: string;
 		user: User;
-		role?: Role;
 		locale: Locale;
 		/** Rendered first: the workspace shell puts its phone drawer opener here. */
 		children?: Snippet;
 	} = $props();
 
-	let menu: HTMLDetailsElement;
-	let summary: HTMLElement;
+	// The workspace switcher and the user menu, closed alike by navigation, Escape and an outside click.
+	const menus: HTMLDetailsElement[] = [];
 	const name = $derived(workspaces.find((w) => w.slug === current)?.name ?? t('nav.workspaces', locale));
 
-	afterNavigate(() => menu && (menu.open = false));
+	afterNavigate(() => menus.forEach((m) => (m.open = false)));
 </script>
 
 <svelte:window
 	onkeydown={(e) => {
-		if (e.key !== 'Escape' || !menu.open) return;
-		menu.open = false;
-		summary.focus();
+		if (e.key !== 'Escape') return;
+		for (const m of menus.filter((m) => m.open)) {
+			m.open = false;
+			m.querySelector('summary')!.focus();
+		}
 	}}
 	onclick={(e) => {
-		if (menu.open && !menu.contains(e.target as Node)) menu.open = false;
+		for (const m of menus) if (m.open && !m.contains(e.target as Node)) m.open = false;
 	}}
 />
 
 <header>
 	{@render children?.()}
 	<a class="wordmark" href="/">{t('app.name', locale)}</a>
-	<details class="switcher" bind:this={menu}>
-		<summary bind:this={summary}><span class="current">{name}</span></summary>
-		<ul>
-			{#each workspaces as w (w.slug)}
+	<nav aria-label={t('nav.header', locale)}>
+		<details bind:this={menus[0]}>
+			<summary><span class="current">{name}</span></summary>
+			<ul>
+				{#each workspaces as w (w.slug)}
+					<li>
+						<a href="/{w.slug}" aria-current={w.slug === current ? 'page' : undefined}
+							>{w.name} <span class="slug">{w.slug}</span></a
+						>
+					</li>
+				{/each}
+			</ul>
+		</details>
+		<details class="user" bind:this={menus[1]}>
+			<summary><span class="current">{user.name}</span></summary>
+			<ul>
+				<li><a href="/account">{t('nav.account', locale)}</a></li>
 				<li>
-					<a href="/{w.slug}" aria-current={w.slug === current ? 'page' : undefined}
-						>{w.name} <span class="slug">{w.slug}</span></a
-					>
+					<form method="POST" action="/logout">
+						<button>{t('nav.logout', locale)}</button>
+					</form>
 				</li>
-			{/each}
-		</ul>
-	</details>
-	<span class="end">
-		{#if role && role !== 'reader'}
-			<a href="/{current}/members">{t('nav.members', locale)}</a>
-		{/if}
-		<a href="/account">{t('nav.account', locale)}</a>
-		<span class="user">{user.name}</span>
-		<form method="POST" action="/logout">
-			<button>{t('nav.logout', locale)}</button>
-		</form>
-	</span>
+			</ul>
+		</details>
+	</nav>
 </header>
 
 <style>
@@ -73,8 +76,9 @@
 		align-items: center;
 		gap: 12px;
 		box-sizing: border-box;
-		min-height: 44px;
+		height: 44px;
 		padding: 0 16px;
+		white-space: nowrap;
 		background: var(--panel);
 		border-bottom: 1px solid var(--hairline);
 		font-size: 13px;
@@ -89,8 +93,19 @@
 	.wordmark {
 		font-weight: 600;
 	}
-	.switcher {
+	nav {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		min-width: 0;
+		gap: 12px;
+	}
+	details {
 		position: relative;
+		min-width: 0;
+	}
+	.user {
+		margin-left: auto;
 	}
 	summary {
 		display: flex;
@@ -137,12 +152,20 @@
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);
 	}
-	ul a {
+	.user ul {
+		right: 0;
+		left: auto;
+		min-width: 160px;
+	}
+	ul :is(a, button) {
 		display: block;
+		box-sizing: border-box;
+		width: 100%;
 		padding: 4px 6px;
 		border-radius: var(--radius);
+		text-align: left;
 	}
-	ul a:hover {
+	ul :is(a, button):hover {
 		background: var(--panel);
 		text-decoration: none;
 	}
@@ -156,34 +179,21 @@
 		font-family: var(--font-mono);
 		font-size: 12.5px;
 	}
-	.end {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		margin-left: auto;
-	}
-	.user {
-		color: var(--muted);
-	}
 	form {
-		display: contents;
+		margin: 0;
 	}
 	button {
-		padding: 0;
 		border: 0;
 		background: none;
 		color: var(--ink);
 		font: inherit;
 		cursor: pointer;
 	}
-	button:hover {
-		text-decoration: underline;
-	}
 	:is(a, summary, button):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
-	ul a:focus-visible {
+	ul :is(a, button):focus-visible {
 		outline-offset: -2px;
 	}
 	@media (min-width: 768px) {
@@ -191,19 +201,16 @@
 			position: sticky;
 			top: 0;
 			z-index: 2;
-			height: 44px;
-			white-space: nowrap;
 		}
 	}
-	/* Phones: the row wraps instead of overflowing; the name is the first thing to go. */
+	/* Phones: one row; long workspace and user names shrink to an ellipsis. */
 	@media (max-width: 767px) {
 		header {
-			flex-wrap: wrap;
-			row-gap: 4px;
-			padding: 6px 12px;
+			gap: 8px;
+			padding: 0 12px;
 		}
-		.user {
-			display: none;
+		nav {
+			gap: 8px;
 		}
 	}
 </style>

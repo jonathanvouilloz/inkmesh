@@ -37,11 +37,17 @@ test('a bad slug is refused inline', async ({ page }) => {
 	await expect(page.getByLabel('Slug')).toHaveAttribute('aria-invalid', 'true');
 });
 
-test('the workspace header links to members, account and home', async ({ page }) => {
+test('the rail links to members, the user menu to account, the wordmark home', async ({ page }) => {
 	await page.goto('/demo');
+	const members = page.locator('#rail').getByRole('link', { name: 'Members' });
+	await expect(members).toHaveAttribute('href', '/demo/members');
+	await members.click();
+	await expect(members).toHaveAttribute('aria-current', 'page');
 	const header = page.getByRole('banner');
-	await expect(header.getByRole('link', { name: 'Members' })).toHaveAttribute('href', '/demo/members');
+	await header.getByText('Owner', { exact: true }).click();
 	await expect(header.getByRole('link', { name: 'Account' })).toHaveAttribute('href', '/account');
+	await page.keyboard.press('Escape');
+	await expect(header.getByRole('link', { name: 'Account' })).toBeHidden();
 	await header.getByRole('link', { name: 'inkmesh' }).click();
 	await expect(page).toHaveURL(/\/$/);
 });

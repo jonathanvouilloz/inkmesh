@@ -28,6 +28,7 @@
 				aria-invalid={nameError ? 'true' : undefined}
 				aria-describedby={nameError ? 'name-error' : 'name-history'}
 			/>
+			<p id="name-history" class="note">{t('account.history', data.locale)}</p>
 			<button>{t('account.save', data.locale)}</button>
 			{#if nameError}
 				<p id="name-error" class="error" role="alert">{t(nameError, data.locale)}</p>
@@ -35,7 +36,6 @@
 				<p class="ok" role="status">{t('account.saved', data.locale)}</p>
 			{/if}
 		</form>
-		<p id="name-history" class="note">{t('account.history', data.locale)}</p>
 	</section>
 
 	<section>
@@ -130,8 +130,11 @@
 		margin: 0;
 	}
 	.note {
-		margin-top: 8px;
 		color: var(--muted);
+	}
+	section + section {
+		padding-top: 24px;
+		border-top: 1px solid var(--hairline);
 	}
 	.ok {
 		color: var(--ok);

@@ -27,6 +27,7 @@ test('logout returns to login', async ({ page }) => {
 	await page.getByLabel('Password').fill('inkmesh-dev');
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL(/\/$/);
+	await page.getByRole('banner').getByText('Owner', { exact: true }).click();
 	await page.getByRole('banner').getByRole('button', { name: 'Log out' }).click();
 	await expect(page).toHaveURL(/\/login$/);
 	await page.goto('/demo');

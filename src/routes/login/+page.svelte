@@ -8,7 +8,7 @@
 <svelte:head><title>{t('login.title', data.locale)}</title></svelte:head>
 
 <main>
-	<h1>{t('app.name', data.locale)}</h1>
+	<h1>{t('login.title', data.locale)}</h1>
 	<form method="POST">
 		<input type="hidden" name="next" value={data.next} />
 		<label>
@@ -16,6 +16,7 @@
 			<!-- The form is the whole page; after a failed attempt focus goes back to its first field. -->
 			<!-- svelte-ignore a11y_autofocus -->
 			<input
+				class="mono"
 				name="email"
 				type="email"
 				autocomplete="email"
@@ -37,10 +38,10 @@
 				aria-describedby={form?.error ? 'login-error' : undefined}
 			/>
 		</label>
-		<button>{t('login.submit', data.locale)}</button>
 		{#if form?.error}
 			<p id="login-error" class="error" role="alert">{t(form.error, data.locale)}</p>
 		{/if}
+		<button>{t('login.submit', data.locale)}</button>
 	</form>
 </main>
 
@@ -82,6 +83,10 @@
 		font: inherit;
 		font-weight: 400;
 	}
+	.mono {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+	}
 	button {
 		align-self: flex-start;
 		padding: 6px 10px;
@@ -98,13 +103,7 @@
 		outline-offset: 2px;
 	}
 	.error {
-		margin: 0;
+		margin: -8px 0 0;
 		color: var(--error);
-	}
-	@media (prefers-reduced-motion: no-preference) {
-		input,
-		button {
-			transition: outline-color var(--ease);
-		}
 	}
 </style>
