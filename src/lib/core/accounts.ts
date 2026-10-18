@@ -99,7 +99,10 @@ export async function changePassword(id: number, current: string, next: string):
 }
 
 export async function setPassword(id: number, next: string): Promise<void> {
-	db().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(await hashPassword(next), id);
+	const hash = await hashPassword(next);
+	db().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+	// A reset after a compromise must kill stolen sessions.
+	db().prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
 }
 
 export const newToken = (): string => randomBytes(32).toString('base64url');
@@ -136,6 +139,7 @@ export function deleteSession(token: string): void {
 // shortcut: in-memory, per process and lost on restart; move to SQLite if the app ever runs several processes.
 const MAX_FAILURES = 10;
 const WINDOW_MS = 15 * 60 * 1000;
+const MAX_KEYS = 10_000;
 const failures = new Map<string, { failures: number; first: number }>();
 
 function entry(key: string) {
@@ -152,6 +156,10 @@ export function loginAllowed(key: string): boolean {
 }
 
 export function loginFailed(key: string): void {
+	if (failures.size > MAX_KEYS) {
+		const now = Date.now();
+		for (const [k, v] of failures) if (now - v.first > WINDOW_MS) failures.delete(k);
+	}
 	const e = entry(key);
 	if (e) e.failures++;
 	else failures.set(key, { failures: 1, first: Date.now() });

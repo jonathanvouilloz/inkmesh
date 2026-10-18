@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	authenticate,
 	changePassword,
 	createSession,
 	createUser,
+	deleteSession,
 	hashPassword,
 	loginAllowed,
 	loginFailed,
@@ -71,6 +72,37 @@ describe('accounts', () => {
 		expect(await changePassword(u.id, 'wrong wrong wrong', 'new password 1')).toBe(false);
 		expect(await changePassword(u.id, 'long enough 1', 'new password 1')).toBe(true);
 		expect((await authenticate('a@b.c', 'new password 1'))?.id).toBe(u.id);
+	});
+	it('a password change kills the sessions of that user', async () => {
+		const u = await createUser({ email: 'a@b.c', name: 'A', password: 'long enough 1' });
+		const token = createSession(u.id);
+		expect(await changePassword(u.id, 'long enough 1', 'new password 1')).toBe(true);
+		expect(sessionUser(token)).toBeNull();
+		expect(
+			db().prepare('select count(*) as n from sessions where user_id = ?').get(u.id)
+		).toEqual({ n: 0 });
+	});
+	it('deletes a session', async () => {
+		const u = await createUser({ email: 'a@b.c', name: 'A', password: 'long enough 1' });
+		const token = createSession(u.id);
+		const other = createSession(u.id);
+		deleteSession(token);
+		expect(sessionUser(token)).toBeNull();
+		expect(sessionUser(other)?.id).toBe(u.id);
+	});
+	it('the throttle resets 15 minutes after the first failure', () => {
+		vi.useFakeTimers();
+		try {
+			vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+			for (let i = 0; i < 10; i++) loginFailed('t');
+			expect(loginAllowed('t')).toBe(false);
+			vi.setSystemTime(new Date('2026-01-01T00:15:00Z'));
+			expect(loginAllowed('t')).toBe(false);
+			vi.setSystemTime(new Date('2026-01-01T00:15:00.001Z'));
+			expect(loginAllowed('t')).toBe(true);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 	it('throttles after ten failures', () => {
 		for (let i = 0; i < 10; i++) {
