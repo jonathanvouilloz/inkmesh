@@ -21,8 +21,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'rail.open': 'Détails',
 	'editor.raw': 'Markdown brut',
 	'editor.placeholder': 'Commencez à écrire, ou tapez / pour un bloc',
-	'empty.pick': "Choisissez un document dans l'arborescence",
-	'error.notFound': "Ce document n'existe pas",
+	'empty.pick': 'Choisissez un document dans l’arborescence',
+	'error.notFound': 'Ce document n’existe pas',
 	'error.generic': 'Une erreur est survenue',
-	'error.back': "Retour à l'espace de travail"
+	'error.back': 'Retour à l’espace de travail'
 };

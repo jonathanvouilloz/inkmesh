@@ -18,11 +18,9 @@ test.describe('English', () => {
 		await expect(details.getByText('Weekly agent report', { exact: true })).toBeVisible();
 		await expect(details.getByRole('heading', { name: 'History' })).toBeVisible();
 		const rows = details.getByRole('listitem');
-		// .data persists across runs and save.spec adds commits, so the seed commit may have scrolled
-		// out of the five newest; the newest row is the seed or a later save, both by Owner.
-		expect(await rows.count()).toBeGreaterThanOrEqual(1);
-		expect(await rows.count()).toBeLessThanOrEqual(5);
-		await expect(rows.first()).toContainText(/^Owner.*(Seed demo workspace|Seed examples via agent|Update examples\/kitchen-sink\.md)$/);
+		// Fresh seed data (playwright.config.ts): the one commit is the agent seed.
+		await expect(rows).toHaveCount(1);
+		await expect(rows.first()).toContainText('Seed examples via agent');
 
 		const toggle = strip(page).getByRole('button', { name: 'Raw' });
 		await expect(toggle).toHaveAttribute('aria-pressed', 'false');
@@ -49,13 +47,10 @@ test.describe('English', () => {
 	});
 
 	test('a path with an accent opens and is current in the tree', async ({ page }) => {
-		const response = await page.goto('/demo/notes/%C3%A9t%C3%A9.md');
-		if (response?.status() === 404) {
-			await page.goto('/demo');
-			await page.getByRole('navigation').getByText('New document', { exact: true }).click();
-			await page.getByLabel('Path of the new document, e.g. notes/idea.md').fill('notes/été.md');
-			await page.getByRole('button', { name: 'Create' }).click();
-		}
+		await page.goto('/demo');
+		await page.getByRole('navigation').getByText('New document', { exact: true }).click();
+		await page.getByLabel('Path of the new document, e.g. notes/idea.md').fill('notes/été.md');
+		await page.getByRole('button', { name: 'Create' }).click();
 		await expect(strip(page).getByText('notes/été.md', { exact: true })).toBeVisible();
 		await expect(page.locator('.milkdown h1')).toHaveText('été');
 		await expect(page.getByRole('navigation').locator('a[aria-current="page"]')).toHaveText('été');

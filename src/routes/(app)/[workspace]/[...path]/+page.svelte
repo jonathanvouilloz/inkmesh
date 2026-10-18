@@ -36,8 +36,8 @@
 
 		change(value: string) {
 			this.value = value;
+			this.dirty = true; // in conflict too: autosave stays stopped, beforeunload warns
 			if (this.state === 'conflict') return;
-			this.dirty = true;
 			this.state = 'idle';
 			clearTimeout(this.#timer);
 			this.#timer = setTimeout(() => this.save(), 2000);
@@ -69,7 +69,10 @@
 					this.#hash = (result.data as { hash: string }).hash;
 					this.state = this.dirty ? 'idle' : 'saved';
 					void invalidateAll(); // refreshes the History block; the document key below keeps this autosave
-				} else if (result.type === 'failure' && result.status === 409) this.state = 'conflict';
+				} else if (result.type === 'failure' && result.status === 409) {
+					this.dirty = true; // the rejected edit is unsaved: leaving must warn
+					this.state = 'conflict';
+				}
 				else throw result;
 			} catch {
 				this.dirty = true; // retried with the next change; beforeunload still warns

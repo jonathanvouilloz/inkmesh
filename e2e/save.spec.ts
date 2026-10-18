@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
-const root = path.resolve(process.env.INKMESH_DATA || '.data', 'workspaces/demo');
+const root = path.resolve(process.env.INKMESH_DATA!, 'workspaces/demo');
 const file = path.join(root, 'examples/kitchen-sink.md');
 const fixture = fs.readFileSync('tests/fixtures/kitchen-sink.md', 'utf8');
 const fences = (source: string) => source.match(/^```[^\n]*\n[\s\S]*?^```$/gm);
@@ -55,6 +55,11 @@ test('a file changed on disk is a conflict and is not overwritten', async ({ pag
 			{ timeout: 5000 }
 		);
 		expect(fs.readFileSync(file, 'utf8')).toBe(onDisk);
+		// The edits made in conflict are unsaved, so leaving the page warns.
+		await page.keyboard.type(' more');
+		const dialog = page.waitForEvent('dialog');
+		await page.close({ runBeforeUnload: true });
+		expect((await dialog).type()).toBe('beforeunload');
 	} finally {
 		// Back to the committed version, so later runs start from a clean working tree.
 		execFileSync('git', ['-C', root, 'checkout', '--', 'examples/kitchen-sink.md']);

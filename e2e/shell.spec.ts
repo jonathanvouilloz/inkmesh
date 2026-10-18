@@ -59,7 +59,7 @@ test.describe('French', () => {
 			page.getByRole('navigation').getByText('Nouveau document', { exact: true })
 		).toBeVisible();
 		await expect(
-			page.getByRole('main').getByText("Choisissez un document dans l'arborescence")
+			page.getByRole('main').getByText('Choisissez un document dans l’arborescence')
 		).toBeVisible();
 	});
 });

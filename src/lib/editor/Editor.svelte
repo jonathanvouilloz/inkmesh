@@ -148,10 +148,17 @@
 		background: var(--hairline);
 	}
 	/* Phone readability: code keeps its lines and tables keep their words; both scroll sideways. */
-	.rich :global(.milkdown .milkdown-code-block .cm-content) {
+	/* Crepe's static placeholder (shown until CodeMirror mounts) and CodeMirror's lineWrapping both
+	   break anywhere; code keeps whole tokens and scrolls sideways instead. */
+	.rich :global(.milkdown .milkdown-code-block .cm-content),
+	.rich :global(.milkdown .milkdown-code-block .cm-content.cm-lineWrapping),
+	.rich :global(.milkdown .milkdown-code-block .milkdown-code-block-placeholder) {
 		white-space: pre;
+		overflow-wrap: normal;
+		word-break: normal;
 	}
-	.rich :global(.milkdown .milkdown-code-block .cm-scroller) {
+	.rich :global(.milkdown .milkdown-code-block .cm-scroller),
+	.rich :global(.milkdown .milkdown-code-block .milkdown-code-block-placeholder) {
 		overflow-x: auto;
 	}
 	.rich :global(.milkdown .milkdown-table-block table) {
@@ -169,6 +176,12 @@
 	}
 	.rich :global(.milkdown .milkdown-table-block th) {
 		white-space: nowrap;
+	}
+	/* Desktop has no table scroll: a long unbroken cell value wraps rather than overflow its column. */
+	@media (min-width: 768px) {
+		.rich :global(.milkdown .milkdown-table-block td) {
+			overflow-wrap: anywhere;
+		}
 	}
 	/* shortcut: raw HTML shows as its source, like code; rendering it natively is a later decision */
 	.rich :global(.milkdown .ProseMirror span[data-type='html']) {
