@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Invited people log in on `https://inkmesh.ch`, see only their workspaces, and edit with their real name on commits; roles are enforced in `core`; the app runs as a systemd service behind a Cloudflare Tunnel.
+**Goal:** Invited people log in on the public URL (a Cloudflare quick tunnel now, `https://inkmesh.ch` later), see only their workspaces, and edit with their real name on commits; roles are enforced in `core`; the app runs as a systemd service behind a Cloudflare Tunnel.
 
 **Architecture:** A SQLite database (`node:sqlite`) next to the workspaces holds users, sessions, workspaces, memberships and invitations. Two new `core` modules (`accounts.ts`, `access.ts`) own it; the document functions take an actor and call `assertRole`. `hooks.server.ts` turns the session cookie into `locals.user`; a route group `(app)` redirects anonymous visitors to `/login`. Deployment adds unit files and a tunnel config under `deploy/`.
 
@@ -364,24 +364,25 @@ test('a reader sees no Members link and gets 403 on /demo/members', …); // inv
 - [ ] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** check, unit, e2e — PASS.
 - [ ] **Step 5: Commit** `feat(app): account page`.
 
-### Task 9: Deployment — service, tunnel, deploy script
+### Task 9: Deployment — service, quick tunnel, deploy script
 
 **Files:**
-- Create: `deploy/inkmesh.service`, `deploy/cloudflared.service`, `deploy/cloudflared.yml`, `deploy/env.example`, `scripts/deploy.sh`, `docs/deploy.md`
+- Create: `deploy/inkmesh.service`, `deploy/inkmesh-tunnel.service`, `deploy/cloudflared.yml` (phase B template), `deploy/env.example`, `scripts/deploy.sh`, `scripts/tunnel-url.sh`, `docs/deploy.md`
 - Modify: `README.md` (link to `docs/deploy.md`), `docs/project/handoff.md` ("In production" section)
 
 **Interfaces:**
 - `deploy/inkmesh.service` (user unit): `ExecStart=/usr/bin/env node build`, `WorkingDirectory=%h/personal-projects/inkmesh`, `EnvironmentFile=%h/.config/inkmesh/env`, `Restart=on-failure`, `RestartSec=5`, `WantedBy=default.target`.
-- `deploy/env.example`: `PORT=9310`, `HOST=127.0.0.1`, `ORIGIN=https://inkmesh.ch`, `BODY_SIZE_LIMIT=20M`, `INKMESH_DATA=/home/hermes/inkmesh-data`, `NODE_ENV=production`.
-- `deploy/cloudflared.yml`: `tunnel: inkmesh`, `credentials-file: /home/hermes/.cloudflared/<tunnel-id>.json`, ingress `inkmesh.ch` → `http://127.0.0.1:9310`, then `service: http_status:404`.
-- `deploy/cloudflared.service`: `ExecStart=%h/.local/bin/cloudflared --config %h/.cloudflared/config.yml tunnel run`.
+- `deploy/env.example` (phase A): `PORT=9310`, `HOST=127.0.0.1`, `PROTOCOL_HEADER=x-forwarded-proto`, `HOST_HEADER=host`, `BODY_SIZE_LIMIT=20M`, `INKMESH_DATA=/home/hermes/inkmesh-data`, `NODE_ENV=production`; a commented phase B block: `ORIGIN=https://inkmesh.ch` replacing the two header lines.
+- `deploy/inkmesh-tunnel.service`: `ExecStart=%h/.local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:9310`, `After=inkmesh.service`, `Restart=on-failure`, `RestartSec=10`; a commented alternative `ExecStart` for phase B: `… --config %h/.cloudflared/config.yml tunnel run`.
+- `deploy/cloudflared.yml` (phase B): `tunnel: inkmesh`, `credentials-file: /home/hermes/.cloudflared/<tunnel-id>.json`, ingress `inkmesh.ch` → `http://127.0.0.1:9310`, then `service: http_status:404`.
+- `scripts/tunnel-url.sh`: `journalctl --user -u inkmesh-tunnel -o cat --no-pager | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1`.
 - `scripts/deploy.sh`: `set -euo pipefail; cd "$(dirname "$0")/.."; git pull --ff-only; npm ci; npm run build; systemctl --user restart inkmesh; systemctl --user is-active inkmesh`.
-- `docs/deploy.md`: the steps in order, marking the two that need Jon's browser: (1) register `inkmesh.ch` and add the zone to Cloudflare, set the registrar's nameservers; (2) `cloudflared tunnel login`. Then on the server: `tunnel create inkmesh`, copy `deploy/cloudflared.yml` to `~/.cloudflared/config.yml` with the id, `tunnel route dns inkmesh inkmesh.ch`, install both units, `mkdir -p ~/.config/inkmesh && cp deploy/env.example ~/.config/inkmesh/env`, `scripts/deploy.sh`, `npm run admin -- create-admin <email> <name>`. Backup and rollback lines from architecture.md are linked, not repeated.
+- `docs/deploy.md`: phase A steps (env file, both units, `scripts/deploy.sh`, `npm run admin -- create-admin`, `scripts/tunnel-url.sh`), then phase B steps marking the two that need Jon's browser (register `inkmesh.ch` and add the zone; `cloudflared tunnel login`), then `tunnel create`, config, `tunnel route dns`, env switch, restart both units. Backup and rollback are linked to architecture.md, not repeated.
 
-- [ ] **Step 1: Verify** `npm run build && PORT=9310 HOST=127.0.0.1 ORIGIN=http://127.0.0.1:9310 INKMESH_DATA=/tmp/inkmesh-smoke node build` serves `/login` with 200 (`curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9310/login`), then stop it.
-- [ ] **Step 2: Write** the files. Run `systemd-analyze --user verify deploy/inkmesh.service deploy/cloudflared.service` — no errors (warnings about the missing EnvironmentFile are fine). `bash -n scripts/deploy.sh`.
-- [ ] **Step 3: Install locally what needs no browser**: `mkdir -p ~/.config/inkmesh`, copy `env.example` to `~/.config/inkmesh/env`, link both unit files into `~/.config/systemd/user/`, `systemctl --user daemon-reload`, `systemctl --user enable --now inkmesh`, `curl` `/login` on 9310 → 200. Do **not** start `cloudflared` (no tunnel credentials yet): leave it `enabled` but stopped and say so in the report.
-- [ ] **Step 4: Commit** `feat(deploy): systemd units, cloudflared tunnel config, deploy script and guide`.
+- [ ] **Step 1: Verify** `npm run build && PORT=9310 HOST=127.0.0.1 PROTOCOL_HEADER=x-forwarded-proto HOST_HEADER=host INKMESH_DATA=/tmp/inkmesh-smoke node build` serves `/login` with 200 (`curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9310/login`) and that a POST to `/login` with `Origin: https://example.trycloudflare.com` and `Host: example.trycloudflare.com` and `X-Forwarded-Proto: https` is not rejected as cross-site (status 400 with the form error, not 403). Stop it.
+- [ ] **Step 2: Write** the files. Run `systemd-analyze --user verify deploy/inkmesh.service deploy/inkmesh-tunnel.service` — no errors (a warning about the missing EnvironmentFile is fine). `bash -n scripts/*.sh`.
+- [ ] **Step 3: Install the app service**: `mkdir -p ~/.config/inkmesh`, copy `env.example` to `~/.config/inkmesh/env`, link both unit files into `~/.config/systemd/user/`, `systemctl --user daemon-reload`, `systemctl --user enable --now inkmesh`, `curl` `/login` on 9310 → 200. Do **not** start `inkmesh-tunnel`: starting it exposes the VPS publicly and is the controller's call with the owner (leave it enabled but stopped, say so in the report).
+- [ ] **Step 4: Commit** `feat(deploy): systemd units, cloudflared quick tunnel, deploy script and guide`.
 
 ### Task 10: Design finish review of the new surfaces (controller-run)
 
