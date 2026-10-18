@@ -22,6 +22,9 @@ test('an edit autosaves, commits and keeps the code blocks byte-identical', asyn
 	await page.goto('/demo/examples/kitchen-sink.md');
 	await typeAtEndOfFirstParagraph(page, ' edited');
 	await expect(status(page)).toHaveText('Saved', { timeout: 5000 });
+	// The History block refreshes after a save, without a reload.
+	const latest = page.getByRole('complementary').getByRole('listitem').first();
+	await expect(latest).toContainText(/now|seconds? ago/);
 
 	const saved = fs.readFileSync(file, 'utf8');
 	expect(saved).toContain(' edited');

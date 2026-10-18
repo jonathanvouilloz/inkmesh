@@ -8,16 +8,34 @@ test.describe('English', () => {
 		const rail = page.getByRole('navigation');
 		await expect(rail.getByText('project', { exact: true })).toBeVisible();
 		await expect(rail.getByText('examples', { exact: true })).toBeVisible();
-		await expect(page.getByText('New document', { exact: true })).toBeVisible();
+		await expect(rail.getByText('New document', { exact: true })).toBeVisible();
 		await expect(page.getByRole('main').getByText('Pick a document in the tree')).toBeVisible();
 	});
 
 	test('a bad path shows an error under the input', async ({ page }) => {
 		await page.goto('/demo');
-		await page.getByText('New document', { exact: true }).click();
+		await page.getByRole('navigation').getByText('New document', { exact: true }).click();
 		await page.getByLabel('Path of the new document, e.g. notes/idea.md').fill('../escape.md');
 		await page.getByRole('button', { name: 'Create' }).click();
 		await expect(page.getByText('Enter a path ending in .md, without ..')).toBeVisible();
+	});
+
+	test('an existing path says so and keeps the input', async ({ page }) => {
+		await page.goto('/demo');
+		await page.getByRole('navigation').getByText('New document', { exact: true }).click();
+		const input = page.getByLabel('Path of the new document, e.g. notes/idea.md');
+		await input.fill('project/prd.md');
+		await page.getByRole('button', { name: 'Create' }).click();
+		await expect(page.getByText('A document with this path already exists')).toBeVisible();
+		await expect(input).toHaveValue('project/prd.md');
+	});
+
+	test('a missing document shows the error page inside the shell', async ({ page }) => {
+		await page.goto('/demo/nope.md');
+		await expect(page.getByRole('heading', { name: 'This document does not exist' })).toBeVisible();
+		await expect(page.getByRole('navigation')).toBeVisible();
+		await page.getByRole('link', { name: 'Back to the workspace' }).click();
+		await expect(page).toHaveURL(/\/demo$/);
 	});
 
 	test('an unknown workspace is a 404', async ({ page }) => {
@@ -37,7 +55,9 @@ test.describe('French', () => {
 	test('the shell speaks French', async ({ page }) => {
 		await page.goto('/demo');
 		await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
-		await expect(page.getByText('Nouveau document', { exact: true })).toBeVisible();
+		await expect(
+			page.getByRole('navigation').getByText('Nouveau document', { exact: true })
+		).toBeVisible();
 		await expect(
 			page.getByRole('main').getByText("Choisissez un document dans l'arborescence")
 		).toBeVisible();

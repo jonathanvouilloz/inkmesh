@@ -141,6 +141,16 @@ describe('documents', () => {
 		await expect(createDocument('demo', 'notes/idea.txt', actor)).rejects.toThrow(InvalidPath);
 	});
 
+	it('rejects a document name that is empty or a dot-file', async () => {
+		for (const p of ['.md', 'notes/.md', 'notes/.hidden.md'])
+			await expect(createDocument('demo', p, actor)).rejects.toThrow(InvalidPath);
+	});
+
+	it('returns the normalised path of a created document', async () => {
+		expect(await createDocument('demo', './notes//a.md', actor)).toBe('notes/a.md');
+		expect((await listTree('demo')).some((n) => n.path === 'notes')).toBe(true);
+	});
+
 	it('does not commit an identical body', async () => {
 		const { hash } = await readDocument('demo', doc);
 		const res = await writeDocument('demo', doc, '# réunion été\n', {

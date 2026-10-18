@@ -6,9 +6,18 @@
 		entries,
 		history,
 		locale,
-		open
+		open = $bindable()
 	}: { entries: [string, string][]; history: HistoryEntry[]; locale: Locale; open: boolean } =
 		$props();
+
+	// Mobile bottom sheet: focus its first heading on open, give focus back to the opener on close.
+	let aside: HTMLElement;
+	$effect(() => {
+		if (!open) return;
+		const opener = document.activeElement as HTMLElement | null;
+		aside.querySelector('h2')?.focus();
+		return () => opener?.focus();
+	});
 
 	const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 		['year', 31536000],
@@ -29,10 +38,16 @@
 	}
 </script>
 
-<aside id="details" class:open aria-label={t('rail.open', locale)}>
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape') open = false;
+	}}
+/>
+
+<aside id="details" class:open bind:this={aside} aria-label={t('rail.open', locale)}>
 	{#if entries.length}
 		<section>
-			<h2>{t('rail.file', locale)}</h2>
+			<h2 tabindex="-1">{t('rail.file', locale)}</h2>
 			<dl>
 				{#each entries as [key, value]}
 					<dt>{key}</dt>
@@ -42,7 +57,7 @@
 		</section>
 	{/if}
 	<section>
-		<h2>{t('rail.history', locale)}</h2>
+		<h2 tabindex="-1">{t('rail.history', locale)}</h2>
 		<ol>
 			{#each history.slice(0, 5) as entry (entry.hash)}
 				<li>
@@ -74,6 +89,13 @@
 			height: 100vh;
 			overflow-y: auto;
 		}
+	}
+	h2:focus {
+		outline: none;
+	}
+	h2:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	h2 {
 		margin: 0 0 8px;

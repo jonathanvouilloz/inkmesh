@@ -103,8 +103,25 @@
 		display: none;
 	}
 	@media (max-width: 767px) {
+		/* The save state takes its own row, so a long sentence never squeezes the path. */
 		.strip {
+			grid-template-columns: minmax(0, 1fr) max-content;
+			grid-template-areas: 'path actions' 'state state';
+			row-gap: 0;
 			padding: 0 16px;
+		}
+		.path {
+			grid-area: path;
+		}
+		.actions {
+			grid-area: actions;
+		}
+		.state {
+			grid-area: state;
+			text-align: left;
+		}
+		.conflict {
+			padding-bottom: 8px;
 		}
 		.details {
 			display: block;

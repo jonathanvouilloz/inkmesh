@@ -52,7 +52,7 @@ test.describe('English', () => {
 		const response = await page.goto('/demo/notes/%C3%A9t%C3%A9.md');
 		if (response?.status() === 404) {
 			await page.goto('/demo');
-			await page.getByText('New document', { exact: true }).click();
+			await page.getByRole('navigation').getByText('New document', { exact: true }).click();
 			await page.getByLabel('Path of the new document, e.g. notes/idea.md').fill('notes/été.md');
 			await page.getByRole('button', { name: 'Create' }).click();
 		}
@@ -91,6 +91,11 @@ test.describe('Mobile', () => {
 		await strip(page).getByRole('button', { name: 'Details' }).click();
 		await expect(details).toBeInViewport();
 		await expect(details.getByRole('heading', { name: 'History' })).toBeVisible();
+		await expect(details.getByRole('heading').first()).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(details).toBeHidden();
+		await expect(strip(page).getByRole('button', { name: 'Details' })).toBeFocused();
+		await strip(page).getByRole('button', { name: 'Details' }).click();
 		await strip(page).getByRole('button', { name: 'Details' }).click();
 		await expect(details).toBeHidden();
 	});

@@ -9,13 +9,14 @@ export const actions: Actions = {
 		// Actions run before the layout load, so the single-workspace guard is repeated here.
 		if (params.workspace !== 'demo') error(404);
 		const path = String((await request.formData()).get('path') ?? '').trim();
+		let created: string;
 		try {
-			await createDocument(params.workspace, path, currentActor());
+			created = await createDocument(params.workspace, path, currentActor());
 		} catch (err) {
-			if (err instanceof InvalidPath || err instanceof Conflict)
-				return fail(400, { createError: true });
+			if (err instanceof Conflict) return fail(409, { createError: 'exists' as const, path });
+			if (err instanceof InvalidPath) return fail(400, { createError: 'invalid' as const, path });
 			throw err;
 		}
-		redirect(303, `/${params.workspace}/${path.split('/').map(encodeURIComponent).join('/')}`);
+		redirect(303, `/${params.workspace}/${created.split('/').map(encodeURIComponent).join('/')}`);
 	}
 };

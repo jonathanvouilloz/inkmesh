@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
-import { basename, dirname, extname, join } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
@@ -115,26 +115,29 @@ export async function writeDocument(
 	});
 }
 
-export async function createDocument(slug: string, path: string, actor: Actor): Promise<void> {
-	if (!path.endsWith('.md')) throw new InvalidPath(path); // listTree only shows .md files
+/** Creates the document and returns its normalised workspace-relative path. */
+export async function createDocument(slug: string, path: string, actor: Actor): Promise<string> {
 	const root = workspaceDir(slug);
 	const file = resolveInside(root, path);
+	const name = basename(file).slice(0, -3);
+	// listTree only shows .md files and skips dot-files.
+	if (!file.endsWith('.md') || !name || name.startsWith('.')) throw new InvalidPath(path);
+	const rel = relative(root, file);
 	return serialised(slug, async () => {
 		await fs.mkdir(dirname(file), { recursive: true });
 		try {
-			await fs.writeFile(file, `# ${basename(file, extname(file))}\n`, {
-				flag: 'wx'
-			});
+			await fs.writeFile(file, `# ${name}\n`, { flag: 'wx' });
 		} catch (err) {
 			if ((err as { code?: unknown }).code === 'EEXIST')
-				throw new Conflict(`${path} already exists`);
+				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
 		await gitCommit(root, {
-			paths: [path],
-			message: `Create ${path}`,
+			paths: [rel],
+			message: `Create ${rel}`,
 			author: commitAuthor(actor)
 		});
+		return rel;
 	});
 }
 

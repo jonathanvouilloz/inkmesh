@@ -26,7 +26,13 @@
 	afterNavigate(() => (open = false));
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && hide()} />
+<!-- The drawer only exists below 768px; closing it on a wider viewport also lifts inert from main. -->
+<svelte:window
+	onkeydown={(e) => e.key === 'Escape' && hide()}
+	onresize={() => {
+		if (window.innerWidth >= 768) open = false;
+	}}
+/>
 
 <div class="shell">
 	<header class="topbar">
@@ -59,14 +65,17 @@
 					{t('tree.newPath', data.locale)}
 					<input
 						name="path"
-						placeholder="notes/idea.md"
+						placeholder={t('tree.placeholder', data.locale)}
+						value={page.form?.path ?? ''}
 						required
 						aria-invalid={page.form?.createError ? 'true' : undefined}
 						aria-describedby={page.form?.createError ? 'new-error' : undefined}
 					/>
 				</label>
 				{#if page.form?.createError}
-					<p id="new-error" class="error">{t('tree.badPath', data.locale)}</p>
+					<p id="new-error" class="error">
+						{t(page.form.createError === 'exists' ? 'tree.exists' : 'tree.badPath', data.locale)}
+					</p>
 				{/if}
 				<button>{t('tree.create', data.locale)}</button>
 			</form>
@@ -78,7 +87,7 @@
 		<div class="backdrop" aria-hidden="true" onclick={hide}></div>
 	{/if}
 
-	<main>{@render children()}</main>
+	<main inert={open}>{@render children()}</main>
 </div>
 
 <style>
@@ -106,6 +115,10 @@
 	}
 	.rail:focus {
 		outline: none;
+	}
+	.rail:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
 	}
 	.workspace {
 		margin: 0;

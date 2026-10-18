@@ -5,6 +5,8 @@ export const en = {
 	'tree.newPath': 'Path of the new document, e.g. notes/idea.md',
 	'tree.create': 'Create',
 	'tree.badPath': 'Enter a path ending in .md, without ..',
+	'tree.placeholder': 'notes/idea.md',
+	'tree.exists': 'A document with this path already exists',
 	'tree.search': 'Search',
 	'tree.searchLater': 'Search comes in a later version',
 	'strip.raw': 'Raw',
@@ -20,5 +22,8 @@ export const en = {
 	'rail.open': 'Details',
 	'editor.raw': 'Raw Markdown',
 	'editor.placeholder': 'Start writing, or type / for a block',
-	'empty.pick': 'Pick a document in the tree'
+	'empty.pick': 'Pick a document in the tree',
+	'error.notFound': 'This document does not exist',
+	'error.generic': 'Something went wrong',
+	'error.back': 'Back to the workspace'
 };

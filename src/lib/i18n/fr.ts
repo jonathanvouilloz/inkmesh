@@ -7,6 +7,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'tree.newPath': 'Chemin du nouveau document, ex. notes/idee.md',
 	'tree.create': 'Créer',
 	'tree.badPath': 'Indiquez un chemin terminé par .md, sans ..',
+	'tree.placeholder': 'notes/idee.md',
+	'tree.exists': 'Un document existe déjà à ce chemin',
 	'tree.search': 'Rechercher',
 	'tree.searchLater': 'La recherche arrive dans une version ultérieure',
 	'strip.raw': 'Brut',
@@ -22,5 +24,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'rail.open': 'Détails',
 	'editor.raw': 'Markdown brut',
 	'editor.placeholder': 'Commencez à écrire, ou tapez / pour un bloc',
-	'empty.pick': "Choisissez un document dans l'arborescence"
+	'empty.pick': "Choisissez un document dans l'arborescence",
+	'error.notFound': "Ce document n'existe pas",
+	'error.generic': 'Une erreur est survenue',
+	'error.back': "Retour à l'espace de travail"
 };

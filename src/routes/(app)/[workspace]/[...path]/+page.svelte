@@ -4,6 +4,7 @@
 	import RightRail from '#lib/ui/RightRail.svelte';
 	import { untrack } from 'svelte';
 	import { deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { SaveState } from '#lib/ui/FileStrip.svelte';
 	import type { PageProps } from './$types';
@@ -66,6 +67,7 @@
 				if (result.type === 'success') {
 					this.#hash = (result.data as { hash: string }).hash;
 					this.state = this.dirty ? 'idle' : 'saved';
+					void invalidateAll(); // refreshes the History block; the document key below keeps this autosave
 				} else if (result.type === 'failure' && result.status === 409) this.state = 'conflict';
 				else throw result;
 			} catch {
@@ -77,9 +79,14 @@
 
 	// The action URL is fixed per document, so a save flushed after navigating still targets it.
 	// Untracked: page.url also changes on hash navigation, which reloads no data and must keep this autosave.
-	const autosave = $derived(
-		new Autosave(`${untrack(() => page.url.pathname)}?/save`, data.body, data.hash)
-	);
+	// Keyed on the document, not on data: a reload of the same document (after a save) keeps it.
+	const doc = $derived(`${data.workspace}/${data.path}`);
+	const autosave = $derived.by(() => {
+		void doc;
+		return untrack(
+			() => new Autosave(`${page.url.pathname}?/save`, data.body, data.hash)
+		);
+	});
 	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
 	$effect(() => {
 		const current = autosave;
@@ -104,7 +111,7 @@
 		/>
 		<article>
 			<!-- Keyed so another document gets a fresh editor with its own body. -->
-			{#key `${data.workspace}/${data.path}`}
+			{#key doc}
 				<Editor
 					value={autosave.value}
 					{raw}
@@ -114,7 +121,12 @@
 			{/key}
 		</article>
 	</div>
-	<RightRail entries={data.entries} history={data.history} locale={data.locale} open={details} />
+	<RightRail
+		entries={data.entries}
+		history={data.history}
+		locale={data.locale}
+		bind:open={details}
+	/>
 </div>
 
 <style>

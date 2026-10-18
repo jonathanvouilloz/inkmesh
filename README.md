@@ -1,11 +1,20 @@
 # inkmesh
 
-Self-hosted Markdown collaboration space. Node 24.
+A self-hosted collaboration space where documents are real Markdown files on disk, edited by people in the browser and by AI agents with the same tools.
 
-- `npm run dev` — local server
+## Requirements
+
+Node 24 and git.
+
+## Commands
+
+- `npm install` — install dependencies
 - `npm run seed` — create the `demo` workspace (idempotent)
+- `npm run dev` — local server
 - `npm test` — unit tests (Vitest)
-- `npm run check` — svelte-check
-- `npm run build` — production build
+- `npm run test:e2e` — browser tests (Playwright)
 
-Data lives in `$INKMESH_DATA` (default `./.data`).
+## Configuration
+
+- `INKMESH_DATA` — data directory, default `./.data`. Each workspace is a git repository under `$INKMESH_DATA/workspaces/<slug>`.
+- `INKMESH_OWNER_NAME` — author name on commits made from the browser, default `Owner`.
