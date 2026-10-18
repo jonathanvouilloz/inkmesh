@@ -52,7 +52,7 @@ invitations  (token_hash TEXT PK, workspace TEXT NOT NULL REFERENCES workspaces 
 
 - An editor can only invite readers and editors; an owner can invite any role. A workspace keeps at least one owner: the last owner cannot be demoted or removed.
 - Instance admin (`users.admin`) is a flag set by the CLI, not a role; it grants workspace creation and nothing else inside a workspace.
-- Enforcement: `src/lib/core/access.ts` exports `roleOf(slug, userId): Role | null` and `assertRole(slug, actor, min: Role): Promise<Membership>` throwing `Forbidden`. `listTree`, `readDocument`, `history` call `assertRole(slug, actor, 'reader')`; `writeDocument`, `createDocument` call `assertRole(slug, actor, 'editor')`. The actor becomes a required argument of every document function. Routes map `Forbidden` to 403 (404 when the user is not a member at all, so slugs are not enumerable).
+- Enforcement: `src/lib/core/access.ts` exports `roleOf(slug, userId): Role | null` and `assertRole(slug, actor, min: Role): Membership` (synchronous) throwing `Forbidden`. `listTree`, `readDocument`, `history` call `assertRole(slug, actor, 'reader')`; `writeDocument`, `createDocument` call `assertRole(slug, actor, 'editor')`. The actor becomes a required argument of every document function. Routes map `Forbidden` to 403 (404 when the user is not a member at all, so slugs are not enumerable).
 
 ## Flows
 
