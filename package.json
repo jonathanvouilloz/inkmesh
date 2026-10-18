@@ -3,10 +3,14 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
+		"seed": "node scripts/seed.ts",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -27,7 +31,6 @@
 		"vitest": "^5.0.5"
 	},
 	"imports": {
-		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {

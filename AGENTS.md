@@ -14,7 +14,7 @@ SvelteKit (adapter-node) on Node 24, TypeScript, SQLite via `node:sqlite`, git C
 
 - `npm run dev` — local server, data in `./.data`
 - `npm test` — unit tests (Vitest), including Markdown round-trip fixtures
-- `npm run check` — svelte-check and lint
+- `npm run check` — svelte-check
 - `npm run build` — production build
 - Deploy: see `docs/project/architecture.md`, owner's approval required
 
