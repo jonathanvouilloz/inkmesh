@@ -18,7 +18,8 @@ function normalize(md: string): string {
 		.trim();
 }
 
-describe('Crepe round-trip spike', () => {
+// Measurement spike, kept as documentation; results in docs/plans/2026-10-18-m1-spike-results.md. Replaced by an end-to-end round-trip test in Task 7.
+describe.skip('Crepe round-trip spike', () => {
 	for (const name of fixtures) {
 		it(name, async () => {
 			const raw = readFileSync(`tests/fixtures/${name}`, 'utf8');
