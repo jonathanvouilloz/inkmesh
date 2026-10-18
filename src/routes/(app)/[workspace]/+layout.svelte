@@ -49,15 +49,6 @@
 
 	<nav id="rail" class="rail" class:open tabindex="-1" bind:this={rail}>
 		<p class="workspace">{data.workspace}</p>
-		<input
-			class="search"
-			type="search"
-			placeholder={t('tree.search', data.locale)}
-			aria-label={t('tree.search', data.locale)}
-			title={t('tree.searchLater', data.locale)}
-			disabled
-			aria-disabled="true"
-		/>
 		<details class="new" open={!!page.form?.createError}>
 			<summary>{t('tree.new', data.locale)}</summary>
 			<form method="POST" action="/{data.workspace}?/create">
@@ -138,9 +129,6 @@
 		margin-top: 4px;
 		font-family: var(--font-mono);
 		font-size: 12.5px;
-	}
-	.search:disabled {
-		cursor: not-allowed;
 	}
 	summary,
 	form button,

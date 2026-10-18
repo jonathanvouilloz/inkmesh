@@ -6,15 +6,20 @@
 		entries,
 		history,
 		locale,
-		open = $bindable()
-	}: { entries: [string, string][]; history: HistoryEntry[]; locale: Locale; open: boolean } =
-		$props();
+		open = $bindable(),
+		opener
+	}: {
+		entries: [string, string][];
+		history: HistoryEntry[];
+		locale: Locale;
+		open: boolean;
+		opener?: HTMLElement;
+	} = $props();
 
 	// Mobile bottom sheet: focus its first heading on open, give focus back to the opener on close.
 	let aside: HTMLElement;
 	$effect(() => {
 		if (!open) return;
-		const opener = document.activeElement as HTMLElement | null;
 		aside.querySelector('h2')?.focus();
 		return () => opener?.focus();
 	});
@@ -40,7 +45,10 @@
 
 <svelte:window
 	onkeydown={(e) => {
-		if (e.key === 'Escape') open = false;
+		if (open && e.key === 'Escape') open = false;
+	}}
+	onresize={() => {
+		if (open && window.innerWidth >= 768) open = false;
 	}}
 />
 
@@ -113,6 +121,9 @@
 		font-family: var(--font-mono);
 		font-size: 12.5px;
 		color: var(--muted);
+	}
+	time {
+		font-variant-numeric: tabular-nums;
 	}
 	dd {
 		margin: 0;

@@ -9,10 +9,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'tree.badPath': 'Indiquez un chemin terminé par .md, sans ..',
 	'tree.placeholder': 'notes/idee.md',
 	'tree.exists': 'Un document existe déjà à ce chemin',
-	'tree.search': 'Rechercher',
-	'tree.searchLater': 'La recherche arrive dans une version ultérieure',
 	'strip.raw': 'Brut',
-	'strip.rich': 'Éditeur',
 	'save.saving': 'Enregistrement…',
 	'save.saved': 'Enregistré',
 	'save.conflict':

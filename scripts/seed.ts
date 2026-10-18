@@ -26,9 +26,17 @@ for (const [target, source] of Object.entries(files)) {
 		if ((err as { code?: unknown }).code !== 'EEXIST') throw err;
 	}
 }
+const owner = currentActor();
+const examples = copied.filter((p) => p.startsWith('examples/'));
 await gitCommit(root, {
-	paths: copied,
+	paths: copied.filter((p) => !examples.includes(p)),
 	message: 'Seed demo workspace',
-	author: commitAuthor(currentActor())
+	author: commitAuthor(owner)
+});
+// The examples land as an agent commit, so the History shows "Owner via claude-code".
+await gitCommit(root, {
+	paths: examples,
+	message: 'Seed examples via agent',
+	author: commitAuthor({ ...owner, agent: 'claude-code' })
 });
 console.log(copied.length ? `Seeded ${copied.join(', ')}` : 'Demo workspace already seeded');

@@ -148,7 +148,8 @@ describe('documents', () => {
 
 	it('returns the normalised path of a created document', async () => {
 		expect(await createDocument('demo', './notes//a.md', actor)).toBe('notes/a.md');
-		expect((await listTree('demo')).some((n) => n.path === 'notes')).toBe(true);
+		const notes = (await listTree('demo')).find((n) => n.path === 'notes');
+		expect(notes?.children?.some((n) => n.path === 'notes/a.md' && n.kind === 'doc')).toBe(true);
 	});
 
 	it('does not commit an identical body', async () => {

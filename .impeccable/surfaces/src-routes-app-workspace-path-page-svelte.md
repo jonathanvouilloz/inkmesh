@@ -33,6 +33,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 - The left rail's workspace switcher and user menu arrive with accounts and memberships (milestone 2); milestone 1 has one workspace and one configured actor, so the rail shows the workspace name only.
 - The right rail's Comments block arrives with comments (milestone 3); milestone 1 shows File and History only. No placeholder is shown: an empty promise is worse than an absent block.
+- The left rail's search field arrives with search; milestone 1 shows no field, for the same reason as the Comments block.
 - `--warn` is `#9A5C00`, not the contract's `#B26B00`, which failed WCAG AA at 12.5px.
 
 ## Unresolved

@@ -12,7 +12,11 @@
 		<li>
 			{#if node.kind === 'folder'}
 				<details open>
-					<summary>{node.name}</summary>
+					<summary
+						><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"
+							><path d="M4.5 2.5 8 6l-3.5 3.5" /></svg
+						>{node.name}</summary
+					>
 					<Tree nodes={node.children ?? []} {workspace} {current} />
 				</details>
 			{:else}
@@ -40,10 +44,31 @@
 		border-radius: var(--radius);
 	}
 	summary {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		list-style: none;
 		color: var(--muted);
 		font-family: var(--font-mono);
 		font-size: 12.5px;
 		cursor: pointer;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
+	svg {
+		flex: none;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.5;
+	}
+	details[open] > summary svg {
+		transform: rotate(90deg);
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		svg {
+			transition: transform var(--ease);
+		}
 	}
 	a {
 		color: var(--ink);

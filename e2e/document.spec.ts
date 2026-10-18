@@ -22,7 +22,7 @@ test.describe('English', () => {
 		// out of the five newest; the newest row is the seed or a later save, both by Owner.
 		expect(await rows.count()).toBeGreaterThanOrEqual(1);
 		expect(await rows.count()).toBeLessThanOrEqual(5);
-		await expect(rows.first()).toContainText(/^Owner.*(Seed demo workspace|Update examples\/kitchen-sink\.md)$/);
+		await expect(rows.first()).toContainText(/^Owner.*(Seed demo workspace|Seed examples via agent|Update examples\/kitchen-sink\.md)$/);
 
 		const toggle = strip(page).getByRole('button', { name: 'Raw' });
 		await expect(toggle).toHaveAttribute('aria-pressed', 'false');

@@ -17,6 +17,12 @@
 	--ease: 150ms ease-out;
 }
 
+html {
+	caret-color: var(--accent);
+	scrollbar-color: var(--hairline) transparent;
+	scrollbar-width: thin;
+}
+
 body {
 	margin: 0;
 	background: var(--ground);

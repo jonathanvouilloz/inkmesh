@@ -12,6 +12,7 @@
 	let { data }: PageProps = $props();
 	let raw = $state(false);
 	let details = $state(false);
+	let opener = $state<HTMLButtonElement>();
 
 	// One autosave per opened document: debounced, never overlapping, stopped by a conflict.
 	class Autosave {
@@ -108,6 +109,7 @@
 			saveState={autosave.state}
 			bind:raw
 			bind:details
+			bind:opener
 		/>
 		<article>
 			<!-- Keyed so another document gets a fresh editor with its own body. -->
@@ -126,6 +128,7 @@
 		history={data.history}
 		locale={data.locale}
 		bind:open={details}
+		{opener}
 	/>
 </div>
 

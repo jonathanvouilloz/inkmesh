@@ -10,13 +10,15 @@
 		locale,
 		saveState,
 		raw = $bindable(),
-		details = $bindable()
+		details = $bindable(),
+		opener = $bindable()
 	}: {
 		path: string;
 		locale: Locale;
 		saveState: SaveState;
 		raw: boolean;
 		details: boolean;
+		opener?: HTMLButtonElement;
 	} = $props();
 </script>
 
@@ -27,6 +29,7 @@
 	>
 	<span class="actions">
 		<button
+			bind:this={opener}
 			class="details"
 			aria-expanded={details}
 			aria-controls="details"

@@ -7,10 +7,7 @@ export const en = {
 	'tree.badPath': 'Enter a path ending in .md, without ..',
 	'tree.placeholder': 'notes/idea.md',
 	'tree.exists': 'A document with this path already exists',
-	'tree.search': 'Search',
-	'tree.searchLater': 'Search comes in a later version',
 	'strip.raw': 'Raw',
-	'strip.rich': 'Editor',
 	'save.saving': 'Saving…',
 	'save.saved': 'Saved',
 	'save.conflict':

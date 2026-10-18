@@ -133,6 +133,51 @@
 	.rich :global(.milkdown .ProseMirror li) {
 		line-height: 1.6;
 	}
+	/* --crepe-color-outline (the hairline) also colours Crepe's list markers: give them the muted ink. */
+	.rich :global(.milkdown .milkdown-list-item-block li .label-wrapper) {
+		color: var(--muted);
+	}
+	.rich :global(.milkdown .milkdown-list-item-block li .label-wrapper svg) {
+		fill: var(--muted);
+	}
+	.rich :global(.milkdown .milkdown-list-item-block li .label-wrapper .checked svg) {
+		fill: var(--accent);
+	}
+	.rich :global(.milkdown .ProseMirror blockquote::before) {
+		width: 2px;
+		background: var(--hairline);
+	}
+	/* Phone readability: code keeps its lines and tables keep their words; both scroll sideways. */
+	.rich :global(.milkdown .milkdown-code-block .cm-content) {
+		white-space: pre;
+	}
+	.rich :global(.milkdown .milkdown-code-block .cm-scroller) {
+		overflow-x: auto;
+	}
+	.rich :global(.milkdown .milkdown-table-block table) {
+		table-layout: auto;
+	}
+	/* Phone only: the scroll container would clip Crepe's hover handles, which phones do not use. */
+	@media (max-width: 767px) {
+		.rich :global(.milkdown .milkdown-table-block .table-wrapper) {
+			overflow-x: auto;
+		}
+	}
+	.rich :global(.milkdown .milkdown-table-block :is(th, td)) {
+		overflow-wrap: normal;
+		font-variant-numeric: tabular-nums;
+	}
+	.rich :global(.milkdown .milkdown-table-block th) {
+		white-space: nowrap;
+	}
+	/* shortcut: raw HTML shows as its source, like code; rendering it natively is a later decision */
+	.rich :global(.milkdown .ProseMirror span[data-type='html']) {
+		padding: 2px 4px;
+		border-radius: var(--radius);
+		background: var(--panel);
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+	}
 	.rich :global(.milkdown-toolbar) {
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);
