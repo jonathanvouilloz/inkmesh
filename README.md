@@ -9,7 +9,9 @@ Node 24 and git.
 ## Commands
 
 - `npm install` — install dependencies
-- `npm run seed` — create the `demo` workspace (idempotent)
+- `npm run seed` — create the `demo` workspace and, in development, the admin `owner@inkmesh.local` / `inkmesh-dev` who owns it (idempotent)
+- `npm run admin -- create-admin <email> <name>` — create an instance admin; the password is read from stdin
+- `npm run admin -- reset-password <email>` — set a new password for an existing user, read from stdin
 - `npm run dev` — local server
 - `npm test` — unit tests (Vitest)
 - `npm run test:e2e` — browser tests (Playwright)

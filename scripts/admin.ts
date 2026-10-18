@@ -17,7 +17,10 @@ if (!valid) fail(USAGE);
 
 const user = command === 'reset-password' ? (userByEmail(email) ?? fail(`no user ${email}`)) : null;
 const rl = createInterface({ input: process.stdin, output: process.stderr });
+// Without the close handler an empty stdin leaves the question pending and Node exits with 13.
+rl.once('close', () => fail('no password given'));
 const password = await rl.question('Password: ');
+rl.removeAllListeners('close');
 rl.close();
 
 try {
