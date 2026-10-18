@@ -19,5 +19,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'rail.file': 'Fichier',
 	'rail.history': 'Historique',
 	'rail.via': 'via',
+	'rail.open': 'Détails',
+	'editor.raw': 'Markdown brut',
 	'empty.pick': "Choisissez un document dans l'arborescence"
 };

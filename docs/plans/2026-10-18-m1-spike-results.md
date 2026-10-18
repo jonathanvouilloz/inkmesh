@@ -1,7 +1,7 @@
 # M1 spike: Milkdown Crepe round-trip
 Updated: 2026-10-18
 
-`@milkdown/crepe` 7.22.3, default features, under `happy-dom` 21.0.3 in Vitest 5.0.5 (no polyfills needed). Each fixture body (frontmatter removed by `^---\n[\s\S]*?\n---\n`) goes through `new Crepe({ defaultValue })` → `create()` → `getMarkdown()`. Test: `src/lib/editor/roundtrip.spike.test.ts`, run with `npx vitest run src/lib/editor/roundtrip.spike.test.ts`. The `normalize` rule is the one in the plan; all four assertions fail.
+`@milkdown/crepe` 7.22.3, default features, under `happy-dom` 21.0.3 in Vitest 5.0.5 (no polyfills needed). Each fixture body (frontmatter removed by `^---\n[\s\S]*?\n---\n`) goes through `new Crepe({ defaultValue })` → `create()` → `getMarkdown()`. Test: `src/lib/editor/roundtrip.spike.test.ts` (deleted in Task 7, see git history; replaced by `src/lib/editor/roundtrip.test.ts`). The `normalize` rule is the one in the plan; all four assertions fail.
 
 | Fixture | Semantic match | Formatting changes observed | Content lost |
 | --- | --- | --- | --- |

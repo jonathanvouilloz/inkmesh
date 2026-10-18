@@ -17,5 +17,7 @@ export const en = {
 	'rail.file': 'File',
 	'rail.history': 'History',
 	'rail.via': 'via',
+	'rail.open': 'Details',
+	'editor.raw': 'Raw Markdown',
 	'empty.pick': 'Pick a document in the tree'
 };
