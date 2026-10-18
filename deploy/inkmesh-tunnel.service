@@ -1,0 +1,15 @@
+[Unit]
+Description=inkmesh Cloudflare tunnel
+After=inkmesh.service
+
+[Service]
+Type=simple
+# Phase A: quick tunnel, random https://<words>.trycloudflare.com URL (scripts/tunnel-url.sh).
+ExecStart=%h/.local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:9310
+# Phase B: named tunnel for inkmesh.ch (see docs/deploy.md).
+#ExecStart=%h/.local/bin/cloudflared tunnel --no-autoupdate --config %h/.cloudflared/config.yml tunnel run
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

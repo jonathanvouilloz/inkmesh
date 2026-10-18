@@ -15,7 +15,7 @@ The folder is still named `comd`; rename to `inkmesh` (`mv /home/hermes/personal
 - Deferred to milestone 2 (from reviews, all ledgered): LCS prefix/suffix trimming and `listTree` caching for large workspaces; definitions nested in lists or blockquotes are not protected by `patchMarkdown`; a failed create leaves the file staged; atomic rename resets the file mode; `gitLog` keeps the subject line only; title regex can match `# ` inside a fence; history has no `--follow`; Crepe's toolbar and slash-menu strings are English; HTML blocks render as source, not natively; image paste needs a custom handler without ImageBlock.
 
 ## In production
-Nothing deployed. Before the first VPS deploy: set `BODY_SIZE_LIMIT` (adapter-node, 512K default), systemd user service with `INKMESH_DATA`, Caddy in front (see architecture.md).
+Phase A installed on the VPS (`docs/deploy.md`): user service `inkmesh` enabled and running on `127.0.0.1:9310`, data in `/home/hermes/inkmesh-data`, env in `~/.config/inkmesh/env`. No admin created yet. `inkmesh-tunnel` (Cloudflare quick tunnel) is enabled but not started: starting it exposes the app publicly and waits for the owner's approval; being enabled, it also starts at the next reboot. `~/personal-projects/inkmesh` is a symlink to `comd` until the folder is renamed. Phase B (`inkmesh.ch`, named tunnel): steps in `docs/deploy.md`.
 
 ## Known traps
 - Never bypass `core` for disk or git access; every path goes through `resolveInside` (in-root symlinks are rejected on purpose: a link to `.git/config` was a command-execution path).

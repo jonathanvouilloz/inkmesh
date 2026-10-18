@@ -1,0 +1,15 @@
+[Unit]
+Description=inkmesh web app
+
+[Service]
+Type=simple
+WorkingDirectory=%h/personal-projects/inkmesh
+EnvironmentFile=%h/.config/inkmesh/env
+# node lives in ~/.local/bin, which the user manager PATH does not include.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node build
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

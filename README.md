@@ -15,6 +15,7 @@ Node 24 and git.
 - `npm run dev` — local server
 - `npm test` — unit tests (Vitest)
 - `npm run test:e2e` — browser tests (Playwright)
+- Production deploy: see [docs/deploy.md](docs/deploy.md)
 
 ## Configuration
 

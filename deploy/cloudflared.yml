@@ -1,0 +1,8 @@
+# Phase B template: copy to ~/.cloudflared/config.yml and fill in the tunnel id.
+tunnel: inkmesh
+credentials-file: /home/hermes/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: inkmesh.ch
+    service: http://127.0.0.1:9310
+  - service: http_status:404
