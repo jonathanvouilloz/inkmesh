@@ -29,6 +29,12 @@ FORM: brief-pinned composition (Linear shell, GitHub Markdown, Notion page), not
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 
+## Scope citations (milestone 1, 2026-10-18)
+
+- The left rail's workspace switcher and user menu arrive with accounts and memberships (milestone 2); milestone 1 has one workspace and one configured actor, so the rail shows the workspace name only.
+- The right rail's Comments block arrives with comments (milestone 3); milestone 1 shows File and History only. No placeholder is shown: an empty promise is worse than an absent block.
+- `--warn` is `#9A5C00`, not the contract's `#B26B00`, which failed WCAG AA at 12.5px.
+
 ## Unresolved
 
 - Whether comments show inline in the right rail or on a dedicated panel below the document on narrow screens.
