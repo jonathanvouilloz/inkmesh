@@ -29,10 +29,11 @@ test('an admin creates a workspace and lands in it', async ({ page }) => {
 test('a bad slug is refused inline', async ({ page }) => {
 	await page.goto('/');
 	await page.getByText('New workspace', { exact: true }).click();
-	await page.getByLabel('Name').fill('Whatever');
+	await page.getByLabel('Name').fill('Équipe');
+	await expect(page.getByLabel('Slug')).toHaveValue('equipe');
 	await page.getByLabel('Slug').fill('Bad Slug');
 	await page.getByRole('button', { name: 'Create' }).click();
-	await expect(page.getByText('Lowercase letters, digits and dashes only')).toBeVisible();
+	await expect(page.getByText('Lowercase letters, digits and dashes only, 2 to 40 characters')).toBeVisible();
 	await expect(page.getByLabel('Slug')).toHaveAttribute('aria-invalid', 'true');
 });
 

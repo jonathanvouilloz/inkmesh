@@ -40,7 +40,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'home.create': 'Nouvel espace de travail',
 	'home.name': 'Nom',
 	'home.slug': 'Identifiant',
-	'home.slugBad': 'Lettres minuscules, chiffres et tirets uniquement',
+	'home.slugBad': 'Lettres minuscules, chiffres et tirets uniquement, de 2 à 40 caractères',
 	'home.exists': 'Un espace de travail utilise déjà cet identifiant',
 	'role.owner': 'Propriétaire',
 	'role.editor': 'Éditeur',

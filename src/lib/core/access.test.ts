@@ -56,6 +56,12 @@ describe('access', () => {
 		await expect(createWorkspace('team', 'x', jon)).rejects.toBeInstanceOf(Conflict);
 	});
 
+	it('refuses slugs that collide with top-level routes', async () => {
+		const jon = await user('jon');
+		await expect(createWorkspace('login', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
+		await expect(createWorkspace('invite', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
+	});
+
 	it('drops the workspace row when its folder cannot be created', async () => {
 		const jon = await user('jon');
 		fs.mkdirSync(path.dirname(workspaceDir('team')), { recursive: true });

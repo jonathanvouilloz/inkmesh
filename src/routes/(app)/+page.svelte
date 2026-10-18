@@ -12,6 +12,8 @@
 	let slugEdited = $state(untrack(() => !!form?.slug));
 	const suggest = (s: string) =>
 		s
+			.normalize('NFD')
+			.replace(/\p{M}/gu, '')
 			.toLowerCase()
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-+|-+$/g, '');
@@ -111,7 +113,6 @@
 		font-size: 12.5px;
 	}
 	.slug,
-	.role,
 	.empty {
 		color: var(--muted);
 	}

@@ -12,12 +12,14 @@ export type Workspace = { slug: string; name: string };
 export type Invitation = { workspace: Workspace; role: Role; createdBy: string; expiresAt: string };
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,39}$/;
+// Workspaces live at /<slug>, so a slug must not shadow a top-level route.
+const RESERVED = new Set(['login', 'logout', 'account', 'invite', 'api', 'mcp', 'assets', 'static', 'favicon.ico']);
 const INVITATION_DAYS = 7;
 const rank = (role: Role) => ROLES.indexOf(role);
 const now = () => new Date().toISOString();
 
 export async function createWorkspace(slug: string, name: string, owner: Actor): Promise<Workspace> {
-	if (!SLUG.test(slug)) throw new InvalidPath(slug);
+	if (!SLUG.test(slug) || RESERVED.has(slug)) throw new InvalidPath(slug);
 	transaction(() => {
 		if (workspace(slug)) throw new Conflict(slug);
 		db().prepare('INSERT INTO workspaces (slug, name, created_at) VALUES (?, ?, ?)').run(slug, name, now());

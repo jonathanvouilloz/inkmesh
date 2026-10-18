@@ -44,7 +44,7 @@
 	{@render children?.()}
 	<a class="wordmark" href="/">{t('app.name', locale)}</a>
 	<details class="switcher" bind:this={menu}>
-		<summary bind:this={summary}>{name}</summary>
+		<summary bind:this={summary}><span class="current">{name}</span></summary>
 		<ul>
 			{#each workspaces as w (w.slug)}
 				<li>
@@ -100,6 +100,12 @@
 		border-radius: var(--radius);
 		cursor: pointer;
 		list-style: none;
+	}
+	.current {
+		max-width: 16rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	summary::-webkit-details-marker {
 		display: none;

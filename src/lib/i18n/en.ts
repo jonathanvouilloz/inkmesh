@@ -38,7 +38,7 @@ export const en = {
 	'home.create': 'New workspace',
 	'home.name': 'Name',
 	'home.slug': 'Slug',
-	'home.slugBad': 'Lowercase letters, digits and dashes only',
+	'home.slugBad': 'Lowercase letters, digits and dashes only, 2 to 40 characters',
 	'home.exists': 'A workspace with this slug already exists',
 	'role.owner': 'Owner',
 	'role.editor': 'Editor',
