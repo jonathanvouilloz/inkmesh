@@ -100,7 +100,7 @@
 		/>
 		<article>
 			<!-- Keyed so another document gets a fresh editor with its own body. -->
-			{#key data.path}
+			{#key `${data.workspace}/${data.path}`}
 				<Editor
 					value={autosave.value}
 					{raw}

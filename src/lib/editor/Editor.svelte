@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import type { Crepe } from '@milkdown/crepe';
 	import '@milkdown/crepe/theme/common/style.css';
 	import '@milkdown/crepe/theme/frame.css';
@@ -16,6 +16,8 @@
 	let host: HTMLDivElement;
 	// Loaded in onMount: until then (and without JavaScript) the textarea shows the Markdown.
 	let load = $state<() => Promise<Crepe>>();
+	// True once Crepe has rendered: the textarea stays up until then, so there is no blank flash.
+	let shown = $state(false);
 
 	onMount(() => {
 		load = async () => {
@@ -25,8 +27,11 @@
 			]);
 			const crepe = new Crepe({
 				root: host,
-				defaultValue: value,
-				features: crepeFeatures
+				// untrack: value must never become a dependency of the effect that calls load.
+				defaultValue: untrack(() => value),
+				features: crepeFeatures,
+				// shortcut: only the placeholder is localised; Crepe's toolbar and slash-menu labels stay English, upgrade through featureConfigs when French users ask
+				featureConfigs: { [Crepe.Feature.Placeholder]: { text: t('editor.placeholder', locale) } }
 			});
 			crepe.on((listener) =>
 				listener.markdownUpdated((_ctx, markdown) => {
@@ -41,22 +46,30 @@
 
 	// Leaving raw mode destroys and recreates Crepe with the current value: simplest correct way
 	// to pick up raw edits. The cleanup is also the onDestroy.
+	// On a fast toggle a new editor may start before the old one finished creating; the old one is
+	// destroyed as soon as its create resolves, so two never stay mounted.
 	$effect(() => {
 		if (!load || raw) return;
+		let live = true;
 		const ready = load();
-		return () => void ready.then((crepe) => crepe.destroy());
+		ready.then(() => live && (shown = true), () => {}); // a failed create leaves the textarea up
+		return () => {
+			live = false;
+			shown = false;
+			ready.then((crepe) => crepe.destroy(), () => {});
+		};
 	});
 </script>
 
 <textarea
 	class="raw"
-	hidden={!!load && !raw}
+	hidden={shown && !raw}
 	aria-label={t('editor.raw', locale)}
 	spellcheck="false"
 	bind:value
 	oninput={() => onchange(value)}
 ></textarea>
-<div class="rich" hidden={!load || raw} bind:this={host}></div>
+<div class="rich" hidden={raw} bind:this={host}></div>
 
 <style>
 	.raw {
@@ -79,7 +92,17 @@
 		display: none;
 	}
 	.raw:focus-visible {
-		outline: none;
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	/* A quiet accent bar in the margin while the page is being edited by keyboard. */
+	.rich :global(.milkdown .ProseMirror) {
+		margin-left: -16px;
+		padding-left: 14px;
+		border-left: 2px solid transparent;
+	}
+	.rich :global(.milkdown .ProseMirror:focus-visible) {
+		border-left-color: var(--accent);
 	}
 	.rich :global(.milkdown) {
 		--crepe-color-background: var(--ground);
@@ -102,7 +125,9 @@
 		--crepe-shadow-2: none;
 	}
 	.rich :global(.milkdown .ProseMirror) {
-		padding: 0;
+		padding-top: 0;
+		padding-right: 0;
+		padding-bottom: 0;
 	}
 	.rich :global(.milkdown .ProseMirror p),
 	.rich :global(.milkdown .ProseMirror li) {

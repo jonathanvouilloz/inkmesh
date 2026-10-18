@@ -21,5 +21,6 @@ export const fr: Record<keyof typeof en, string> = {
 	'rail.via': 'via',
 	'rail.open': 'Détails',
 	'editor.raw': 'Markdown brut',
+	'editor.placeholder': 'Commencez à écrire, ou tapez / pour un bloc',
 	'empty.pick': "Choisissez un document dans l'arborescence"
 };

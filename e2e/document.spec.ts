@@ -18,8 +18,11 @@ test.describe('English', () => {
 		await expect(details.getByText('Weekly agent report', { exact: true })).toBeVisible();
 		await expect(details.getByRole('heading', { name: 'History' })).toBeVisible();
 		const rows = details.getByRole('listitem');
+		// .data persists across runs and save.spec adds commits, so the seed commit may have scrolled
+		// out of the five newest; the newest row is the seed or a later save, both by Owner.
 		expect(await rows.count()).toBeGreaterThanOrEqual(1);
-		await expect(rows.last()).toContainText('Seed demo workspace');
+		expect(await rows.count()).toBeLessThanOrEqual(5);
+		await expect(rows.first()).toContainText(/^Owner.*(Seed demo workspace|Update examples\/kitchen-sink\.md)$/);
 
 		const toggle = strip(page).getByRole('button', { name: 'Raw' });
 		await expect(toggle).toHaveAttribute('aria-pressed', 'false');

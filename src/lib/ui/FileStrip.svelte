@@ -25,18 +25,22 @@
 	<span class="state {saveState}" role="status" aria-live="polite"
 		>{saveState === 'idle' ? '' : t(`save.${saveState}`, locale)}</span
 	>
-	<button
-		class="details"
-		aria-expanded={details}
-		aria-controls="details"
-		onclick={() => (details = !details)}>{t('rail.open', locale)}</button
-	>
-	<button aria-pressed={raw} onclick={() => (raw = !raw)}>{t('strip.raw', locale)}</button>
+	<span class="actions">
+		<button
+			class="details"
+			aria-expanded={details}
+			aria-controls="details"
+			onclick={() => (details = !details)}>{t('rail.open', locale)}</button
+		>
+		<button aria-pressed={raw} onclick={() => (raw = !raw)}>{t('strip.raw', locale)}</button>
+	</span>
 </div>
 
 <style>
+	/* Path left, save state centred, buttons right; the buttons column never shrinks below its content. */
 	.strip {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr);
 		align-items: center;
 		gap: 12px;
 		box-sizing: border-box;
@@ -53,8 +57,6 @@
 	}
 	/* Truncated from the left so the file name stays visible; bdi keeps the path itself left-to-right. */
 	.path {
-		flex: 1 1 auto;
-		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		direction: rtl;
@@ -62,6 +64,12 @@
 	}
 	.state {
 		color: var(--muted);
+		text-align: center;
+	}
+	.actions {
+		display: flex;
+		gap: 8px;
+		justify-self: end;
 	}
 	.saved {
 		color: var(--ok);

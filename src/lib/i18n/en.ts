@@ -19,5 +19,6 @@ export const en = {
 	'rail.via': 'via',
 	'rail.open': 'Details',
 	'editor.raw': 'Raw Markdown',
+	'editor.placeholder': 'Start writing, or type / for a block',
 	'empty.pick': 'Pick a document in the tree'
 };
