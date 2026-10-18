@@ -18,7 +18,8 @@ test.describe('English', () => {
 		await expect(details.getByText('Weekly agent report', { exact: true })).toBeVisible();
 		await expect(details.getByRole('heading', { name: 'History' })).toBeVisible();
 		const rows = details.getByRole('listitem');
-		// Fresh seed data (playwright.config.ts): the one commit is the agent seed.
+		// Fresh seed data (playwright.config.ts): the one commit is the agent seed. Relies on one worker
+		// and alphabetical file order: save.spec, which adds commits here, runs after this file.
 		await expect(rows).toHaveCount(1);
 		await expect(rows.first()).toContainText('Seed examples via agent');
 

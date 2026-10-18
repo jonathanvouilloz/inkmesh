@@ -99,11 +99,18 @@ export function patchMarkdown(original: string, edited: string): string {
 	const pieces: Array<{ slot: number; changed: boolean; editedText: string }> = [];
 	// Original definitions the edited text lacks stay in place (the editor drops them, see blocks).
 	const editedKeys = new Set(B.map((block) => block.key));
+	// shortcut: a definition the edited text lacks is never removed, in rich or raw mode; only a raw-mode deletion that leaves references unresolved fails the parse check below and saves the raw text as is; upgrade when users need to delete definitions
 	const orphan = (block: Block) => block.definition && !editedKeys.has(block.key);
 	let dropped = -1;
 	for (let i = 0, j = 0; j < B.length || i < A.length; ) {
-		// A changed block that replaces the block just before an orphan takes its slot first.
-		if (i < A.length && orphan(A[i]) && (dropped < 0 || j === B.length)) {
+		// A changed block that replaces the block just before an orphan takes its slot first, unless it
+		// matches a later original block: for an orphan lcs[i][j] === lcs[i + 1][j], so a smaller
+		// lcs[i][j + 1] means B[j] pairs further down.
+		if (
+			i < A.length &&
+			orphan(A[i]) &&
+			(dropped < 0 || j === B.length || lcs[i][j + 1] < lcs[i][j])
+		) {
 			pieces.push({ slot: i, changed: false, editedText: a.slice(A[i].start, A[i++].end) });
 			dropped = -1;
 			continue;

@@ -48,8 +48,8 @@ function documentFile(root: string, path: string): string {
 /** Writes through a temporary file, so a crash never leaves half a document; `exclusive` fails with EEXIST. */
 async function writeAtomic(file: string, text: string, exclusive = false): Promise<void> {
 	const tmp = `${file}.tmp-${randomBytes(6).toString('hex')}`;
-	await fs.writeFile(tmp, text, { flag: 'wx' });
 	try {
+		await fs.writeFile(tmp, text, { flag: 'wx' });
 		await (exclusive ? fs.link(tmp, file) : fs.rename(tmp, file));
 	} finally {
 		await fs.rm(tmp, { force: true });

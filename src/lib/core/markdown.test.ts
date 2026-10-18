@@ -84,6 +84,17 @@ describe('patchMarkdown', () => {
 		expect(patchMarkdown(x, edited)).toBe(x.replace('A paragraph without links.', 'An edited paragraph.'));
 	});
 
+	it('keeps a later untouched block when the block before a definition is deleted', () => {
+		const x = 'Para.\n\nGone.\n\n[a]: https://a\n\nKeep _this_ one.\n';
+		expect(patchMarkdown(x, 'Para.\n\nKeep *this* one.\n')).toBe(
+			'Para.\n\n[a]: https://a\n\nKeep _this_ one.\n'
+		);
+		const setext = 'Para.\n\nGone.\n\n[a]: https://a\n\nTitle\n=====\n';
+		expect(patchMarkdown(setext, 'Para.\n\n# Title\n')).toBe(
+			'Para.\n\n[a]: https://a\n\nTitle\n=====\n'
+		);
+	});
+
 	it('keeps an appended block separate from the last original block', () => {
 		expect(patchMarkdown('One.\n', 'One.\n\nTwo.\n')).toBe('One.\n\nTwo.\n');
 	});
