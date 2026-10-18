@@ -15,7 +15,15 @@ describe('resolveInside', () => {
 		expect(resolveInside(root, 'a/b.md')).toBe(`${root}/a/b.md`);
 	});
 
-	for (const rel of ['../x.md', '/etc/passwd', '', '.git/config', '.inkmesh/comments/x.md']) {
+	for (const rel of [
+		'../x.md',
+		'/etc/passwd',
+		'',
+		'.git/config',
+		'.inkmesh/comments/x.md',
+		'notes/.git/x',
+		'a\0b.md'
+	]) {
 		it(`rejects ${JSON.stringify(rel)}`, () => {
 			expect(() => resolveInside(root, rel)).toThrow(InvalidPath);
 		});
@@ -24,5 +32,15 @@ describe('resolveInside', () => {
 	it('rejects a symlink that escapes the root', () => {
 		fs.symlinkSync('/tmp', root + '/link');
 		expect(() => resolveInside(root, 'link/x')).toThrow(InvalidPath);
+	});
+
+	it('rejects a dangling symlink', () => {
+		const other = fs.mkdtempSync(path.join(os.tmpdir(), 'inkmesh-other-'));
+		try {
+			fs.symlinkSync(path.join(other, 'missing.md'), root + '/d.md');
+			expect(() => resolveInside(root, 'd.md')).toThrow(InvalidPath);
+		} finally {
+			fs.rmSync(other, { recursive: true, force: true });
+		}
 	});
 });
