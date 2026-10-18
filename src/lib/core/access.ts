@@ -1,6 +1,6 @@
 import { hashToken, newToken, type User } from './accounts.ts';
 import type { Actor } from './actor.ts';
-import { db } from './db.ts';
+import { db, transaction } from './db.ts';
 import { ensureWorkspace } from './documents.ts';
 import { Conflict, InvalidPath } from './paths.ts';
 
@@ -16,19 +16,6 @@ const INVITATION_DAYS = 7;
 const rank = (role: Role) => ROLES.indexOf(role);
 const now = () => new Date().toISOString();
 
-// IMMEDIATE takes the write lock first, so a check and the write that depends on it cannot interleave.
-function transaction<T>(fn: () => T): T {
-	db().exec('BEGIN IMMEDIATE');
-	try {
-		const result = fn();
-		db().exec('COMMIT');
-		return result;
-	} catch (err) {
-		db().exec('ROLLBACK');
-		throw err;
-	}
-}
-
 export async function createWorkspace(slug: string, name: string, owner: Actor): Promise<Workspace> {
 	if (!SLUG.test(slug)) throw new InvalidPath(slug);
 	transaction(() => {
@@ -38,7 +25,13 @@ export async function createWorkspace(slug: string, name: string, owner: Actor):
 			.prepare("INSERT INTO memberships (workspace, user_id, role) VALUES (?, ?, 'owner')")
 			.run(slug, owner.id);
 	});
-	await ensureWorkspace(slug);
+	try {
+		await ensureWorkspace(slug);
+	} catch (err) {
+		// A row without a usable folder would block the slug forever; cascade drops the membership.
+		db().prepare('DELETE FROM workspaces WHERE slug = ?').run(slug);
+		throw err;
+	}
 	return { slug, name };
 }
 

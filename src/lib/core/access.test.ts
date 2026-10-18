@@ -56,6 +56,18 @@ describe('access', () => {
 		await expect(createWorkspace('team', 'x', jon)).rejects.toBeInstanceOf(Conflict);
 	});
 
+	it('drops the workspace row when its folder cannot be created', async () => {
+		const jon = await user('jon');
+		fs.mkdirSync(path.dirname(workspaceDir('team')), { recursive: true });
+		fs.writeFileSync(workspaceDir('team'), 'in the way');
+		await expect(createWorkspace('team', 'Team', jon)).rejects.toThrow();
+		expect(workspace('team')).toBeNull();
+		expect(workspacesOf(jon.id)).toEqual([]);
+		fs.rmSync(workspaceDir('team'));
+		await createWorkspace('team', 'Team', jon);
+		expect(roleOf('team', jon.id)).toBe('owner');
+	});
+
 	it('lists workspaces by name', async () => {
 		const jon = await user('jon');
 		await createWorkspace('zeta', 'Alpha', jon);
@@ -154,6 +166,7 @@ describe('access', () => {
 		expect(acceptInvitation(token, bob.id)).toEqual({ slug: 'team', name: 'Team' });
 		expect(roleOf('team', bob.id)).toBe('editor');
 		expect(invitation(token)).toBeNull();
+		expect(pendingInvitations('team')).toEqual([]);
 		expect(() => acceptInvitation(token, carol.id)).toThrow(Conflict);
 		expect(roleOf('team', carol.id)).toBeNull();
 		expect(invitation('unknown')).toBeNull();

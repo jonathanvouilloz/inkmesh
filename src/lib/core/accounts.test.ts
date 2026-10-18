@@ -90,6 +90,20 @@ describe('accounts', () => {
 		expect(sessionUser(token)).toBeNull();
 		expect(sessionUser(other)?.id).toBe(u.id);
 	});
+	it('the throttle holds at most 10,000 keys, evicting the oldest', () => {
+		for (let i = 0; i < 10; i++) loginFailed('oldest');
+		loginFailed('second');
+		expect(loginAllowed('oldest')).toBe(false);
+		for (let i = 0; i < 9_998; i++) loginFailed(`flood-${i}`); // map now at the cap
+		expect(loginAllowed('oldest')).toBe(false);
+		loginFailed('one-more');
+		expect(loginAllowed('oldest')).toBe(true); // evicted
+		for (let i = 0; i < 9; i++) loginFailed('one-more');
+		expect(loginAllowed('one-more')).toBe(false);
+		for (let i = 0; i < 9_998; i++) loginSucceeded(`flood-${i}`);
+		loginSucceeded('second');
+		loginSucceeded('one-more');
+	});
 	it('the throttle resets 15 minutes after the first failure', () => {
 		vi.useFakeTimers();
 		try {

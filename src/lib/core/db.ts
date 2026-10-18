@@ -60,6 +60,19 @@ export function db(): DatabaseSync {
 	return handle;
 }
 
+// IMMEDIATE takes the write lock first, so a check and the write that depends on it cannot interleave.
+export function transaction<T>(fn: () => T): T {
+	db().exec('BEGIN IMMEDIATE');
+	try {
+		const result = fn();
+		db().exec('COMMIT');
+		return result;
+	} catch (err) {
+		db().exec('ROLLBACK');
+		throw err;
+	}
+}
+
 export function closeDb(): void {
 	try {
 		for (const handle of handles.values()) handle.close();

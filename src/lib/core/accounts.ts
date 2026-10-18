@@ -1,5 +1,5 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto';
-import { db } from './db.ts';
+import { db, transaction } from './db.ts';
 import { Conflict } from './paths.ts';
 
 export type User = { id: number; email: string; name: string; admin: boolean };
@@ -100,9 +100,11 @@ export async function changePassword(id: number, current: string, next: string):
 
 export async function setPassword(id: number, next: string): Promise<void> {
 	const hash = await hashPassword(next);
-	db().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
-	// A reset after a compromise must kill stolen sessions.
-	db().prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+	transaction(() => {
+		db().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+		// A reset after a compromise must kill stolen sessions.
+		db().prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+	});
 }
 
 export const newToken = (): string => randomBytes(32).toString('base64url');
@@ -156,13 +158,18 @@ export function loginAllowed(key: string): boolean {
 }
 
 export function loginFailed(key: string): void {
-	if (failures.size > MAX_KEYS) {
+	if (failures.size >= MAX_KEYS) {
 		const now = Date.now();
 		for (const [k, v] of failures) if (now - v.first > WINDOW_MS) failures.delete(k);
 	}
 	const e = entry(key);
-	if (e) e.failures++;
-	else failures.set(key, { failures: 1, first: Date.now() });
+	if (e) {
+		e.failures++;
+		return;
+	}
+	// Hard cap: a flood inside one window evicts the oldest keys (Map keeps insertion order).
+	while (failures.size >= MAX_KEYS) failures.delete(failures.keys().next().value!);
+	failures.set(key, { failures: 1, first: Date.now() });
 }
 
 export function loginSucceeded(key: string): void {
