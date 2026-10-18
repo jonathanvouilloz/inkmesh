@@ -26,14 +26,14 @@ afterEach(() => {
 	fs.rmSync(data, { recursive: true, force: true });
 });
 
-function save(body: string, hash: string, user: User = owner) {
+function save(body: string, hash: string, user: User | null = owner) {
 	const form = new FormData();
 	form.set('body', body);
 	form.set('hash', hash);
 	const event = {
 		params: { workspace: 'demo', path: doc },
 		request: new Request('http://localhost/demo/x', { method: 'POST', body: form }),
-		locals: { user, actor: { id: user.id, name: user.name }, locale: 'en' }
+		locals: { user, actor: user && { id: user.id, name: user.name }, locale: 'en' }
 	};
 	return actions.save(event as unknown as Parameters<typeof actions.save>[0]);
 }
@@ -65,5 +65,17 @@ it("refuses a reader's save with 403", async () => {
 	acceptInvitation(createInvitation('demo', 'reader', owner), reader.id);
 	const { hash } = await readDocument('demo', doc, owner);
 	await expect(save('# Changed\n', hash, reader)).rejects.toMatchObject({ status: 403 });
+	expect(fs.readFileSync(path.join(workspaceDir('demo'), doc), 'utf8')).toBe('# kitchen-sink\n');
+});
+
+it('hides the workspace from a non-member with 404', async () => {
+	const stranger = await createUser({ email: 'stranger@example.com', name: 'Stranger', password: 'long-enough-1' });
+	const { hash } = await readDocument('demo', doc, owner);
+	await expect(save('# Changed\n', hash, stranger)).rejects.toMatchObject({ status: 404 });
+});
+
+it('refuses an anonymous save with 401', async () => {
+	const { hash } = await readDocument('demo', doc, owner);
+	await expect(save('# Changed\n', hash, null)).rejects.toMatchObject({ status: 401 });
 	expect(fs.readFileSync(path.join(workspaceDir('demo'), doc), 'utf8')).toBe('# kitchen-sink\n');
 });

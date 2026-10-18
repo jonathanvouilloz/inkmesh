@@ -13,6 +13,8 @@ export const handle: Handle = ({ event, resolve }) => {
 	event.locals.locale = locale;
 	const token = event.cookies.get('inkmesh_session');
 	const user = token ? sessionUser(token) : null;
+	// An expired or unknown token would otherwise be sent on every request.
+	if (token && !user) event.cookies.delete('inkmesh_session', { path: '/' });
 	event.locals.user = user;
 	event.locals.actor = user && { id: user.id, name: user.name };
 	return resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', locale) });

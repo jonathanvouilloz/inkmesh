@@ -13,11 +13,14 @@
 		<input type="hidden" name="next" value={data.next} />
 		<label>
 			{t('login.email', data.locale)}
+			<!-- The form is the whole page; after a failed attempt focus goes back to its first field. -->
+			<!-- svelte-ignore a11y_autofocus -->
 			<input
 				name="email"
 				type="email"
 				autocomplete="email"
 				required
+				autofocus={!!form?.error}
 				value={form?.email ?? ''}
 				aria-invalid={form?.error ? 'true' : undefined}
 				aria-describedby={form?.error ? 'login-error' : undefined}

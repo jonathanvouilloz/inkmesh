@@ -1,4 +1,4 @@
 import { redirect } from '@sveltejs/kit';
 
-// shortcut: single workspace, see (app)/[workspace]/+layout.server.ts
+// shortcut: the root opens the seeded demo workspace until the home page lists the user's workspaces.
 export const load = () => redirect(307, '/demo');
