@@ -18,7 +18,7 @@ export function splitFrontmatter(source: string): { frontmatter: string; body: s
 	return { frontmatter, body: source.slice(frontmatter.length) };
 }
 
-// shortcut: no YAML parser, nested values are shown as their raw line; upgrade when filtering by frontmatter lands (milestone 3)
+// shortcut: no YAML parser, indented (nested) lines are skipped and their parent key gets its raw rest of line; upgrade when filtering by frontmatter lands (milestone 3)
 export function frontmatterEntries(frontmatter: string): Array<[string, string]> {
 	const entries: Array<[string, string]> = [];
 	for (const line of frontmatter.split(/\r?\n/)) {
@@ -44,10 +44,13 @@ function blocks(text: string): Block[] {
  * normalised form; an edited block that directly follows a dropped original
  * block takes that block's slot. Between two pieces in consecutive original
  * slots the original gap is kept, elsewhere a blank line. The original's
- * leading text and tail (trailing newline or none) are kept. If keeping a gap
- * would change how the result parses (a single newline joining two blocks),
- * the patch falls back to blank lines everywhere, then to `edited` itself.
+ * leading text and tail (trailing newline or none) are kept. If the result
+ * parses differently from `edited` (a kept gap or bullet joining two blocks),
+ * the kept pieces next to a changed one take their edited slices and every
+ * changed piece is set off by blank lines; the rest of the document keeps its
+ * bytes. Only if that still fails is `edited` returned as is.
  */
+// shortcut: top-level-block granularity, editing one list item re-emits the whole list in normalised form; upgrade to nested patching if users complain
 export function patchMarkdown(original: string, edited: string): string {
 	// shortcut: line endings follow the original as a whole, mixed-ending files get all CRLF; upgrade if such files show up
 	const crlf = original.includes('\r\n');
@@ -65,36 +68,47 @@ export function patchMarkdown(original: string, edited: string): string {
 			lcs[i][j] =
 				A[i].key === B[j].key ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
 
-	// Each piece is a source slice and its slot in the original, -1 for none.
-	const pieces: Array<{ text: string; slot: number }> = [];
+	// One piece per edited block: its slot in the original (-1 for none) and whether it changed.
+	const pieces: Array<{ slot: number; changed: boolean; editedText: string }> = [];
 	let dropped = -1;
 	for (let i = 0, j = 0; j < B.length; ) {
+		const editedText = b.slice(B[j].start, B[j].end);
 		if (i < A.length && A[i].key === B[j].key) {
-			pieces.push({ text: a.slice(A[i].start, A[i].end), slot: i++ });
+			pieces.push({ slot: i++, changed: false, editedText });
 			j++;
 			dropped = -1;
 		} else if (i < A.length && lcs[i + 1][j] >= lcs[i][j + 1]) {
 			dropped = i++;
 		} else {
-			pieces.push({ text: b.slice(B[j].start, B[j].end), slot: dropped });
+			pieces.push({ slot: dropped, changed: true, editedText });
 			j++;
 			dropped = -1;
 		}
 	}
 
-	const keys = B.map((block) => block.key).join('\0');
-	for (const keepGaps of [true, false]) {
+	const build = (local: boolean) => {
+		// Local fallback: kept neighbours of a changed piece count as changed too.
+		const changed = pieces.map(
+			(p, k) => p.changed || (local && !!(pieces[k - 1]?.changed || pieces[k + 1]?.changed))
+		);
 		let text = a.slice(0, A[0].start);
 		pieces.forEach((piece, k) => {
 			const prev = pieces[k - 1];
 			if (prev)
 				text +=
-					keepGaps && prev.slot >= 0 && piece.slot === prev.slot + 1
+					!(local && (changed[k] || changed[k - 1])) &&
+					prev.slot >= 0 &&
+					piece.slot === prev.slot + 1
 						? a.slice(A[prev.slot].end, A[piece.slot].start)
 						: '\n\n';
-			text += piece.text;
+			text += changed[k] ? piece.editedText : a.slice(A[piece.slot].start, A[piece.slot].end);
 		});
-		text += a.slice(A[A.length - 1].end);
+		return text + a.slice(A[A.length - 1].end);
+	};
+
+	const keys = B.map((block) => block.key).join('\0');
+	for (const local of [false, true]) {
+		const text = build(local);
 		if (blocks(text).map((block) => block.key).join('\0') === keys) return out(text);
 	}
 	return out(b);

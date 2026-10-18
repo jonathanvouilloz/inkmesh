@@ -94,3 +94,17 @@ describe('patchMarkdown safety', () => {
 		expect(patchMarkdown('A.\n\nB.\n\nC.\n', 'A.\n\nD.\n')).toBe('A.\n\nD.\n');
 	});
 });
+
+describe('patchMarkdown local fallback', () => {
+	it('keeps a tight gap elsewhere when a kept gap would merge blocks', () => {
+		expect(patchMarkdown('# H\nUpdated: x\n\nPara.\n- item\n', '# H\n\nUpdated: x\n\nPara.\n\nNew para.\n')).toBe(
+			'# H\nUpdated: x\n\nPara.\n\nNew para.\n'
+		);
+	});
+
+	it('takes the edited slice of a kept list that would merge with a new adjacent list', () => {
+		expect(patchMarkdown('# H\nUpdated: x\n\n* a\n\nPara.\n', '# H\n\nUpdated: x\n\n- a\n\n* b\n')).toBe(
+			'# H\nUpdated: x\n\n- a\n\n* b\n'
+		);
+	});
+});
