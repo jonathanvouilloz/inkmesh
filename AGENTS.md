@@ -26,7 +26,7 @@ SvelteKit (adapter-node) on Node 24, TypeScript, SQLite via `node:sqlite`, git C
 - Simplicity first (ponytail): no option, abstraction or dependency nobody asked for.
 
 ## Forbidden and guard rails
-- Owner's approval before: deploying to the VPS, changing the systemd service or Caddy config, running a migration on production data, sending a real email, deleting a workspace.
+- Owner's approval before: deploying to the VPS, changing the systemd units or the tunnel config (`deploy/`), deploying from `~/inkmesh-app`, running a migration on production data, sending a real email, deleting a workspace.
 - Never read or write outside `$INKMESH_DATA` at runtime. Never write into `.git/` of a workspace except through `git` commands in `core`.
 - Secrets only in the environment file; nothing in git.
 - Do not weaken the round-trip tests to make a build pass.
