@@ -129,6 +129,18 @@ describe('documents', () => {
 		await expect(readDocument('demo', '../x.md')).rejects.toThrow(InvalidPath);
 	});
 
+	it('rejects (not throws) invalid paths on write and create', async () => {
+		await expect(
+			writeDocument('demo', '../x.md', 'x\n', { expectedHash: 'h', actor })
+		).rejects.toThrow(InvalidPath);
+		await expect(createDocument('demo', '../x.md', actor)).rejects.toThrow(InvalidPath);
+	});
+
+	it('only creates .md documents', async () => {
+		await expect(createDocument('demo', 'notes/', actor)).rejects.toThrow(InvalidPath);
+		await expect(createDocument('demo', 'notes/idea.txt', actor)).rejects.toThrow(InvalidPath);
+	});
+
 	it('does not commit an identical body', async () => {
 		const { hash } = await readDocument('demo', doc);
 		const res = await writeDocument('demo', doc, '# réunion été\n', {

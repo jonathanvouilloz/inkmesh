@@ -5,7 +5,7 @@ import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
 import { patchMarkdown, splitFrontmatter } from './markdown.ts';
-import { Conflict, resolveInside } from './paths.ts';
+import { Conflict, InvalidPath, resolveInside } from './paths.ts';
 
 export type TreeNode = {
 	name: string;
@@ -84,7 +84,7 @@ export async function readDocument(
 }
 
 // shortcut: one commit per autosave; commit-per-editing-session (PRD item 5) lands with sessions in milestone 2
-export function writeDocument(
+export async function writeDocument(
 	slug: string,
 	path: string,
 	body: string,
@@ -115,7 +115,8 @@ export function writeDocument(
 	});
 }
 
-export function createDocument(slug: string, path: string, actor: Actor): Promise<void> {
+export async function createDocument(slug: string, path: string, actor: Actor): Promise<void> {
+	if (!path.endsWith('.md')) throw new InvalidPath(path); // listTree only shows .md files
 	const root = workspaceDir(slug);
 	const file = resolveInside(root, path);
 	return serialised(slug, async () => {
