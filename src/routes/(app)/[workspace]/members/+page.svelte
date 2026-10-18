@@ -92,7 +92,7 @@
 							<time datetime={p.expiresAt}>{new Date(p.expiresAt).toLocaleDateString(locale)}</time>
 						</td>
 						<td class="end">
-							{#if owner || p.createdById === data.user.id}
+							{#if p.canRevoke}
 								<form method="POST" action="?/revoke">
 									<input type="hidden" name="id" value={p.id} />
 									<button>{t('members.revoke', locale)}</button>
@@ -235,6 +235,7 @@
 	}
 	button {
 		padding: 6px 10px;
+		font-weight: 500;
 		cursor: pointer;
 	}
 	.link {

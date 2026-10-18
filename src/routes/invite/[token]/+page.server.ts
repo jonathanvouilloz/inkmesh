@@ -1,8 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { dev } from '$app/env';
-import { acceptInvitation, invitation } from '#lib/core/access.ts';
-import { createSession, createUser, userByEmail } from '#lib/core/accounts.ts';
+import { acceptInvitation, acceptInvitationAsNewUser, invitation } from '#lib/core/access.ts';
+import { hashPassword, userByEmail } from '#lib/core/accounts.ts';
 import { Conflict } from '#lib/core/paths.ts';
+import { startSession } from '#lib/server/session.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const MAX = 1024;
@@ -50,24 +50,24 @@ export const actions: Actions = {
 		if (!address.includes('@') || address.length > 254)
 			return fail(400, { error: 'invite.email' as const, name, email });
 		if (userByEmail(email)) return fail(409, { error: 'invite.exists' as const, name, email });
-		let user;
+		let passwordHash;
 		try {
-			user = await createUser({ email, name: trimmed, password });
+			passwordHash = await hashPassword(password);
 		} catch (err) {
 			if (err instanceof RangeError) return fail(400, { error: 'invite.password' as const, name, email });
-			if (err instanceof Conflict) return fail(409, { error: 'invite.exists' as const, name, email });
 			throw err;
 		}
-		// A link used up in between leaves the account without a membership; it can still sign in.
-		const joined = accept(params.token, user.id);
-		if (!joined) return fail(410, { error: 'invite.invalid' as const });
-		cookies.set('inkmesh_session', createSession(user.id), {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax',
-			secure: !dev,
-			maxAge: 60 * 60 * 24 * 30
-		});
+		let joined;
+		try {
+			const created = acceptInvitationAsNewUser(params.token, { email, name: trimmed, passwordHash });
+			startSession(cookies, created.user.id);
+			joined = created.workspace;
+		} catch (err) {
+			// The email taken or the link used up while scrypt ran; the transaction left no account.
+			if (!(err instanceof Conflict)) throw err;
+			if (userByEmail(email)) return fail(409, { error: 'invite.exists' as const, name, email });
+			return fail(410, { error: 'invite.invalid' as const });
+		}
 		redirect(303, '/' + joined.slug);
 	}
 };

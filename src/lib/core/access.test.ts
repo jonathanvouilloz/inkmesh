@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	acceptInvitation,
+	acceptInvitationAsNewUser,
 	assertRole,
 	createInvitation,
 	createWorkspace,
@@ -19,7 +20,7 @@ import {
 	workspacesOf,
 	type Role
 } from './access.ts';
-import { createUser, hashToken, type User } from './accounts.ts';
+import { createUser, hashPassword, hashToken, userByEmail, type User } from './accounts.ts';
 import { workspaceDir } from './data.ts';
 import { closeDb, db } from './db.ts';
 import { Conflict, InvalidPath } from './paths.ts';
@@ -123,7 +124,7 @@ describe('access', () => {
 		removeMember('team', jon.id, bob);
 		expect(roleOf('team', jon.id)).toBeNull();
 		expect(members('team')).toEqual([
-			{ user: { id: bob.id, email: bob.email, name: 'bob', admin: false }, role: 'owner' }
+			{ user: { id: bob.id, name: 'bob', email: bob.email }, role: 'owner' }
 		]);
 	});
 
@@ -177,6 +178,20 @@ describe('access', () => {
 		expect(roleOf('team', carol.id)).toBeNull();
 		expect(invitation('unknown')).toBeNull();
 		expect(() => acceptInvitation('unknown', carol.id)).toThrow(new Conflict('invalid invitation'));
+	});
+
+	it('signing up on a used link leaves no account', async () => {
+		const owner = await user('jon');
+		await createWorkspace('team', 'Team', owner);
+		const token = createInvitation('team', 'editor', owner);
+		const passwordHash = await hashPassword('long enough 1');
+		const { user: dan, workspace } = acceptInvitationAsNewUser(token, { email: 'Dan@example.ch', name: 'Dan', passwordHash });
+		expect(workspace).toEqual({ slug: 'team', name: 'Team' });
+		expect(roleOf('team', dan.id)).toBe('editor');
+		expect(() =>
+			acceptInvitationAsNewUser(token, { email: 'eve@example.ch', name: 'Eve', passwordHash })
+		).toThrow(Conflict);
+		expect(userByEmail('eve@example.ch')).toBeNull();
 	});
 
 	it('joining raises but never lowers a role', async () => {

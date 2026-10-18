@@ -1,12 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { createWorkspace, workspacesOf } from '#lib/core/access.ts';
+import { createWorkspace } from '#lib/core/access.ts';
 import { Conflict, InvalidPath } from '#lib/core/paths.ts';
-import type { Actions, PageServerLoad } from './$types';
-
-export const load: PageServerLoad = async ({ parent }) => {
-	const { user } = await parent();
-	return { workspaces: workspacesOf(user.id), admin: user.admin };
-};
+import type { Actions } from './$types';
 
 export const actions: Actions = {
 	create: async ({ request, locals }) => {
@@ -16,8 +11,9 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
 		const slug = String(form.get('slug') ?? '').trim();
+		if (!name || name.length > 80) return fail(400, { createError: 'name' as const, name, slug });
 		try {
-			await createWorkspace(slug, name || slug, locals.actor!);
+			await createWorkspace(slug, name, locals.actor!);
 		} catch (err) {
 			if (err instanceof InvalidPath) return fail(400, { createError: 'slug' as const, name, slug });
 			if (err instanceof Conflict) return fail(409, { createError: 'exists' as const, name, slug });

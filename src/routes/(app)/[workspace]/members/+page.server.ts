@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	createInvitation,
 	Forbidden,
@@ -19,7 +19,11 @@ export const load: PageServerLoad = async ({ params, locals, parent }) => {
 	const own = requireRole(params.workspace, locals, 'editor').role;
 	return {
 		members: members(params.workspace),
-		pending: pendingInvitations(params.workspace),
+		// The creator's id stays on the server; the page only learns whether it may revoke.
+		pending: pendingInvitations(params.workspace).map(({ createdById, ...p }) => ({
+			...p,
+			canRevoke: own === 'owner' || createdById === locals.actor!.id
+		})),
 		// A link can grant at most the inviter's own role.
 		roles: ROLES.slice(0, ROLES.indexOf(own) + 1)
 	};
@@ -31,7 +35,7 @@ const userId = (value: FormDataEntryValue | null): number =>
 	/^\d{1,15}$/.test(String(value)) ? Number(value) : error(400);
 
 // Core checks the owner rule itself; its refusals become 403, the last-owner guard a message.
-function attempt(run: () => void) {
+function attempt(run: () => void, leaves = false) {
 	try {
 		run();
 	} catch (err) {
@@ -39,6 +43,8 @@ function attempt(run: () => void) {
 		if (err instanceof Conflict) return fail(409, { error: 'members.lastOwner' as const });
 		throw err;
 	}
+	// An owner who removed or demoted themselves can no longer see this page.
+	if (leaves) redirect(303, '/');
 }
 
 export const actions: Actions = {
@@ -61,13 +67,15 @@ export const actions: Actions = {
 	setRole: async ({ params, locals, request }) => {
 		requireRole(params.workspace, locals, 'editor');
 		const form = await request.formData();
-		return attempt(() =>
-			setRole(params.workspace, userId(form.get('userId')), role(form.get('role')), locals.actor!)
+		const [id, wanted] = [userId(form.get('userId')), role(form.get('role'))];
+		return attempt(
+			() => setRole(params.workspace, id, wanted, locals.actor!),
+			id === locals.actor!.id && wanted === 'reader'
 		);
 	},
 	remove: async ({ params, locals, request }) => {
 		requireRole(params.workspace, locals, 'editor');
-		const form = await request.formData();
-		return attempt(() => removeMember(params.workspace, userId(form.get('userId')), locals.actor!));
+		const id = userId((await request.formData()).get('userId'));
+		return attempt(() => removeMember(params.workspace, id, locals.actor!), id === locals.actor!.id);
 	}
 };

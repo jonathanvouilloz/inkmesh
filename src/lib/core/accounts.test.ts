@@ -12,6 +12,7 @@ import {
 	loginAllowed,
 	loginFailed,
 	loginSucceeded,
+	loginUndo,
 	sessionUser,
 	verifyPassword
 } from './accounts.ts';
@@ -126,5 +127,14 @@ describe('accounts', () => {
 		expect(loginAllowed('k')).toBe(false);
 		loginSucceeded('k');
 		expect(loginAllowed('k')).toBe(true);
+	});	it('undoes one counted failure', () => {
+		for (let i = 0; i < 10; i++) loginFailed('u');
+		loginUndo('u');
+		expect(loginAllowed('u')).toBe(true);
+		for (let i = 0; i < 9; i++) loginUndo('u');
+		loginUndo('u'); // gone at zero, a further undo is a no-op
+		for (let i = 0; i < 9; i++) loginFailed('u');
+		expect(loginAllowed('u')).toBe(true);
+		loginSucceeded('u');
 	});
 });

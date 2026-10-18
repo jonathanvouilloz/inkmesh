@@ -16,7 +16,7 @@ test('a wrong password stays on the form with one generic message', async ({ pag
 	await page.getByLabel('Email').fill('owner@inkmesh.local');
 	await page.getByLabel('Password').fill('not-the-password');
 	await page.getByRole('button', { name: 'Sign in' }).click();
-	await expect(page.getByRole('alert')).toHaveText('Email or password is incorrect');
+	await expect(page.getByRole('alert')).toHaveText('Email or password is incorrect.');
 	await expect(page).toHaveURL(/\/login/);
 	await expect(page.getByLabel('Email')).toHaveValue('owner@inkmesh.local');
 });

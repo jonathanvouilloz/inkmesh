@@ -34,7 +34,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
 	return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-const normalize = (email: string) => email.trim().toLowerCase();
+export const normalize = (email: string) => email.trim().toLowerCase();
 
 type Row = { id: number; email: string; name: string; admin: number };
 const toUser = (r: Row | undefined): User | null =>
@@ -46,14 +46,18 @@ export async function createUser(input: {
 	password: string;
 	admin?: boolean;
 }): Promise<User> {
+	return insertUser({ ...input, passwordHash: await hashPassword(input.password) });
+}
+
+// Synchronous, so a caller can run it inside a transaction with the hash computed beforehand.
+export function insertUser(input: { email: string; name: string; passwordHash: string; admin?: boolean }): User {
 	const email = normalize(input.email);
-	const passwordHash = await hashPassword(input.password);
 	try {
 		const { lastInsertRowid } = db()
 			.prepare(
 				'INSERT INTO users (email, name, password_hash, admin, created_at) VALUES (?, ?, ?, ?, ?)'
 			)
-			.run(email, input.name, passwordHash, input.admin ? 1 : 0, new Date().toISOString());
+			.run(email, input.name, input.passwordHash, input.admin ? 1 : 0, new Date().toISOString());
 		return { id: Number(lastInsertRowid), email, name: input.name, admin: !!input.admin };
 	} catch (err) {
 		if ((err as { errcode?: number }).errcode === SQLITE_CONSTRAINT_UNIQUE) throw new Conflict(email);
@@ -174,4 +178,10 @@ export function loginFailed(key: string): void {
 
 export function loginSucceeded(key: string): void {
 	failures.delete(key);
+}
+
+// Takes back one failure counted up front, e.g. a login that turned out right.
+export function loginUndo(key: string): void {
+	const e = entry(key);
+	if (e && --e.failures <= 0) failures.delete(key);
 }

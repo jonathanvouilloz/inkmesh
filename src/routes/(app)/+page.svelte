@@ -39,7 +39,7 @@
 		<p class="empty">{t('home.empty', data.locale)}</p>
 	{/if}
 
-	{#if data.admin}
+	{#if data.user.admin}
 		<details class="new" open={!!form?.createError}>
 			<summary>{t('home.create', data.locale)}</summary>
 			<form method="POST" action="?/create">
@@ -48,6 +48,9 @@
 					<input
 						name="name"
 						required
+						maxlength="80"
+						aria-invalid={form?.createError === 'name' ? 'true' : undefined}
+						aria-describedby={form?.createError === 'name' ? 'create-error' : undefined}
 						bind:value={name}
 						oninput={() => slugEdited || (slug = suggest(name))}
 					/>
@@ -59,13 +62,13 @@
 						required
 						bind:value={slug}
 						oninput={() => (slugEdited = slug !== '')}
-						aria-invalid={form?.createError ? 'true' : undefined}
-						aria-describedby={form?.createError ? 'slug-error' : undefined}
+						aria-invalid={form?.createError && form.createError !== 'name' ? 'true' : undefined}
+						aria-describedby={form?.createError && form.createError !== 'name' ? 'create-error' : undefined}
 					/>
 				</label>
 				{#if form?.createError}
-					<p id="slug-error" class="error">
-						{t(form.createError === 'exists' ? 'home.exists' : 'home.slugBad', data.locale)}
+					<p id="create-error" class="error">
+						{t(`home.${({ name: 'nameBad', exists: 'exists', slug: 'slugBad' } as const)[form.createError]}`, data.locale)}
 					</p>
 				{/if}
 				<button>{t('tree.create', data.locale)}</button>

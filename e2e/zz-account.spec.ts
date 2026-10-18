@@ -57,7 +57,7 @@ test('a new password keeps this session and works at the next login', async ({ p
 	await page.getByLabel('Email').fill('owner@inkmesh.local');
 	await page.getByLabel('Password').fill('inkmesh-dev');
 	await page.getByRole('button', { name: 'Sign in' }).click();
-	await expect(page.getByRole('alert')).toHaveText('Email or password is incorrect');
+	await expect(page.getByRole('alert')).toHaveText('Email or password is incorrect.');
 	await page.getByLabel('Password').fill('a brand new one');
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL(/\/$/);

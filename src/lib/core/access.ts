@@ -1,4 +1,4 @@
-import { hashToken, newToken, type User } from './accounts.ts';
+import { hashToken, insertUser, newToken, type User } from './accounts.ts';
 import type { Actor } from './actor.ts';
 import { db, transaction } from './db.ts';
 import { ensureWorkspace } from './documents.ts';
@@ -66,16 +66,15 @@ export function assertRole(slug: string, actor: Actor, min: Role): Membership {
 	return { workspace: slug, userId: actor.id, role };
 }
 
-export function members(slug: string): { user: User; role: Role }[] {
+export type Member = { user: { id: number; name: string; email: string }; role: Role };
+
+export function members(slug: string): Member[] {
 	const rows = db()
 		.prepare(
-			'SELECT u.id, u.email, u.name, u.admin, m.role FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.workspace = ? ORDER BY u.name, u.id'
+			'SELECT u.id, u.email, u.name, m.role FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.workspace = ? ORDER BY u.name, u.id'
 		)
-		.all(slug) as { id: number; email: string; name: string; admin: number; role: Role }[];
-	return rows.map((r) => ({
-		user: { id: r.id, email: r.email, name: r.name, admin: r.admin === 1 },
-		role: r.role
-	}));
+		.all(slug) as { id: number; email: string; name: string; role: Role }[];
+	return rows.map((r) => ({ user: { id: r.id, name: r.name, email: r.email }, role: r.role }));
 }
 
 function guardLastOwner(slug: string, userId: number): void {
@@ -138,30 +137,44 @@ export function invitation(token: string): Invitation | null {
 		: null;
 }
 
-export function acceptInvitation(token: string, userId: number): Workspace {
+// Runs inside a transaction.
+function claim(token: string, userId: number): Workspace {
 	const tokenHash = hashToken(token);
+	const at = now();
+	const { changes } = db()
+		.prepare(
+			'UPDATE invitations SET used_by = ?, used_at = ? WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?'
+		)
+		.run(userId, at, tokenHash, at);
+	if (changes === 0) throw new Conflict('invalid invitation');
+	const { workspace: slug, role } = db()
+		.prepare('SELECT workspace, role FROM invitations WHERE token_hash = ?')
+		.get(tokenHash) as { workspace: string; role: Role };
+	const current = roleOf(slug, userId);
+	if (!current) {
+		db()
+			.prepare('INSERT INTO memberships (workspace, user_id, role) VALUES (?, ?, ?)')
+			.run(slug, userId, role);
+	} else if (rank(role) > rank(current)) {
+		db()
+			.prepare('UPDATE memberships SET role = ? WHERE workspace = ? AND user_id = ?')
+			.run(role, slug, userId);
+	}
+	return workspace(slug)!;
+}
+
+export function acceptInvitation(token: string, userId: number): Workspace {
+	return transaction(() => claim(token, userId));
+}
+
+// One transaction, so a link used up in between leaves no account behind.
+export function acceptInvitationAsNewUser(
+	token: string,
+	input: { email: string; name: string; passwordHash: string }
+): { user: User; workspace: Workspace } {
 	return transaction(() => {
-		const at = now();
-		const { changes } = db()
-			.prepare(
-				'UPDATE invitations SET used_by = ?, used_at = ? WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?'
-			)
-			.run(userId, at, tokenHash, at);
-		if (changes === 0) throw new Conflict('invalid invitation');
-		const { workspace: slug, role } = db()
-			.prepare('SELECT workspace, role FROM invitations WHERE token_hash = ?')
-			.get(tokenHash) as { workspace: string; role: Role };
-		const current = roleOf(slug, userId);
-		if (!current) {
-			db()
-				.prepare('INSERT INTO memberships (workspace, user_id, role) VALUES (?, ?, ?)')
-				.run(slug, userId, role);
-		} else if (rank(role) > rank(current)) {
-			db()
-				.prepare('UPDATE memberships SET role = ? WHERE workspace = ? AND user_id = ?')
-				.run(role, slug, userId);
-		}
-		return workspace(slug)!;
+		const user = insertUser(input);
+		return { user, workspace: claim(token, user.id) };
 	});
 }
 

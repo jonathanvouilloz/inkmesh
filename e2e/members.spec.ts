@@ -57,6 +57,18 @@ test('an owner invites an editor who signs up and edits', async ({ page, browser
 	await expect(page.getByRole('table', { name: 'Pending invitations' })).toHaveCount(0);
 });
 
+test('an owner changes a role and back', async ({ page }) => {
+	await page.goto('/demo/members');
+	const nina = () => page.getByRole('row').filter({ hasText: 'nina@example.ch' });
+	for (const role of ['reader', 'editor']) {
+		await nina().getByRole('combobox').selectOption(role);
+		await nina().getByRole('button', { name: 'Save' }).click();
+		await expect(nina().getByRole('combobox')).toHaveValue(role);
+		await page.reload(); // the value comes from the server, not the still-selected option
+		await expect(nina().getByRole('combobox')).toHaveValue(role);
+	}
+});
+
 test('the last owner cannot be demoted', async ({ page }) => {
 	await page.goto('/demo/members');
 	const row = page.getByRole('row').filter({ hasText: 'owner@inkmesh.local' });
