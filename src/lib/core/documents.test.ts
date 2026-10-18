@@ -3,11 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createWorkspace, Forbidden } from './access.ts';
+import { createUser } from './accounts.ts';
 import type { Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
+import { closeDb, db } from './db.ts';
 import {
 	createDocument,
-	ensureWorkspace,
 	history,
 	listTree,
 	readDocument,
@@ -15,25 +17,29 @@ import {
 } from './documents.ts';
 import { Conflict, InvalidPath } from './paths.ts';
 
-const actor: Actor = { id: 1, name: 'Jon' };
-const agent: Actor = { id: 1, name: 'Jon', agent: 'claude-code' };
+let actor: Actor;
+let agent: Actor;
 const doc = 'rapports/réunion été.md';
 
 let data: string;
 beforeEach(async () => {
 	data = fs.mkdtempSync(path.join(os.tmpdir(), 'inkmesh-docs-'));
 	process.env.INKMESH_DATA = data;
-	await ensureWorkspace('demo');
+	const jon = await createUser({ email: 'jon@b.c', name: 'Jon', password: 'long enough 1' });
+	await createWorkspace('demo', 'Demo', jon);
+	actor = { id: jon.id, name: 'Jon' };
+	agent = { ...actor, agent: 'claude-code' };
 	await createDocument('demo', doc, actor);
 });
 afterEach(() => {
+	closeDb();
 	delete process.env.INKMESH_DATA;
 	fs.rmSync(data, { recursive: true, force: true });
 });
 
 describe('documents', () => {
 	it('lists the tree with the title from the first heading', async () => {
-		expect(await listTree('demo')).toEqual([
+		expect(await listTree('demo', actor)).toEqual([
 			{
 				name: 'rapports',
 				path: 'rapports',
@@ -56,27 +62,27 @@ describe('documents', () => {
 			fs.mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
 			fs.writeFileSync(path.join(root, f), 'no heading\n');
 		}
-		const tree = await listTree('demo');
+		const tree = await listTree('demo', actor);
 		expect(tree.map((n) => n.path)).toEqual(['rapports', 'b2.md', 'b10.md']);
 		expect(tree[1].title).toBe('b2');
 	});
 
 	it('reads a document with its hash', async () => {
-		const read = await readDocument('demo', doc);
+		const read = await readDocument('demo', doc, actor);
 		expect(read.body).toBe('# réunion été\n');
 		expect(read.frontmatter).toBe('');
 		expect(read.hash).toMatch(/^[0-9a-f]{64}$/);
 	});
 
 	it('writes with the right hash and records the actor and agent in history', async () => {
-		const { hash } = await readDocument('demo', doc);
+		const { hash } = await readDocument('demo', doc, actor);
 		const res = await writeDocument('demo', doc, '# réunion été\n\nHello\n', {
 			expectedHash: hash,
 			actor: agent
 		});
 		expect(res.hash).not.toBe(hash);
 		expect(res.commit).toMatch(/^[0-9a-f]{40}$/);
-		const log = await history('demo', doc);
+		const log = await history('demo', doc, actor);
 		expect(log).toHaveLength(2);
 		expect(log[0]).toMatchObject({
 			name: 'Jon',
@@ -90,7 +96,7 @@ describe('documents', () => {
 	it('keeps frontmatter and CRLF on write', async () => {
 		const file = path.join(workspaceDir('demo'), doc);
 		fs.writeFileSync(file, '---\r\ntitle: x\r\n---\r\n# A\r\n\r\nB\r\n');
-		const { hash } = await readDocument('demo', doc);
+		const { hash } = await readDocument('demo', doc, actor);
 		await writeDocument('demo', doc, '# A\n\nC\n', {
 			expectedHash: hash,
 			actor
@@ -105,7 +111,7 @@ describe('documents', () => {
 	});
 
 	it('throws Conflict when the file was deleted', async () => {
-		const { hash } = await readDocument('demo', doc);
+		const { hash } = await readDocument('demo', doc, actor);
 		fs.rmSync(path.join(workspaceDir('demo'), doc));
 		await expect(writeDocument('demo', doc, 'x\n', { expectedHash: hash, actor })).rejects.toThrow(
 			Conflict
@@ -113,7 +119,7 @@ describe('documents', () => {
 	});
 
 	it('serialises concurrent writes so only one wins on the same hash', async () => {
-		const { hash } = await readDocument('demo', doc);
+		const { hash } = await readDocument('demo', doc, actor);
 		const results = await Promise.allSettled([
 			writeDocument('demo', doc, 'one\n', { expectedHash: hash, actor }),
 			writeDocument('demo', doc, 'two\n', { expectedHash: hash, actor })
@@ -127,7 +133,7 @@ describe('documents', () => {
 	});
 
 	it('rejects paths outside the workspace', async () => {
-		await expect(readDocument('demo', '../x.md')).rejects.toThrow(InvalidPath);
+		await expect(readDocument('demo', '../x.md', actor)).rejects.toThrow(InvalidPath);
 	});
 
 	it('rejects (not throws) invalid paths on write and create', async () => {
@@ -149,23 +155,23 @@ describe('documents', () => {
 
 	it('returns the normalised path of a created document', async () => {
 		expect(await createDocument('demo', './notes//a.md', actor)).toBe('notes/a.md');
-		const notes = (await listTree('demo')).find((n) => n.path === 'notes');
+		const notes = (await listTree('demo', actor)).find((n) => n.path === 'notes');
 		expect(notes?.children?.some((n) => n.path === 'notes/a.md' && n.kind === 'doc')).toBe(true);
 	});
 
 	it('does not commit an identical body', async () => {
-		const { hash } = await readDocument('demo', doc);
+		const { hash } = await readDocument('demo', doc, actor);
 		const res = await writeDocument('demo', doc, '# réunion été\n', {
 			expectedHash: hash,
 			actor
 		});
 		expect(res).toEqual({ hash, commit: '' });
-		expect(await history('demo', doc)).toHaveLength(1);
+		expect(await history('demo', doc, actor)).toHaveLength(1);
 	});
 
 	it('reads and writes only .md documents that are not dot-files', async () => {
 		fs.writeFileSync(path.join(workspaceDir('demo'), '.gitignore'), 'x\n');
-		await expect(readDocument('demo', '.gitignore')).rejects.toThrow(InvalidPath);
+		await expect(readDocument('demo', '.gitignore', actor)).rejects.toThrow(InvalidPath);
 		await expect(
 			writeDocument('demo', '.gitignore', 'y\n', { expectedHash: 'h', actor })
 		).rejects.toThrow(InvalidPath);
@@ -180,10 +186,10 @@ describe('documents', () => {
 		for (const name of ['[a].md', ':x.md']) {
 			await createDocument('demo', name, actor);
 			expect(show()).toBe(`${name}\n`);
-			const { hash } = await readDocument('demo', name);
+			const { hash } = await readDocument('demo', name, actor);
 			await writeDocument('demo', name, '# changed\n', { expectedHash: hash, actor });
 			expect(show()).toBe(`${name}\n`);
-			expect((await history('demo', name)).map((e) => e.message)).toEqual([
+			expect((await history('demo', name, actor)).map((e) => e.message)).toEqual([
 				`Update ${name}`,
 				`Create ${name}`
 			]);
@@ -194,7 +200,7 @@ describe('documents', () => {
 		const lock = path.join(workspaceDir('demo'), '.git/index.lock');
 		const file = path.join(workspaceDir('demo'), doc);
 		const before = fs.readFileSync(file, 'utf8');
-		const { hash } = await readDocument('demo', doc);
+		const { hash } = await readDocument('demo', doc, actor);
 		fs.writeFileSync(lock, '');
 		await expect(
 			writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor })
@@ -206,5 +212,15 @@ describe('documents', () => {
 		// No false conflict afterwards: the original hash still writes.
 		await writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor });
 		expect(fs.readdirSync(path.dirname(file))).toEqual(['réunion été.md']); // no temporary file left
+	});
+
+	it('a reader cannot write and a stranger cannot read', async () => {
+		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
+		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
+		const r = { id: reader.id, name: 'R' };
+		await expect(listTree('demo', r)).resolves.toBeTruthy();
+		await expect(createDocument('demo', 'x.md', r)).rejects.toBeInstanceOf(Forbidden);
+		await expect(writeDocument('demo', doc, 'x', { expectedHash: 'h', actor: r })).rejects.toBeInstanceOf(Forbidden);
+		await expect(readDocument('demo', doc, { id: 999, name: 'S' })).rejects.toThrow('not a member');
 	});
 });

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { basename, dirname, join, relative } from 'node:path';
+import { assertRole } from './access.ts';
 import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
@@ -62,7 +63,8 @@ export async function ensureWorkspace(slug: string): Promise<void> {
 	if (!(await fs.stat(join(root, '.git')).catch(() => null))) await gitInit(root);
 }
 
-export async function listTree(slug: string): Promise<TreeNode[]> {
+export async function listTree(slug: string, actor: Actor): Promise<TreeNode[]> {
+	assertRole(slug, actor, 'reader');
 	const root = workspaceDir(slug);
 	async function walk(rel: string): Promise<TreeNode[]> {
 		const entries = await fs.readdir(join(root, rel), { withFileTypes: true });
@@ -90,7 +92,8 @@ export async function listTree(slug: string): Promise<TreeNode[]> {
 
 export async function readDocument(
 	slug: string,
-	path: string
+	path: string,
+	actor: Actor
 ): Promise<{
 	path: string;
 	source: string;
@@ -98,6 +101,7 @@ export async function readDocument(
 	body: string;
 	hash: string;
 }> {
+	assertRole(slug, actor, 'reader');
 	const source = await fs.readFile(documentFile(workspaceDir(slug), path), 'utf8');
 	return { path, source, ...splitFrontmatter(source), hash: sha256(source) };
 }
@@ -109,6 +113,7 @@ export async function writeDocument(
 	body: string,
 	opts: { expectedHash: string; actor: Actor }
 ): Promise<{ hash: string; commit: string }> {
+	assertRole(slug, opts.actor, 'editor');
 	const root = workspaceDir(slug);
 	const file = documentFile(root, path);
 	return serialised(slug, async () => {
@@ -142,6 +147,7 @@ export async function writeDocument(
 
 /** Creates the document and returns its normalised workspace-relative path. */
 export async function createDocument(slug: string, path: string, actor: Actor): Promise<string> {
+	assertRole(slug, actor, 'editor');
 	const root = workspaceDir(slug);
 	const file = documentFile(root, path);
 	const name = basename(file).slice(0, -3);
@@ -169,7 +175,8 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 	});
 }
 
-export async function history(slug: string, path: string): Promise<HistoryEntry[]> {
+export async function history(slug: string, path: string, actor: Actor): Promise<HistoryEntry[]> {
+	assertRole(slug, actor, 'reader');
 	const root = workspaceDir(slug);
 	resolveInside(root, path);
 	return (await gitLog(root, path, 20)).map(({ name, ...entry }) => {

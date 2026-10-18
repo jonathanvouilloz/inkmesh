@@ -1,9 +1,10 @@
-// Seeds the demo workspace under $INKMESH_DATA. Idempotent: existing files are left alone.
+// Seeds the owner account and the demo workspace under $INKMESH_DATA. Idempotent: existing data is left alone.
 import fs from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { commitAuthor, currentActor } from '../src/lib/core/actor.ts';
+import { createWorkspace, workspace } from '../src/lib/core/access.ts';
+import { createUser, userByEmail } from '../src/lib/core/accounts.ts';
+import { commitAuthor } from '../src/lib/core/actor.ts';
 import { workspaceDir } from '../src/lib/core/data.ts';
-import { ensureWorkspace } from '../src/lib/core/documents.ts';
 import { gitCommit } from '../src/lib/core/git.ts';
 
 const files: Record<string, string> = {
@@ -12,7 +13,11 @@ const files: Record<string, string> = {
 	'examples/kitchen-sink.md': 'tests/fixtures/kitchen-sink.md'
 };
 
-await ensureWorkspace('demo');
+const user =
+	userByEmail('owner@inkmesh.local') ??
+	(await createUser({ email: 'owner@inkmesh.local', name: 'Owner', password: 'inkmesh-dev', admin: true }));
+const owner = { id: user.id, name: user.name };
+if (!workspace('demo')) await createWorkspace('demo', 'Demo', owner);
 const root = workspaceDir('demo');
 const copied: string[] = [];
 for (const [target, source] of Object.entries(files)) {
@@ -26,7 +31,6 @@ for (const [target, source] of Object.entries(files)) {
 		if ((err as { code?: unknown }).code !== 'EEXIST') throw err;
 	}
 }
-const owner = currentActor();
 // Every target, not only the ones copied now: a crashed earlier run may have copied without committing.
 const targets = Object.keys(files);
 const examples = targets.filter((p) => p.startsWith('examples/'));

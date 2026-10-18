@@ -17,5 +17,4 @@ Node 24 and git.
 ## Configuration
 
 - `INKMESH_DATA` — data directory, default `./.data`. Each workspace is a git repository under `$INKMESH_DATA/workspaces/<slug>`.
-- `INKMESH_OWNER_NAME` — author name on commits made from the browser, default `Owner`.
 - `BODY_SIZE_LIMIT` — largest accepted request body (adapter-node), default `512K`; raise it, for example to `5M`, to save larger documents.
