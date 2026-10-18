@@ -9,6 +9,13 @@ describe('t', () => {
 		expect(t('save.saved', 'en')).toBe('Saved');
 	});
 
+	it('fills placeholders', () => {
+		expect(t('invite.title', 'en', { workspace: 'Demo', role: 'Editor' })).toBe(
+			'You are invited to Demo as Editor'
+		);
+		expect(t('invite.join', 'en', { workspace: 'Demo' })).toBe('Join Demo as {role}');
+	});
+
 	it('has the same keys in both languages', () => {
 		expect(Object.keys(fr)).toEqual(Object.keys(en));
 	});
