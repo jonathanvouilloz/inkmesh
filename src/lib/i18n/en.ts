@@ -68,5 +68,18 @@ export const en = {
 	'members.by': 'Created by',
 	'members.revoke': 'Revoke',
 	'members.save': 'Save',
-	'members.lastOwner': 'A workspace keeps at least one owner'
+	'members.lastOwner': 'A workspace keeps at least one owner',
+	'account.title': 'Account',
+	'account.name': 'Display name',
+	'account.nameBad': 'Enter a name of 1 to 80 characters',
+	'account.save': 'Save',
+	'account.saved': 'Name saved',
+	'account.history': 'Your display name stays in the history of past changes',
+	'account.password': 'Password',
+	'account.current': 'Current password',
+	'account.next': 'New password',
+	'account.change': 'Change password',
+	'account.changed': 'Password changed',
+	'account.wrong': 'The current password is incorrect',
+	'account.short': 'The new password needs at least 10 characters'
 };

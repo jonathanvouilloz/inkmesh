@@ -70,5 +70,18 @@ export const fr: Record<keyof typeof en, string> = {
 	'members.by': 'Créé par',
 	'members.revoke': 'Révoquer',
 	'members.save': 'Enregistrer',
-	'members.lastOwner': 'Un espace de travail garde au moins un propriétaire'
+	'members.lastOwner': 'Un espace de travail garde au moins un propriétaire',
+	'account.title': 'Compte',
+	'account.name': 'Nom d’affichage',
+	'account.nameBad': 'Saisissez un nom de 1 à 80 caractères',
+	'account.save': 'Enregistrer',
+	'account.saved': 'Nom enregistré',
+	'account.history': 'Votre nom d’affichage reste dans l’historique des modifications passées',
+	'account.password': 'Mot de passe',
+	'account.current': 'Mot de passe actuel',
+	'account.next': 'Nouveau mot de passe',
+	'account.change': 'Changer le mot de passe',
+	'account.changed': 'Mot de passe changé',
+	'account.wrong': 'Le mot de passe actuel est incorrect',
+	'account.short': 'Le nouveau mot de passe doit compter au moins 10 caractères'
 };
