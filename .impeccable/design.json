@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-18T00:00:00Z",
+  "generatedAt": "2026-10-18T12:00:00Z",
   "title": "Design System: inkmesh",
   "extensions": {
     "colorMeta": {
@@ -17,10 +17,10 @@
     },
     "typographyMeta": {
       "body": { "displayName": "Body", "purpose": "The document, rich and raw; 72ch column." },
-      "chrome": { "displayName": "Chrome", "purpose": "Rails, top bar, empty prompt, error page." },
-      "label": { "displayName": "Label", "purpose": "Rail section headings and the workspace name. Sentence case, no tracking." },
-      "title": { "displayName": "Title", "purpose": "The error page heading, the only non-document heading." },
-      "mono": { "displayName": "Mono", "purpose": "Paths, keys, hashes, agents, timestamps, raw Markdown, code, inline HTML source. Raw mode at line-height 1.7." }
+      "chrome": { "displayName": "Chrome", "purpose": "Rails, the top bar and its menus, every standalone page, empty prompt, error page." },
+      "label": { "displayName": "Label", "purpose": "Rail and page section headings, form labels, table headers (muted). Sentence case, no tracking." },
+      "title": { "displayName": "Title", "purpose": "The page title of every standalone page and the error page; one per page." },
+      "mono": { "displayName": "Mono", "purpose": "Paths, keys, hashes, agents, timestamps, slugs, emails, invitation links and expiry dates, raw Markdown, code, inline HTML source. Raw mode at line-height 1.7." }
     },
     "shadows": [
       { "name": "toolbar-lift", "value": "0 2px 2px rgb(28 28 26 / 0.06)", "purpose": "The floating formatting toolbar only, with its 1px hairline border." }
@@ -29,7 +29,7 @@
       { "name": "ease", "value": "150ms ease-out", "purpose": "Tree caret rotation, strip button colour, drawer and sheet slide; only inside prefers-reduced-motion: no-preference. Reduced motion removes every transition and animation." }
     ],
     "focus": [
-      { "name": "ring", "value": "outline: 2px solid var(--accent); outline-offset: 2px", "purpose": "Every :focus-visible; inset (-2px) on tree rows and the rail container." },
+      { "name": "ring", "value": "outline: 2px solid var(--accent); outline-offset: 2px", "purpose": "Every :focus-visible, no transition; inset (-2px) on tree rows, header menu items and the rail container." },
       { "name": "editor-bar", "value": "border-left: 2px solid var(--accent)", "purpose": "Left margin of the rich editor while it has keyboard focus." }
     ],
     "overlays": [
@@ -46,7 +46,7 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one primary action per screen; in milestone 1, New document in the left rail.",
+      "description": "At most one per screen: New document, New workspace (admins), Sign in, Create account or Join. None on members and account.",
       "html": "<button class=\"ds-btn-primary\">New document</button>",
       "css": ".ds-btn-primary { padding: 6px 10px; border: 0; border-radius: var(--radius, 6px); background: var(--accent, #2A47D1); color: #fff; font: 500 13px 'Inter Variable', system-ui, sans-serif; cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
     },
@@ -54,7 +54,7 @@
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Every other chrome action: Create, Open navigation.",
+      "description": "Every non-primary action: create-form submits, Open navigation, role Save, Remove, Revoke, Create link, Copy, the account forms. No hover fill.",
       "html": "<button class=\"ds-btn-secondary\">Create</button>",
       "css": ".ds-btn-secondary { padding: 6px 10px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); color: var(--ink, #1C1C1A); font: 500 13px 'Inter Variable', system-ui, sans-serif; cursor: pointer; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
     },
@@ -105,16 +105,48 @@
       "description": "The one shadowed element: Crepe's floating toolbar re-skinned with a hairline border and the toolbar-lift shadow.",
       "html": "<div class=\"ds-toolbar\"><button>B</button><button>I</button><button>Link</button></div>",
       "css": ".ds-toolbar { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); box-shadow: 0 2px 2px rgb(28 28 26 / 0.06); } .ds-toolbar button { padding: 4px 8px; border: 0; border-radius: var(--radius, 6px); background: transparent; color: var(--ink, #1C1C1A); font: 13px 'Inter Variable', system-ui, sans-serif; cursor: pointer; } .ds-toolbar button:hover { background: var(--panel, #F3F3F0); } .ds-toolbar button:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Top Bar and Menus",
+      "kind": "nav",
+      "refersTo": "top-bar",
+      "description": "44px panel bar: wordmark, workspace switcher and user menu as <details>; triggers take the hairline hover fill, menus are flat.",
+      "html": "<header class=\"ds-top\"><a class=\"ds-top-mark\" href=\"#\">inkmesh</a><nav class=\"ds-top-nav\" aria-label=\"Workspace and account\"><details class=\"ds-menu\" open><summary>Notes</summary><ul><li><a href=\"#\" aria-current=\"page\">Notes <span class=\"ds-menu-slug\">notes</span></a></li><li><a href=\"#\">Handbook <span class=\"ds-menu-slug\">handbook</span></a></li></ul></details><details class=\"ds-menu ds-menu-user\"><summary>Jon</summary><ul><li><a href=\"#\">Account</a></li><li><button>Log out</button></li></ul></details></nav></header>",
+      "css": ".ds-top { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 16px; background: var(--panel, #F3F3F0); border-bottom: 1px solid var(--hairline, #E4E4E0); font: 400 13px 'Inter Variable', system-ui, sans-serif; color: var(--ink, #1C1C1A); white-space: nowrap; } .ds-top a { color: inherit; text-decoration: none; } .ds-top-mark { font-weight: 600; } .ds-top-mark:hover { text-decoration: underline; } .ds-top-nav { display: flex; flex: 1; gap: 12px; align-items: center; } .ds-menu { position: relative; } .ds-menu-user { margin-left: auto; } .ds-menu summary { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; cursor: pointer; list-style: none; } .ds-menu summary::-webkit-details-marker { display: none; } .ds-menu summary::after { content: ''; width: 5px; height: 5px; margin-left: 2px; border: solid var(--muted, #6E6E68); border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); } .ds-menu summary:hover { background: var(--hairline, #E4E4E0); } .ds-menu ul { position: absolute; top: calc(100% + 4px); left: 0; z-index: 3; min-width: 200px; margin: 0; padding: 4px; list-style: none; background: var(--ground, #FBFBFA); border: 1px solid var(--hairline, #E4E4E0); border-radius: 6px; } .ds-menu-user ul { left: auto; right: 0; min-width: 160px; } .ds-menu ul :is(a, button) { display: block; width: 100%; padding: 4px 6px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; } .ds-menu ul :is(a, button):hover { background: var(--panel, #F3F3F0); } .ds-menu ul a[aria-current='page'] { color: var(--accent, #2A47D1); font-weight: 500; } .ds-menu-slug { display: block; color: var(--muted, #6E6E68); font: 12.5px 'Fragment Mono', ui-monospace, monospace; } .ds-top :is(a, summary, button):focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; } .ds-menu ul :is(a, button):focus-visible { outline-offset: -2px; }"
+    },
+    {
+      "name": "Form Page",
+      "kind": "custom",
+      "refersTo": "form-page",
+      "description": "Sign-in and invite: a 360px centred column, title, fields 12px apart, mono email, error 4px under its field, one primary.",
+      "html": "<main class=\"ds-form-page\"><h1>Sign in to inkmesh</h1><form><label>Email<input class=\"ds-mono\" type=\"email\" value=\"jon@example.com\" aria-invalid=\"true\" aria-describedby=\"e\"></label><label>Password<input type=\"password\" value=\"secret\"></label><p id=\"e\" class=\"ds-form-error\" role=\"alert\">Email or password is incorrect</p><button>Sign in</button></form></main>",
+      "css": ".ds-form-page { max-width: 360px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; font: 400 13px 'Inter Variable', system-ui, sans-serif; color: var(--ink, #1C1C1A); } .ds-form-page h1 { margin: 0; font-size: 16px; font-weight: 600; } .ds-form-page form { display: flex; flex-direction: column; gap: 12px; } .ds-form-page label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; } .ds-form-page input { padding: 6px 8px; border: 1px solid var(--hairline, #E4E4E0); border-radius: 6px; background: var(--ground, #FBFBFA); color: inherit; font: inherit; font-weight: 400; } .ds-form-page .ds-mono { font: 12.5px 'Fragment Mono', ui-monospace, monospace; } .ds-form-error { margin: -8px 0 0; color: var(--error, #B3261E); } .ds-form-page button { align-self: flex-start; padding: 6px 10px; border: 0; border-radius: 6px; background: var(--accent, #2A47D1); color: #fff; font: inherit; font-weight: 500; cursor: pointer; } .ds-form-page :is(input, button):focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Members Table",
+      "kind": "custom",
+      "refersTo": "table-cell",
+      "description": "Plain hairline-ruled table: muted label headers, name over mono muted email, role select with explicit Save, actions flush right.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Name</th><th>Role</th><td></td></tr></thead><tbody><tr><td>Jon<span class=\"ds-table-email\">jon@example.com</span></td><td><span class=\"ds-table-row\"><select aria-label=\"Role, Jon\"><option>Owner</option><option>Editor</option></select><button>Save</button></span></td><td class=\"ds-table-end\"><button>Remove</button></td></tr><tr><td>Ada<span class=\"ds-table-email\">ada@example.com</span></td><td>Editor</td><td class=\"ds-table-end\"></td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; font: 400 13px 'Inter Variable', system-ui, sans-serif; color: var(--ink, #1C1C1A); } .ds-table :is(th, td) { padding: 6px 12px 6px 0; border-bottom: 1px solid var(--hairline, #E4E4E0); text-align: left; vertical-align: middle; } .ds-table th { color: var(--muted, #6E6E68); font-weight: 600; } .ds-table-email { display: block; color: var(--muted, #6E6E68); font: 12.5px 'Fragment Mono', ui-monospace, monospace; } .ds-table-end { padding-right: 0; text-align: right; } .ds-table-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .ds-table :is(select, button) { padding: 6px 8px; border: 1px solid var(--hairline, #E4E4E0); border-radius: 6px; background: var(--ground, #FBFBFA); color: inherit; font: inherit; } .ds-table button { padding: 6px 10px; font-weight: 500; cursor: pointer; } .ds-table :is(select, button):focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Workspace Row with Role Label",
+      "kind": "custom",
+      "refersTo": "role-label",
+      "description": "Home list row: accent workspace name, mono muted slug, muted role word pushed right, hairline below.",
+      "html": "<ul class=\"ds-rows\"><li><a href=\"#\">Notes</a><span class=\"ds-rows-slug\">notes</span><span class=\"ds-rows-role\">Owner</span></li><li><a href=\"#\">Handbook</a><span class=\"ds-rows-slug\">handbook</span><span class=\"ds-rows-role\">Reader</span></li></ul>",
+      "css": ".ds-rows { margin: 0; padding: 0; list-style: none; font: 400 13px 'Inter Variable', system-ui, sans-serif; } .ds-rows li { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline, #E4E4E0); } .ds-rows a { color: var(--accent, #2A47D1); font-weight: 500; } .ds-rows a:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; } .ds-rows-slug { color: var(--muted, #6E6E68); font: 12.5px 'Fragment Mono', ui-monospace, monospace; } .ds-rows-role { margin-left: auto; color: var(--muted, #6E6E68); }"
     }
   ],
   "narrative": {
     "northStar": "The Honest File Browser",
-    "overview": "inkmesh shows a member a real folder of real Markdown files and lets them edit one as calmly as a word-processor page. The shell is Linear's: a narrow panel-toned rail on the left, a quiet properties rail on the right, 13px chrome with a grey hierarchy instead of colour, hairline borders and one blue accent reserved for the active item, links, focus and the single primary action. The page in the middle is Notion's: a wide, generous column of Inter at 16.5px with GitHub's Markdown conventions (grey code blocks, hairline table rows, a left-rule blockquote, task-list checkboxes).\n\nThe product's \"geek\" side is a state, never a second interface. Fragment Mono is the material that says \"this is a file\": it names the path in the file strip, the frontmatter keys, the folder names in the tree, the agent and timestamp in History, and the whole page when the Raw toggle is on. Everything read at length is Inter.\n\nConfirmed rejections, from the owner's brief: the admin dashboard made of cards and stat tiles, icon-only buttons and sidebars that collapse to mystery icons, shadows as decoration, dark mode, marketing gradients, saturated blue buttons, kickers and eyebrows above headings.",
+    "overview": "inkmesh shows a member a real folder of real Markdown files and lets them edit one as calmly as a word-processor page. The shell is Linear's: a 44px panel-toned top bar carrying the wordmark and two menus, a narrow panel-toned rail on the left, a quiet properties rail on the right, 13px chrome with a grey hierarchy instead of colour, hairline borders and one blue accent reserved for the active item, links, focus and the single primary action. The page in the middle is Notion's: a wide, generous column of Inter at 16.5px with GitHub's Markdown conventions (grey code blocks, hairline table rows, a left-rule blockquote, task-list checkboxes).\n\nThe product's \"geek\" side is a state, never a second interface. Fragment Mono is the material that says \"this is a file\": it names the path in the file strip, the frontmatter keys, the folder names in the tree, the agent and timestamp in History, and the whole page when the Raw toggle is on. Everything read at length is Inter.\n\nConfirmed rejections, from the owner's brief: the admin dashboard made of cards and stat tiles, icon-only buttons and sidebars that collapse to mystery icons, shadows as decoration, dark mode, marketing gradients, saturated blue buttons, kickers and eyebrows above headings.",
     "keyCharacteristics": [
       "Light mode only; a faintly warm paper ground with one slightly deeper panel tone for rails.",
       "One accent (ink blue) on the active tree item, links, focus rings, the pressed Raw toggle and the one primary button.",
       "State colours only where they carry meaning: green saved, amber changed-on-disk, red error.",
-      "Two faces with a strict division of labour: Inter for reading and chrome, Fragment Mono for anything that is literally a file, key, hash or timestamp.",
+      "Two faces with a strict division of labour: Inter for reading and chrome, Fragment Mono for anything that is literally a file, key, hash, timestamp or copyable identifier (slug, email, invitation link).",
       "Flat surfaces separated by hairlines; a single soft shadow under the floating formatting toolbar.",
       "6px radius everywhere a corner exists; 150ms ease-out motion, only when the user has not asked for reduced motion."
     ],
@@ -122,7 +154,8 @@
       { "name": "The One Accent Rule", "body": "Blue means \"this is the thing\" (active, link, focus, primary action). It never fills a surface larger than a button and never decorates.", "section": "colors" },
       { "name": "The Earned State Rule", "body": "Green, amber and red appear only as text that reports a save state or an error. No coloured badges, tiles or backgrounds.", "section": "colors" },
       { "name": "The Hairline Rule", "body": "Every border in the product is 1px of `hairline`. Depth is tonal (ground vs panel), not drawn.", "section": "colors" },
-      { "name": "The Mono Means File Rule", "body": "Fragment Mono is used only where the text is a path, a key, a hash, a timestamp, an agent name, raw Markdown or code. Prose and labels read in Inter.", "section": "typography" },
+      { "name": "The Mono Means File Rule", "body": "Fragment Mono is used only where the text is a path, a key, a hash, a timestamp, an agent name, an identifier someone types or copies verbatim (slug, email, invitation link), raw Markdown or code. Prose and labels read in Inter.", "section": "typography" },
+      { "name": "The Full Stop Rule", "body": "A visible string that is a full sentence with a verb ends with a period (\"A workspace keeps at least one owner.\"); labels, buttons, headings and verbless fragments (\"Name saved\", \"At least 10 characters\") do not. Role words are capitalised alone (\"Owner\") and lower-case inside a sentence (\"Join Notes as editor\"). French uses « » and a U+00A0 no-break space before : ; ? ! and inside the guillemets.", "section": "typography" },
       { "name": "The No Eyebrow Rule", "body": "No kicker, eyebrow or small-caps label sits above a heading. Headings start the block.", "section": "typography" },
       { "name": "The One Shadow Rule", "body": "Only an element that floats over the document (the formatting toolbar) may carry a shadow, and it is this one, soft, 2px shadow. Rails, sheets, drawers, menus and buttons are flat.", "section": "elevation" }
     ],
@@ -132,12 +165,16 @@
       "Do set Fragment Mono at 12.5px on paths, keys, hashes, agents, timestamps, raw Markdown and code, and Inter everywhere people read.",
       "Do give every interactive element a visible text label and a 2px accent `:focus-visible` outline.",
       "Do wrap every transition in `prefers-reduced-motion: no-preference` and keep it at 150ms ease-out.",
+      "Do end a full sentence that has a verb with a period, lower-case a role word inside a sentence, and set French with « » and a U+00A0 before : ; ? ! and inside the guillemets.",
+      "Do give a screen at most one primary button, and none when its actions are equals; everything else is secondary.",
       "Do route every visible string through `t()` with an English and a French entry; never hard-code a label.",
       "Do manage focus on overlays: move it in on open, return it to the opener on close, make the page `inert` behind a drawer."
     ],
     "donts": [
       "Don't build cards, stat tiles or cards inside cards; blocks are separated by space and hairlines.",
       "Don't ship icon-only buttons or a rail that collapses to icons.",
+      "Don't give a button a hover fill; only tree items, the Members link, menu triggers (hairline) and menu items (panel) take one.",
+      "Don't turn a role into a badge or chip; it is a muted word.",
       "Don't add shadows anywhere but the floating formatting toolbar.",
       "Don't put a kicker, eyebrow or uppercase tracked label above a heading.",
       "Don't add a dark mode or a second theme; the product is light only.",
