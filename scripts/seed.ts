@@ -27,9 +27,11 @@ for (const [target, source] of Object.entries(files)) {
 	}
 }
 const owner = currentActor();
-const examples = copied.filter((p) => p.startsWith('examples/'));
+// Every target, not only the ones copied now: a crashed earlier run may have copied without committing.
+const targets = Object.keys(files);
+const examples = targets.filter((p) => p.startsWith('examples/'));
 await gitCommit(root, {
-	paths: copied.filter((p) => !examples.includes(p)),
+	paths: targets.filter((p) => !examples.includes(p)),
 	message: 'Seed demo workspace',
 	author: commitAuthor(owner)
 });

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { basename, dirname, join, relative } from 'node:path';
 import { commitAuthor, type Actor } from './actor.ts';
@@ -35,6 +35,25 @@ function serialised<T>(slug: string, fn: () => Promise<T>): Promise<T> {
 		next.catch(() => {})
 	);
 	return next;
+}
+
+/** A document is a .md file whose name is not a dot-file: listTree shows nothing else. */
+function documentFile(root: string, path: string): string {
+	const file = resolveInside(root, path);
+	const name = basename(file).slice(0, -3);
+	if (!file.endsWith('.md') || !name || name.startsWith('.')) throw new InvalidPath(path);
+	return file;
+}
+
+/** Writes through a temporary file, so a crash never leaves half a document; `exclusive` fails with EEXIST. */
+async function writeAtomic(file: string, text: string, exclusive = false): Promise<void> {
+	const tmp = `${file}.tmp-${randomBytes(6).toString('hex')}`;
+	await fs.writeFile(tmp, text, { flag: 'wx' });
+	try {
+		await (exclusive ? fs.link(tmp, file) : fs.rename(tmp, file));
+	} finally {
+		await fs.rm(tmp, { force: true });
+	}
 }
 
 export async function ensureWorkspace(slug: string): Promise<void> {
@@ -79,7 +98,7 @@ export async function readDocument(
 	body: string;
 	hash: string;
 }> {
-	const source = await fs.readFile(resolveInside(workspaceDir(slug), path), 'utf8');
+	const source = await fs.readFile(documentFile(workspaceDir(slug), path), 'utf8');
 	return { path, source, ...splitFrontmatter(source), hash: sha256(source) };
 }
 
@@ -91,7 +110,7 @@ export async function writeDocument(
 	opts: { expectedHash: string; actor: Actor }
 ): Promise<{ hash: string; commit: string }> {
 	const root = workspaceDir(slug);
-	const file = resolveInside(root, path);
+	const file = documentFile(root, path);
 	return serialised(slug, async () => {
 		let source: string;
 		try {
@@ -105,12 +124,18 @@ export async function writeDocument(
 		const old = splitFrontmatter(source);
 		const next = old.frontmatter + patchMarkdown(old.body, body);
 		if (next === source) return { hash: opts.expectedHash, commit: '' };
-		await fs.writeFile(file, next);
-		const commit = await gitCommit(root, {
-			paths: [path],
-			message: `Update ${path}`,
-			author: commitAuthor(opts.actor)
-		});
+		await writeAtomic(file, next);
+		let commit: string;
+		try {
+			commit = await gitCommit(root, {
+				paths: [path],
+				message: `Update ${path}`,
+				author: commitAuthor(opts.actor)
+			});
+		} catch (err) {
+			await writeAtomic(file, source); // or the next save sees a changed hash: a false conflict
+			throw err;
+		}
 		return { hash: sha256(next), commit };
 	});
 }
@@ -118,25 +143,28 @@ export async function writeDocument(
 /** Creates the document and returns its normalised workspace-relative path. */
 export async function createDocument(slug: string, path: string, actor: Actor): Promise<string> {
 	const root = workspaceDir(slug);
-	const file = resolveInside(root, path);
+	const file = documentFile(root, path);
 	const name = basename(file).slice(0, -3);
-	// listTree only shows .md files and skips dot-files.
-	if (!file.endsWith('.md') || !name || name.startsWith('.')) throw new InvalidPath(path);
 	const rel = relative(root, file);
 	return serialised(slug, async () => {
 		await fs.mkdir(dirname(file), { recursive: true });
 		try {
-			await fs.writeFile(file, `# ${name}\n`, { flag: 'wx' });
+			await writeAtomic(file, `# ${name}\n`, true);
 		} catch (err) {
 			if ((err as { code?: unknown }).code === 'EEXIST')
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
-		await gitCommit(root, {
-			paths: [rel],
-			message: `Create ${rel}`,
-			author: commitAuthor(actor)
-		});
+		try {
+			await gitCommit(root, {
+				paths: [rel],
+				message: `Create ${rel}`,
+				author: commitAuthor(actor)
+			});
+		} catch (err) {
+			await fs.unlink(file); // or the document exists without a commit and cannot be created again
+			throw err;
+		}
 		return rel;
 	});
 }

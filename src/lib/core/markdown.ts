@@ -28,13 +28,39 @@ export function frontmatterEntries(frontmatter: string): Array<[string, string]>
 	return entries;
 }
 
-type Block = { start: number; end: number; key: string };
+type Block = { start: number; end: number; key: string; definition: boolean };
+type Node = { type: string; identifier?: string; children?: Node[]; [key: string]: unknown };
+
+const walk = (node: Node, fn: (node: Node) => void) => {
+	fn(node);
+	node.children?.forEach((child) => walk(child, fn));
+};
 
 function blocks(text: string): Block[] {
-	return processor.parse(text).children.map((node) => ({
+	const tree = processor.parse(text);
+	const root = tree as unknown as Node; // walked loosely: only type, identifier and children matter
+	// The editor writes reference links inline and drops their definitions, so keys compare them
+	// resolved: `[x][s]` with `[s]: url` keys as `[x](url)` and keeps its original bytes.
+	const defs = new Map<string, Node>();
+	walk(root, (n) => {
+		if (n.type === 'definition' && !defs.has(n.identifier!)) defs.set(n.identifier!, n);
+	});
+	walk(root, (n) => {
+		if (!n.children) return;
+		n.children = n.children.map((c) => {
+			const ref = c.type === 'linkReference' || c.type === 'imageReference';
+			const def = ref ? defs.get(c.identifier!) : undefined;
+			if (!def) return c;
+			const { type, identifier, label, referenceType, position, ...rest } = c;
+			const inline = type === 'linkReference' ? 'link' : 'image';
+			return { ...rest, type: inline, url: def.url, title: def.title };
+		});
+	});
+	return tree.children.map((node) => ({
 		start: node.position!.start.offset!,
 		end: node.position!.end.offset!,
-		key: String(processor.stringify({ type: 'root', children: [node] }))
+		key: String(processor.stringify({ type: 'root', children: [node] })),
+		definition: node.type === 'definition'
 	}));
 }
 
@@ -48,7 +74,8 @@ function blocks(text: string): Block[] {
  * parses differently from `edited` (a kept gap or bullet joining two blocks),
  * the kept pieces next to a changed one take their edited slices and every
  * changed piece is set off by blank lines; the rest of the document keeps its
- * bytes. Only if that still fails is `edited` returned as is.
+ * bytes. Only if that still fails is `edited` returned as is. Original link
+ * definitions that `edited` lacks are kept in their place.
  */
 // shortcut: top-level-block granularity, editing one list item re-emits the whole list in normalised form; upgrade to nested patching if users complain
 export function patchMarkdown(original: string, edited: string): string {
@@ -70,14 +97,27 @@ export function patchMarkdown(original: string, edited: string): string {
 
 	// One piece per edited block: its slot in the original (-1 for none) and whether it changed.
 	const pieces: Array<{ slot: number; changed: boolean; editedText: string }> = [];
+	// Original definitions the edited text lacks stay in place (the editor drops them, see blocks).
+	const editedKeys = new Set(B.map((block) => block.key));
+	const orphan = (block: Block) => block.definition && !editedKeys.has(block.key);
 	let dropped = -1;
-	for (let i = 0, j = 0; j < B.length; ) {
+	for (let i = 0, j = 0; j < B.length || i < A.length; ) {
+		// A changed block that replaces the block just before an orphan takes its slot first.
+		if (i < A.length && orphan(A[i]) && (dropped < 0 || j === B.length)) {
+			pieces.push({ slot: i, changed: false, editedText: a.slice(A[i].start, A[i++].end) });
+			dropped = -1;
+			continue;
+		}
+		if (j === B.length) {
+			i++;
+			continue;
+		}
 		const editedText = b.slice(B[j].start, B[j].end);
 		if (i < A.length && A[i].key === B[j].key) {
 			pieces.push({ slot: i++, changed: false, editedText });
 			j++;
 			dropped = -1;
-		} else if (i < A.length && lcs[i + 1][j] >= lcs[i][j + 1]) {
+		} else if (i < A.length && !orphan(A[i]) && lcs[i + 1][j] >= lcs[i][j + 1]) {
 			dropped = i++;
 		} else {
 			pieces.push({ slot: dropped, changed: true, editedText });
@@ -109,7 +149,8 @@ export function patchMarkdown(original: string, edited: string): string {
 	const keys = B.map((block) => block.key).join('\0');
 	for (const local of [false, true]) {
 		const text = build(local);
-		if (blocks(text).map((block) => block.key).join('\0') === keys) return out(text);
+		const kept = blocks(text).filter((block) => !orphan(block));
+		if (kept.map((block) => block.key).join('\0') === keys) return out(text);
 	}
 	return out(b);
 }

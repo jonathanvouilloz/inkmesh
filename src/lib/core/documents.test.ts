@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -160,5 +161,50 @@ describe('documents', () => {
 		});
 		expect(res).toEqual({ hash, commit: '' });
 		expect(await history('demo', doc)).toHaveLength(1);
+	});
+
+	it('reads and writes only .md documents that are not dot-files', async () => {
+		fs.writeFileSync(path.join(workspaceDir('demo'), '.gitignore'), 'x\n');
+		await expect(readDocument('demo', '.gitignore')).rejects.toThrow(InvalidPath);
+		await expect(
+			writeDocument('demo', '.gitignore', 'y\n', { expectedHash: 'h', actor })
+		).rejects.toThrow(InvalidPath);
+	});
+
+	it('treats document names as literal git paths, not patterns', async () => {
+		const root = workspaceDir('demo');
+		const show = () =>
+			execFileSync('git', ['-C', root, 'show', '--name-only', '--format='], { encoding: 'utf8' });
+		// An untracked a.md that the pattern [a].md would match.
+		fs.writeFileSync(path.join(root, 'a.md'), '# a\n');
+		for (const name of ['[a].md', ':x.md']) {
+			await createDocument('demo', name, actor);
+			expect(show()).toBe(`${name}\n`);
+			const { hash } = await readDocument('demo', name);
+			await writeDocument('demo', name, '# changed\n', { expectedHash: hash, actor });
+			expect(show()).toBe(`${name}\n`);
+			expect((await history('demo', name)).map((e) => e.message)).toEqual([
+				`Update ${name}`,
+				`Create ${name}`
+			]);
+		}
+	});
+
+	it('restores the file when the commit fails', async () => {
+		const lock = path.join(workspaceDir('demo'), '.git/index.lock');
+		const file = path.join(workspaceDir('demo'), doc);
+		const before = fs.readFileSync(file, 'utf8');
+		const { hash } = await readDocument('demo', doc);
+		fs.writeFileSync(lock, '');
+		await expect(
+			writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor })
+		).rejects.toThrow();
+		expect(fs.readFileSync(file, 'utf8')).toBe(before);
+		await expect(createDocument('demo', 'new.md', actor)).rejects.toThrow();
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'new.md'))).toBe(false);
+		fs.rmSync(lock);
+		// No false conflict afterwards: the original hash still writes.
+		await writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor });
+		expect(fs.readdirSync(path.dirname(file))).toEqual(['réunion été.md']); // no temporary file left
 	});
 });

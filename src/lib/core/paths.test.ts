@@ -43,4 +43,18 @@ describe('resolveInside', () => {
 			fs.rmSync(other, { recursive: true, force: true });
 		}
 	});
+
+	it('rejects a symlink that stays inside the root, such as one into .git', () => {
+		fs.mkdirSync(root + '/.git');
+		fs.writeFileSync(root + '/.git/config', '');
+		fs.symlinkSync('.git/config', root + '/cfg.md');
+		fs.symlinkSync('.git', root + '/dir');
+		expect(() => resolveInside(root, 'cfg.md')).toThrow(InvalidPath);
+		expect(() => resolveInside(root, 'dir/config')).toThrow(InvalidPath);
+	});
+
+	it('rejects a path through a file', () => {
+		fs.writeFileSync(root + '/notes.md', '');
+		expect(() => resolveInside(root, 'notes.md/x.md')).toThrow(InvalidPath);
+	});
 });

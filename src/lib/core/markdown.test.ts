@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { frontmatterEntries, patchMarkdown, processor, splitFrontmatter } from './markdown.ts';
 
 const fixture = (name: string) => fs.readFileSync(`tests/fixtures/${name}`, 'utf8');
-const fixtures = ['prd.md', 'architecture.md', 'kitchen-sink.md', 'kitchen-sink-crlf.md'];
+const fixtures = ['prd.md', 'architecture.md', 'kitchen-sink.md', 'kitchen-sink-crlf.md', 'reference-links.md'];
 
 describe('splitFrontmatter', () => {
 	it('reassembles kitchen-sink byte for byte', () => {
@@ -71,6 +71,18 @@ describe('patchMarkdown', () => {
 			expect(hunks).toHaveLength(1);
 		});
 	}
+
+	it('keeps reference links and their definitions when the editor inlines them', () => {
+		const x = fixture('reference-links.md');
+		// What Crepe emits after an edit to the last paragraph: inline links, no definitions.
+		const edited = [
+			'# Reference links',
+			'See [the spec](https://example.com/spec "The spec") and the [roadmap](https://example.com/roadmap) before the review.',
+			'![The logo](https://example.com/logo.png)',
+			'An edited paragraph.\n'
+		].join('\n\n');
+		expect(patchMarkdown(x, edited)).toBe(x.replace('A paragraph without links.', 'An edited paragraph.'));
+	});
 
 	it('keeps an appended block separate from the last original block', () => {
 		expect(patchMarkdown('One.\n', 'One.\n\nTwo.\n')).toBe('One.\n\nTwo.\n');

@@ -19,16 +19,21 @@ export function resolveInside(root: string, rel: string): string {
 	const abs = path.resolve(root, rel);
 	if (abs === path.resolve(root)) throw new InvalidPath(rel);
 
-	// Symlinks: the nearest existing entry (lstat, so dangling links count) must really live inside the root.
+	// Symlinks: the nearest existing entry (lstat, so dangling links count) must sit at its own path
+	// under the real root, so no link anywhere on the way, even one that stays inside (cfg.md -> .git/config).
 	let existing = abs;
-	while (!fs.lstatSync(existing, { throwIfNoEntry: false })) existing = path.dirname(existing);
-	const realRoot = fs.realpathSync(root);
+	try {
+		while (!fs.lstatSync(existing, { throwIfNoEntry: false })) existing = path.dirname(existing);
+	} catch {
+		throw new InvalidPath(rel); // ENOTDIR (a file used as a folder), ENAMETOOLONG
+	}
 	let real: string;
 	try {
 		real = fs.realpathSync(existing);
 	} catch {
 		throw new InvalidPath(rel); // dangling or looping link
 	}
-	if (real !== realRoot && !real.startsWith(realRoot + path.sep)) throw new InvalidPath(rel);
+	if (real !== path.join(fs.realpathSync(root), path.relative(root, existing)))
+		throw new InvalidPath(rel);
 	return abs;
 }
