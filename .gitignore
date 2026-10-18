@@ -28,3 +28,5 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+.impeccable/review/
+.impeccable/questions/

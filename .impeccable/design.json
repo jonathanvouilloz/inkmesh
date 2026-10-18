@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T00:00:00Z",
+  "title": "Design System: inkmesh",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Paper Ground", "canonical": "oklch(98.8% 0.001 106)", "tonalRamp": ["oklch(15% 0.001 106)", "oklch(25% 0.001 106)", "oklch(35% 0.001 106)", "oklch(45% 0.001 106)", "oklch(55% 0.001 106)", "oklch(65% 0.001 106)", "oklch(80% 0.001 106)", "oklch(95% 0.001 106)"] },
+      "panel": { "role": "neutral", "displayName": "Panel", "canonical": "oklch(96.3% 0.004 106)", "tonalRamp": ["oklch(15% 0.004 106)", "oklch(25% 0.004 106)", "oklch(35% 0.004 106)", "oklch(45% 0.004 106)", "oklch(55% 0.004 106)", "oklch(65% 0.004 106)", "oklch(80% 0.004 106)", "oklch(95% 0.004 106)"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "oklch(91.8% 0.005 107)", "tonalRamp": ["oklch(15% 0.005 107)", "oklch(25% 0.005 107)", "oklch(35% 0.005 107)", "oklch(45% 0.005 107)", "oklch(55% 0.005 107)", "oklch(65% 0.005 107)", "oklch(80% 0.005 107)", "oklch(95% 0.005 107)"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "oklch(22.6% 0.004 107)", "tonalRamp": ["oklch(15% 0.004 107)", "oklch(25% 0.004 107)", "oklch(35% 0.004 107)", "oklch(45% 0.004 107)", "oklch(55% 0.004 107)", "oklch(65% 0.004 107)", "oklch(80% 0.004 107)", "oklch(95% 0.004 107)"] },
+      "muted": { "role": "neutral", "displayName": "Muted Grey", "canonical": "oklch(53.6% 0.009 107)", "tonalRamp": ["oklch(15% 0.009 107)", "oklch(25% 0.009 107)", "oklch(35% 0.009 107)", "oklch(45% 0.009 107)", "oklch(55% 0.009 107)", "oklch(65% 0.009 107)", "oklch(80% 0.009 107)", "oklch(95% 0.009 107)"] },
+      "accent": { "role": "primary", "displayName": "Ink Blue", "canonical": "oklch(47.3% 0.213 268)", "tonalRamp": ["oklch(15% 0.213 268)", "oklch(25% 0.213 268)", "oklch(35% 0.213 268)", "oklch(45% 0.213 268)", "oklch(55% 0.213 268)", "oklch(65% 0.213 268)", "oklch(80% 0.213 268)", "oklch(95% 0.213 268)"] },
+      "ok": { "role": "state", "displayName": "Saved Green", "canonical": "oklch(52.5% 0.136 149)", "tonalRamp": ["oklch(15% 0.136 149)", "oklch(25% 0.136 149)", "oklch(35% 0.136 149)", "oklch(45% 0.136 149)", "oklch(55% 0.136 149)", "oklch(65% 0.136 149)", "oklch(80% 0.136 149)", "oklch(95% 0.136 149)"] },
+      "warn": { "role": "state", "displayName": "Disk-Changed Amber", "canonical": "oklch(53.3% 0.119 66)", "tonalRamp": ["oklch(15% 0.119 66)", "oklch(25% 0.119 66)", "oklch(35% 0.119 66)", "oklch(45% 0.119 66)", "oklch(55% 0.119 66)", "oklch(65% 0.119 66)", "oklch(80% 0.119 66)", "oklch(95% 0.119 66)"] },
+      "error": { "role": "state", "displayName": "Error Red", "canonical": "oklch(50.1% 0.178 29)", "tonalRamp": ["oklch(15% 0.178 29)", "oklch(25% 0.178 29)", "oklch(35% 0.178 29)", "oklch(45% 0.178 29)", "oklch(55% 0.178 29)", "oklch(65% 0.178 29)", "oklch(80% 0.178 29)", "oklch(95% 0.178 29)"] },
+      "on-accent": { "role": "neutral", "displayName": "White on Accent", "canonical": "#FFFFFF" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "The document, rich and raw; 72ch column." },
+      "chrome": { "displayName": "Chrome", "purpose": "Rails, top bar, empty prompt, error page." },
+      "label": { "displayName": "Label", "purpose": "Rail section headings and the workspace name. Sentence case, no tracking." },
+      "title": { "displayName": "Title", "purpose": "The error page heading, the only non-document heading." },
+      "mono": { "displayName": "Mono", "purpose": "Paths, keys, hashes, agents, timestamps, raw Markdown, code, inline HTML source. Raw mode at line-height 1.7." }
+    },
+    "shadows": [
+      { "name": "toolbar-lift", "value": "0 2px 2px rgb(28 28 26 / 0.06)", "purpose": "The floating formatting toolbar only, with its 1px hairline border." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "150ms ease-out", "purpose": "Tree caret rotation, strip button colour, drawer and sheet slide; only inside prefers-reduced-motion: no-preference. Reduced motion removes every transition and animation." }
+    ],
+    "focus": [
+      { "name": "ring", "value": "outline: 2px solid var(--accent); outline-offset: 2px", "purpose": "Every :focus-visible; inset (-2px) on tree rows and the rail container." },
+      { "name": "editor-bar", "value": "border-left: 2px solid var(--accent)", "purpose": "Left margin of the rich editor while it has keyboard focus." }
+    ],
+    "overlays": [
+      { "name": "backdrop", "value": "rgb(28 28 26 / 0.3)", "purpose": "Behind the mobile drawer; main is inert while it is open." },
+      { "name": "selection", "value": "color-mix(in srgb, var(--accent), transparent 80%)", "purpose": "Text selection inside the editor." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "767px", "purpose": "Below: single column, drawer, bottom sheet, 16px page padding." },
+      { "name": "tablet", "value": "1023px", "purpose": "Below: right rail stacks under the document." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action per screen; in milestone 1, New document in the left rail.",
+      "html": "<button class=\"ds-btn-primary\">New document</button>",
+      "css": ".ds-btn-primary { padding: 6px 10px; border: 0; border-radius: var(--radius, 6px); background: var(--accent, #2A47D1); color: #fff; font: 500 13px 'Inter Variable', system-ui, sans-serif; cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Every other chrome action: Create, Open navigation.",
+      "html": "<button class=\"ds-btn-secondary\">Create</button>",
+      "css": ".ds-btn-secondary { padding: 6px 10px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); color: var(--ink, #1C1C1A); font: 500 13px 'Inter Variable', system-ui, sans-serif; cursor: pointer; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Strip Toggle",
+      "kind": "button",
+      "refersTo": "button-strip",
+      "description": "Mono toggle in the file strip; pressed state turns the border and text accent.",
+      "html": "<button class=\"ds-btn-strip\" aria-pressed=\"false\">Raw</button> <button class=\"ds-btn-strip\" aria-pressed=\"true\">Raw</button>",
+      "css": ".ds-btn-strip { padding: 2px 8px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); color: var(--ink, #1C1C1A); font: 12.5px 'Fragment Mono', ui-monospace, monospace; cursor: pointer; transition: color 150ms ease-out, border-color 150ms ease-out; } .ds-btn-strip[aria-pressed='true'] { border-color: var(--accent, #2A47D1); color: var(--accent, #2A47D1); } .ds-btn-strip:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-btn-strip { transition: none; } }"
+    },
+    {
+      "name": "Path Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field in the create form; the path variant is mono.",
+      "html": "<label class=\"ds-field\">Path of the new document<input class=\"ds-input ds-input-path\" placeholder=\"notes/idea.md\"></label>",
+      "css": ".ds-field { display: block; color: var(--muted, #6E6E68); font: 13px 'Inter Variable', system-ui, sans-serif; } .ds-input { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); color: var(--ink, #1C1C1A); font: inherit; } .ds-input-path { font: 12.5px 'Fragment Mono', ui-monospace, monospace; } .ds-input:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Tree",
+      "kind": "nav",
+      "refersTo": "tree-item",
+      "description": "Folder tree in the left rail: mono muted folders with a rotating caret, Inter file titles, accent active item.",
+      "html": "<ul class=\"ds-tree\"><li><details open><summary><svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><path d=\"M4.5 2.5 8 6l-3.5 3.5\"/></svg>examples</summary><ul class=\"ds-tree\"><li><a href=\"#\" aria-current=\"page\">Weekly agent report</a></li></ul></details></li><li><details open><summary><svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><path d=\"M4.5 2.5 8 6l-3.5 3.5\"/></svg>project</summary><ul class=\"ds-tree\"><li><a href=\"#\">Architecture</a></li><li><a href=\"#\">PRD</a></li></ul></details></li></ul>",
+      "css": ".ds-tree { margin: 0; padding: 0; list-style: none; background: var(--panel, #F3F3F0); font: 13px 'Inter Variable', system-ui, sans-serif; } .ds-tree .ds-tree { padding-left: 12px; } .ds-tree summary, .ds-tree a { display: block; padding: 3px 6px; border-radius: var(--radius, 6px); } .ds-tree summary { display: flex; align-items: center; gap: 4px; list-style: none; color: var(--muted, #6E6E68); font: 12.5px 'Fragment Mono', ui-monospace, monospace; cursor: pointer; } .ds-tree summary::-webkit-details-marker { display: none; } .ds-tree svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; transition: transform 150ms ease-out; } .ds-tree details[open] > summary svg { transform: rotate(90deg); } .ds-tree a { color: var(--ink, #1C1C1A); text-decoration: none; } .ds-tree a:hover, .ds-tree summary:hover { background: var(--hairline, #E4E4E0); } .ds-tree a[aria-current='page'] { color: var(--accent, #2A47D1); font-weight: 500; } .ds-tree :is(a, summary):focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: -2px; } @media (prefers-reduced-motion: reduce) { .ds-tree svg { transition: none; } }"
+    },
+    {
+      "name": "File Strip",
+      "kind": "custom",
+      "refersTo": "file-strip",
+      "description": "Signature move: one mono line naming the file, its save state and the Raw toggle.",
+      "html": "<div class=\"ds-strip\"><span class=\"ds-strip-path\"><bdi>rapports/q3-2026.md</bdi></span><span class=\"ds-strip-state ds-saved\" role=\"status\">Saved</span><span class=\"ds-strip-actions\"><button class=\"ds-btn-strip\" aria-pressed=\"false\">Raw</button></span></div>",
+      "css": ".ds-strip { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr); align-items: center; gap: 12px; box-sizing: border-box; min-height: 36px; padding: 0 32px; background: var(--ground, #FBFBFA); border-bottom: 1px solid var(--hairline, #E4E4E0); font: 12.5px 'Fragment Mono', ui-monospace, monospace; color: var(--ink, #1C1C1A); white-space: nowrap; } .ds-strip-path { overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; } .ds-strip-state { color: var(--muted, #6E6E68); text-align: center; } .ds-strip-state.ds-saved { color: var(--ok, #1B7F3B); } .ds-strip-state.ds-conflict { color: var(--warn, #9A5C00); white-space: normal; } .ds-strip-state.ds-error { color: var(--error, #B3261E); } .ds-strip-actions { display: flex; gap: 8px; justify-self: end; } .ds-btn-strip { padding: 2px 8px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); color: inherit; font: inherit; cursor: pointer; } .ds-btn-strip[aria-pressed='true'] { border-color: var(--accent, #2A47D1); color: var(--accent, #2A47D1); } .ds-btn-strip:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Right Rail",
+      "kind": "custom",
+      "refersTo": "rail-right",
+      "description": "File (frontmatter as key and value) and History (last five commits) blocks.",
+      "html": "<aside class=\"ds-rail\"><section><h2>File</h2><dl><dt>title</dt><dd>Weekly agent report</dd><dt>status</dt><dd>draft</dd></dl></section><section><h2>History</h2><ol><li><span>Jon</span><span class=\"ds-mono\">via claude-code</span><time class=\"ds-mono\">2 hours ago</time><p>Seed examples via agent</p></li></ol></section></aside>",
+      "css": ".ds-rail { box-sizing: border-box; width: 280px; padding: 16px; display: flex; flex-direction: column; gap: 24px; background: var(--panel, #F3F3F0); border-left: 1px solid var(--hairline, #E4E4E0); color: var(--ink, #1C1C1A); font: 13px 'Inter Variable', system-ui, sans-serif; } .ds-rail h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; } .ds-rail h2:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; } .ds-rail dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; } .ds-rail dt, .ds-rail .ds-mono { font: 12.5px 'Fragment Mono', ui-monospace, monospace; color: var(--muted, #6E6E68); } .ds-rail time { font-variant-numeric: tabular-nums; } .ds-rail dd { margin: 0; overflow-wrap: anywhere; } .ds-rail ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; } .ds-rail li { display: flex; flex-wrap: wrap; gap: 0 6px; } .ds-rail p { flex-basis: 100%; margin: 0; color: var(--muted, #6E6E68); }"
+    },
+    {
+      "name": "Formatting Toolbar",
+      "kind": "custom",
+      "refersTo": "button-secondary",
+      "description": "The one shadowed element: Crepe's floating toolbar re-skinned with a hairline border and the toolbar-lift shadow.",
+      "html": "<div class=\"ds-toolbar\"><button>B</button><button>I</button><button>Link</button></div>",
+      "css": ".ds-toolbar { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--hairline, #E4E4E0); border-radius: var(--radius, 6px); background: var(--ground, #FBFBFA); box-shadow: 0 2px 2px rgb(28 28 26 / 0.06); } .ds-toolbar button { padding: 4px 8px; border: 0; border-radius: var(--radius, 6px); background: transparent; color: var(--ink, #1C1C1A); font: 13px 'Inter Variable', system-ui, sans-serif; cursor: pointer; } .ds-toolbar button:hover { background: var(--panel, #F3F3F0); } .ds-toolbar button:focus-visible { outline: 2px solid var(--accent, #2A47D1); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Honest File Browser",
+    "overview": "inkmesh shows a member a real folder of real Markdown files and lets them edit one as calmly as a word-processor page. The shell is Linear's: a narrow panel-toned rail on the left, a quiet properties rail on the right, 13px chrome with a grey hierarchy instead of colour, hairline borders and one blue accent reserved for the active item, links, focus and the single primary action. The page in the middle is Notion's: a wide, generous column of Inter at 16.5px with GitHub's Markdown conventions (grey code blocks, hairline table rows, a left-rule blockquote, task-list checkboxes).\n\nThe product's \"geek\" side is a state, never a second interface. Fragment Mono is the material that says \"this is a file\": it names the path in the file strip, the frontmatter keys, the folder names in the tree, the agent and timestamp in History, and the whole page when the Raw toggle is on. Everything read at length is Inter.\n\nConfirmed rejections, from the owner's brief: the admin dashboard made of cards and stat tiles, icon-only buttons and sidebars that collapse to mystery icons, shadows as decoration, dark mode, marketing gradients, saturated blue buttons, kickers and eyebrows above headings.",
+    "keyCharacteristics": [
+      "Light mode only; a faintly warm paper ground with one slightly deeper panel tone for rails.",
+      "One accent (ink blue) on the active tree item, links, focus rings, the pressed Raw toggle and the one primary button.",
+      "State colours only where they carry meaning: green saved, amber changed-on-disk, red error.",
+      "Two faces with a strict division of labour: Inter for reading and chrome, Fragment Mono for anything that is literally a file, key, hash or timestamp.",
+      "Flat surfaces separated by hairlines; a single soft shadow under the floating formatting toolbar.",
+      "6px radius everywhere a corner exists; 150ms ease-out motion, only when the user has not asked for reduced motion."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Blue means \"this is the thing\" (active, link, focus, primary action). It never fills a surface larger than a button and never decorates.", "section": "colors" },
+      { "name": "The Earned State Rule", "body": "Green, amber and red appear only as text that reports a save state or an error. No coloured badges, tiles or backgrounds.", "section": "colors" },
+      { "name": "The Hairline Rule", "body": "Every border in the product is 1px of `hairline`. Depth is tonal (ground vs panel), not drawn.", "section": "colors" },
+      { "name": "The Mono Means File Rule", "body": "Fragment Mono is used only where the text is a path, a key, a hash, a timestamp, an agent name, raw Markdown or code. Prose and labels read in Inter.", "section": "typography" },
+      { "name": "The No Eyebrow Rule", "body": "No kicker, eyebrow or small-caps label sits above a heading. Headings start the block.", "section": "typography" },
+      { "name": "The One Shadow Rule", "body": "Only an element that floats over the document (the formatting toolbar) may carry a shadow, and it is this one, soft, 2px shadow. Rails, sheets, drawers, menus and buttons are flat.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use `accent` for exactly four jobs: active item, link, focus ring, the one primary action per screen.",
+      "Do draw every edge as a 1px `hairline` and convey depth with ground-versus-panel tone.",
+      "Do set Fragment Mono at 12.5px on paths, keys, hashes, agents, timestamps, raw Markdown and code, and Inter everywhere people read.",
+      "Do give every interactive element a visible text label and a 2px accent `:focus-visible` outline.",
+      "Do wrap every transition in `prefers-reduced-motion: no-preference` and keep it at 150ms ease-out.",
+      "Do route every visible string through `t()` with an English and a French entry; never hard-code a label.",
+      "Do manage focus on overlays: move it in on open, return it to the opener on close, make the page `inert` behind a drawer."
+    ],
+    "donts": [
+      "Don't build cards, stat tiles or cards inside cards; blocks are separated by space and hairlines.",
+      "Don't ship icon-only buttons or a rail that collapses to icons.",
+      "Don't add shadows anywhere but the floating formatting toolbar.",
+      "Don't put a kicker, eyebrow or uppercase tracked label above a heading.",
+      "Don't add a dark mode or a second theme; the product is light only.",
+      "Don't use a state colour as a fill or badge; it is text reporting a state.",
+      "Don't leave a placeholder for a feature that has not shipped (search, comments, switcher); an absent block beats an empty promise."
+    ]
+  }
+}
