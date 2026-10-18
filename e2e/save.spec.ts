@@ -29,6 +29,15 @@ test('an edit autosaves, commits and keeps the code blocks byte-identical', asyn
 	expect(fences(saved)).toEqual(fences(fixture));
 	const log = execFileSync('git', ['-C', root, 'log', '-1', '--format=%an%n%s'], { encoding: 'utf8' });
 	expect(log.trim()).toBe('Owner\nUpdate examples/kitchen-sink.md');
+
+	// A hash change must keep the same autosave, with the hash returned by the last save.
+	await page.evaluate(() => {
+		location.hash = '#x';
+	});
+	await page.keyboard.type('!');
+	await expect(status(page)).toHaveText('', { timeout: 1000 });
+	await expect(status(page)).toHaveText('Saved', { timeout: 5000 });
+	expect(fs.readFileSync(file, 'utf8')).toContain(' edited!');
 });
 
 test('a file changed on disk is a conflict and is not overwritten', async ({ page }) => {

@@ -2,6 +2,7 @@
 	import Editor from '#lib/editor/Editor.svelte';
 	import FileStrip from '#lib/ui/FileStrip.svelte';
 	import RightRail from '#lib/ui/RightRail.svelte';
+	import { untrack } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/state';
 	import type { SaveState } from '#lib/ui/FileStrip.svelte';
@@ -75,7 +76,10 @@
 	}
 
 	// The action URL is fixed per document, so a save flushed after navigating still targets it.
-	const autosave = $derived(new Autosave(`${page.url.pathname}?/save`, data.body, data.hash));
+	// Untracked: page.url also changes on hash navigation, which reloads no data and must keep this autosave.
+	const autosave = $derived(
+		new Autosave(`${untrack(() => page.url.pathname)}?/save`, data.body, data.hash)
+	);
 	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
 	$effect(() => {
 		const current = autosave;
