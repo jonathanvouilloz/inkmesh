@@ -2,24 +2,31 @@
 Updated: 2026-10-18
 
 ## Where we are
-Milestone 1 is merged into `main` (2026-10-18): core (safe paths, git, shared remark processor, block-level `patchMarkdown` that keeps untouched blocks byte-identical, documents with SHA-256 conflict detection and a per-workspace write lock), seed script, workspace shell with folder tree and create form, document page with Milkdown Crepe (ImageBlock off), raw mode, right rail (frontmatter, git history), debounced autosave with conflict handling, error page, FR/EN i18n. 73 unit tests, 16 Playwright e2e on an isolated `.data-e2e`. Every task was reviewed by a fresh reviewer; the whole branch had a final review, one fix wave and one regression patch. Design: impeccable finish review shipped; `DESIGN.md` and `.impeccable/design.json` written from the built surface. The spike that confirmed Crepe is in `docs/plans/2026-10-18-m1-spike-results.md`.
+Milestone 2 is merged into `main` (2026-10-18): accounts (scrypt, sessions, throttled login), workspaces with roles enforced in `core`, single-use invitation links, members page, account page, home with workspace list, header with workspace and user menus, read-only mode for readers, admin CLI (`npm run admin`). 118 unit tests, 34 Playwright e2e. Design: finish review shipped, `DESIGN.md` updated. Spec and plan: `docs/plans/2026-10-18-m2-*`.
 
-The folder is still named `comd`; rename to `inkmesh` (`mv /home/hermes/personal-projects/comd /home/hermes/personal-projects/inkmesh`) when no session runs inside it.
+The dev folder is still `comd`, reached through the symlink `~/personal-projects/inkmesh -> comd` (the deploy docs use the `inkmesh` path).
+
+## In production (phase A)
+- Prod checkout `~/inkmesh-app` (clone of the dev repo, branch `main`), data `/home/hermes/inkmesh-data`, env `~/.config/inkmesh/env`.
+- Units linked from the prod clone: `inkmesh` (Node on `127.0.0.1:9310`) and `inkmesh-tunnel` (Cloudflare quick tunnel). Both enabled.
+- Public URL: `scripts/tunnel-url.sh` prints it; it changes at every tunnel restart. Current: https://exam-lots-gently-listings.trycloudflare.com
+- Admin account: Jon. No workspace yet: Jon creates them from the home page.
+- Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main`. Guide and phase B (inkmesh.ch): `docs/deploy.md`.
 
 ## Next action
-1. Try it: `npm run seed && npm run dev`, then `/demo`.
-2. Milestone 2 plan (`docs/plans/`): accounts and sessions, workspace memberships with roles, HTTP API and remote MCP server on top of `core`, agent tokens and the "Connect your agent" page, commit-per-editing-session. Then milestone 3: search (FTS5), comments, notifications, public links, image paste.
+1. Jon tests the public URL, changes his password on `/account`, creates a workspace and invites someone with a link.
+2. Register `inkmesh.ch`, then phase B of `docs/deploy.md` (named tunnel; one browser authorisation).
+3. Milestone 3 plan: HTTP API + remote MCP + agent tokens + "Connect your agent" page (the hermes agent on the VPS can already edit files in `/home/hermes/inkmesh-data/workspaces/<slug>` and commit as `Jon via hermes`), then commit-per-editing-session, search, comments, notifications, public links, image paste.
 
 ## Blockers and owner actions
-- Owner: rename the folder; confirm MIT before the public release.
-- Deferred to milestone 2 (from reviews, all ledgered): LCS prefix/suffix trimming and `listTree` caching for large workspaces; definitions nested in lists or blockquotes are not protected by `patchMarkdown`; a failed create leaves the file staged; atomic rename resets the file mode; `gitLog` keeps the subject line only; title regex can match `# ` inside a fence; history has no `--follow`; Crepe's toolbar and slash-menu strings are English; HTML blocks render as source, not natively; image paste needs a custom handler without ImageBlock.
-
-## In production
-Phase A installed on the VPS (`docs/deploy.md`): user service `inkmesh` enabled and running on `127.0.0.1:9310`, data in `/home/hermes/inkmesh-data`, env in `~/.config/inkmesh/env`. No admin created yet. `inkmesh-tunnel` (Cloudflare quick tunnel) is not installed: enabling it publishes the app (phase A step 5 in `docs/deploy.md`) and waits for the first admin and the owner's approval. `~/personal-projects/inkmesh` is a symlink to `comd` until the folder is renamed. Phase B (`inkmesh.ch`, named tunnel): steps in `docs/deploy.md`.
+- Owner: rename the dev folder when no session runs inside it (`rm ~/personal-projects/inkmesh && mv ~/personal-projects/comd ~/personal-projects/inkmesh`; units are unaffected, they point at `~/inkmesh-app`); confirm MIT; register `inkmesh.ch`.
+- Known limits (deliberate): no email of any kind (forgotten password = `npm run admin -- reset-password <email>`); the login throttle and the write lock are in memory (single process); a direct POST to `127.0.0.1:9310` without the `cf-connecting-ip` header returns 500 (`ADDRESS_HEADER` is set; only the tunnel reaches the port); the quick tunnel hostname is random and unannounced.
+- Deferred from reviews (ledgered, none blocking): definitions nested in lists/blockquotes unprotected by `patchMarkdown`; `listTree` caching; `gitLog` subject only; HTML blocks rendered as source; image paste; Crepe toolbar strings in English; user deletion needs a decision on `invitations.created_by`; expired sessions are deleted on sight, never swept.
 
 ## Known traps
-- Never bypass `core` for disk or git access; every path goes through `resolveInside` (in-root symlinks are rejected on purpose: a link to `.git/config` was a command-execution path).
-- `patchMarkdown` works on top-level blocks: editing one list item re-emits the whole list in normalised form (shortcut, documented).
-- The e2e suite runs on one worker in alphabetical file order and depends on it; enabling retries or sharding breaks `document.spec`.
-- The dev `.data/workspaces/demo` accumulates commits from manual use; `rm -rf .data/workspaces/demo && npm run seed` resets it.
-- Crepe must run with `ImageBlock` disabled (`src/lib/editor/config.ts`), or image alt text is lost.
+- Never bypass `core` for disk, git or database access; every path goes through `resolveInside`; every document function takes an `actor` and calls `assertRole` first.
+- adapter-node 6 bakes `paths.origin` at build time and ignores `ORIGIN`; without `X-Forwarded-Proto` it assumes `https`, so plain-http form posts fail the CSRF check (local captures need the header or `vite preview`).
+- Dev builds and e2e must never run in `~/inkmesh-app`; the e2e `webServer` rebuilds `build/` in the dev tree.
+- The e2e suite runs on one worker in alphabetical file order; `zz-account.spec.ts` must stay last.
+- `systemctl --user disable <unit>` removes a linked unit file; re-enable with the absolute path under `~/inkmesh-app/deploy/`.
+- Crepe must run with `ImageBlock` disabled; `patchMarkdown` works on top-level blocks.
