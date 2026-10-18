@@ -45,6 +45,6 @@ Logs: `journalctl --user -u inkmesh -f`, `journalctl --user -u inkmesh-tunnel -f
 3. Create the tunnel: `~/.local/bin/cloudflared tunnel create inkmesh` (prints the tunnel id and writes `~/.cloudflared/<tunnel-id>.json`).
 4. Config: `cp deploy/cloudflared.yml ~/.cloudflared/config.yml` and replace `<tunnel-id>`.
 5. DNS: `~/.local/bin/cloudflared tunnel route dns inkmesh inkmesh.ch`.
-6. Env switch: in `~/.config/inkmesh/env`, remove `PROTOCOL_HEADER` and `HOST_HEADER`, uncomment `ORIGIN=https://inkmesh.ch`.
+6. Env: nothing to change. The origin keeps coming from the proxy headers (`PROTOCOL_HEADER`, `HOST_HEADER`); adapter-node 6 does not read an `ORIGIN` variable (a fixed origin would be the build-time `paths.origin` option, not needed here).
 7. Tunnel switch: in `deploy/inkmesh-tunnel.service`, comment the quick tunnel `ExecStart` and uncomment the `tunnel run` one; commit.
 8. Restart both: `systemctl --user daemon-reload && systemctl --user restart inkmesh inkmesh-tunnel`. Sessions survive (cookie name and path unchanged). Check `https://inkmesh.ch/login`.
