@@ -51,7 +51,7 @@
 </Header>
 
 <div class="shell">
-	<nav id="rail" class="rail" class:open tabindex="-1" bind:this={rail}>
+	<nav id="rail" class="rail" class:open tabindex="-1" bind:this={rail} aria-label={t('nav.documents', data.locale)}>
 		{#if data.role !== 'reader'}
 			<a
 				class="members"

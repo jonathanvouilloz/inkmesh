@@ -130,6 +130,7 @@
 		margin: 0;
 	}
 	.note {
+		text-wrap: pretty;
 		color: var(--muted);
 	}
 	section + section {

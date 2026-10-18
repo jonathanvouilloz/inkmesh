@@ -34,6 +34,7 @@ export const en = {
 	'nav.members': 'Members',
 	'nav.account': 'Account',
 	'nav.header': 'Workspace and account',
+	'nav.documents': 'Documents',
 	'home.title': 'Your workspaces',
 	'home.empty': 'You are not a member of any workspace yet. Ask for an invitation link.',
 	'home.create': 'New workspace',

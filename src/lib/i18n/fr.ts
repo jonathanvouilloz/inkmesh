@@ -36,6 +36,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'nav.members': 'Membres',
 	'nav.account': 'Compte',
 	'nav.header': 'Espace de travail et compte',
+	'nav.documents': 'Documents',
 	'home.title': 'Vos espaces de travail',
 	'home.empty': 'Vous n’êtes membre d’aucun espace de travail pour l’instant. Demandez un lien d’invitation.',
 	'home.create': 'Nouvel espace de travail',
