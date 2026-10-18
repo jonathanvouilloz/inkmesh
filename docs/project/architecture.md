@@ -12,7 +12,7 @@ One Node process serves a SvelteKit web app, an HTTP API and a remote MCP server
       │  HTML + fetch           │  Streamable HTTP          │  HTTP + bearer
       ▼                         ▼                            ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│ inkmesh (Node 24, SvelteKit adapter-node, behind Caddy)              │
+│ inkmesh (Node 24, SvelteKit adapter-node, behind a Cloudflare Tunnel)│
 │                                                                      │
 │  routes/ (pages, form actions)   api/ (REST)   mcp/ (tools, OAuth)   │
 │                 └────────────────┬───────────────┘                   │
@@ -62,7 +62,7 @@ One Node process serves a SvelteKit web app, an HTTP API and a remote MCP server
 ## Environments and deployment
 
 - **Local.** `npm run dev` with `INKMESH_DATA=./.data` (git-ignored). Seed script creates an owner and a sample workspace.
-- **Production.** The owner's VPS. Built with `npm run build`, run by a systemd user service as `hermes`, Caddy terminates TLS and proxies to the Node port. Data in `/home/hermes/inkmesh-data`. Deploy = pull, build, restart the service. Rollback = check out the previous tag, build, restart; the data directory is untouched. Database schema changes are forward-only migrations run at startup.
+- **Production.** The owner's VPS. Built with `npm run build`, run by a systemd user service as `hermes` on `127.0.0.1:9310`; a second user service runs `cloudflared`, which holds an outbound tunnel to Cloudflare (TLS terminated there, no inbound port on the VPS). The app derives its origin from the proxy headers (`PROTOCOL_HEADER`, `HOST_HEADER`). Data in `/home/hermes/inkmesh-data`. Steps and the phase A (quick tunnel, random `trycloudflare.com` hostname) / phase B (`inkmesh.ch`) switch: `docs/deploy.md`. Deploy = `scripts/deploy.sh` (pull if an upstream exists, build, restart). Rollback = check out the previous tag, build, restart; the data directory is untouched. Database schema changes are forward-only migrations run at startup.
 - **Other installers.** A Dockerfile with one volume for `$INKMESH_DATA`.
 
 ## Security

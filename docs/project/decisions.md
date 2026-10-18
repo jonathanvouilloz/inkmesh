@@ -61,3 +61,21 @@
 - Rejected: sharing the developer's `.data` (edits and commits accumulated across runs and loosened the assertions).
 - Why: repeatable assertions (exact history count, deterministic create).
 - Reopen if: the suite grows enough to need parallel workers; then each spec needs its own workspace.
+
+## 2026-10-18 — Public URL through a Cloudflare Tunnel, quick tunnel until the domain exists
+- Choice: the VPS keeps the files and git; `cloudflared` (user systemd service) exposes `127.0.0.1:9310` through an outbound tunnel. Phase A: a quick tunnel with a random `*.trycloudflare.com` hostname so the owner can test before registering `inkmesh.ch`. Phase B: a named tunnel on `inkmesh.ch` (domain free on 2026-10-18, registration by the owner). The app derives its origin from `X-Forwarded-Proto` and `Host` (adapter-node 6 bakes `paths.origin` at build time and ignores an `ORIGIN` env variable).
+- Rejected: Caddy with DNS A records and open ports 80/443 (works, but the owner wants Cloudflare in front and no inbound ports); Cloudflare Workers hosting (no filesystem, already rejected); Tailscale Funnel (its three allowed ports are taken by tailnet-only services on this VPS).
+- Why: zero inbound exposure, TLS and DDoS handled by Cloudflare, one browser authorisation when the domain comes.
+- Reopen if: the quick tunnel's unannounced hostname changes become a problem before the domain exists (then register the domain earlier), or Cloudflare terms change for tunnels.
+
+## 2026-10-18 — Invitations by single-use link, no email in milestone 2
+- Choice: an owner or editor creates a link carrying a role (7-day expiry, token hashed in the database, one acceptance); the inviter sends it through their own channel. Editors invite readers and editors only; owners invite any role. A workspace keeps at least one owner. Password login with scrypt; a password change or CLI reset deletes every session of that user. Forgotten password = `npm run admin -- reset-password` by the instance admin.
+- Rejected: email invitations and magic links now (SMTP to configure and a second delivery channel to test before the first user); open signup.
+- Why: the smallest flow that lets a non-technical person join in one click; email arrives with notifications in milestone 3.
+- Reopen if: invitees lose links often, or notifications bring SMTP anyway.
+
+## 2026-10-18 — Instance admin flag, workspaces created only by admins
+- Choice: `users.admin` (set by the CLI) grants workspace creation and nothing inside a workspace; slugs are `[a-z0-9][a-z0-9-]{1,39}` minus the reserved top-level route names.
+- Rejected: any member creating workspaces (the VPS belongs to the owner; invitees should not fill it); an "instance owner" role mixed with workspace roles.
+- Why: keeps workspace roles as the only permission model inside content.
+- Reopen if: a trusted collaborator needs their own workspaces (then a per-user "may create" flag or a quota).
