@@ -6,7 +6,7 @@ const run = promisify(execFile);
 async function git(dir: string, args: string[], env: Record<string, string> = {}): Promise<string> {
 	const { stdout } = await run('git', ['-c', 'commit.gpgsign=false', ...args], {
 		cwd: dir,
-		env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', ...env }
+		env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', LC_ALL: 'C', ...env }
 	});
 	return stdout;
 }
