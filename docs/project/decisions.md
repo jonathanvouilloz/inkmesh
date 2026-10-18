@@ -43,3 +43,21 @@
 - Rejected: a React editor (BlockNote, TipTap) — the spike showed no content loss that a configuration does not fix, so the stack decision stands; accepting Crepe's reformatting as-is — it breaks the PRD's "do not reformat untouched content".
 - Why: the spike (`docs/plans/2026-10-18-m1-spike-results.md`) found every construct survives except image alt text under one optional feature; the formatting drift is exactly what block-level patching was designed for.
 - Reopen if: editing (not only parse and serialise) turns out to lose content, or image paste cannot be implemented on the plain image node without `ImageBlock`.
+
+## 2026-10-18 — Symlinks inside a workspace are rejected, not only escaping ones
+- Choice: `resolveInside` requires the nearest existing ancestor's real path to equal its expected place under the real root; any symlink in the path throws `InvalidPath`. `.git` and `.inkmesh` are rejected as any segment, and documents must be `.md` files whose name does not start with a dot.
+- Rejected: rejecting only links whose target leaves the root (the first implementation).
+- Why: an in-root link `cfg.md -> .git/config` let a document write reach git's config, and `git add` executed a command from it (reproduced in review). Invariant 2 of the architecture is the security boundary.
+- Reopen if: a workspace must contain intentional symlinks (then resolve them in `core` with an allow-list, never implicitly).
+
+## 2026-10-18 — Reference-style links are protected by the block patch
+- Choice: `patchMarkdown` resolves link and image references against the document's definitions when comparing blocks, and keeps original definition blocks the editor dropped. Kept definitions are never removed through the editor path (shortcut, commented).
+- Rejected: documenting the editor's inlining of reference links as a known limit.
+- Why: Crepe rewrites `[text][ref]` into inline links and drops `[ref]: url`; without protection, any edit elsewhere rewrote untouched paragraphs, breaking invariant 3 on README-style documents.
+- Reopen if: definitions nested in lists or blockquotes (not protected today) turn out to be common, or users need to delete definitions from the rich editor.
+
+## 2026-10-18 — End-to-end tests run on their own data directory
+- Choice: Playwright seeds and serves from `.data-e2e`, wiped before each run; the suite runs on one worker in file order.
+- Rejected: sharing the developer's `.data` (edits and commits accumulated across runs and loosened the assertions).
+- Why: repeatable assertions (exact history count, deterministic create).
+- Reopen if: the suite grows enough to need parallel workers; then each spec needs its own workspace.
