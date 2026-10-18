@@ -5,5 +5,8 @@ const BASE = 'http://inkmesh.invalid';
 export function safeNext(next: FormDataEntryValue | string | null): string {
 	if (typeof next !== 'string' || !next.startsWith('/') || /[\x00-\x1f\x7f]/.test(next)) return '/';
 	const url = URL.parse(next, BASE);
-	return url?.origin === BASE ? url.pathname + url.search + url.hash : '/';
+	if (url?.origin !== BASE) return '/';
+	const result = url.pathname + url.search + url.hash;
+	// Dot segments can normalise to a protocol-relative path: "/.//evil.com" → "//evil.com".
+	return result.startsWith('//') ? '/' : result;
 }
