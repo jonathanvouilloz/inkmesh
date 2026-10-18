@@ -3,7 +3,8 @@ Description=inkmesh web app
 
 [Service]
 Type=simple
-WorkingDirectory=%h/personal-projects/inkmesh
+# The production checkout, never the dev tree: a dev build would overwrite build/ under the live process.
+WorkingDirectory=%h/inkmesh-app
 EnvironmentFile=%h/.config/inkmesh/env
 # node lives in ~/.local/bin, which the user manager PATH does not include.
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin

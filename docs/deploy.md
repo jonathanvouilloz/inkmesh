@@ -2,17 +2,16 @@
 
 Production runs on the owner's VPS as the user `hermes`: two systemd user services (linger is enabled, so they run without a login session). `inkmesh` runs `node build` on `127.0.0.1:9310`; `inkmesh-tunnel` runs `cloudflared` and is the only way in from outside. Backup and rollback: see `docs/project/architecture.md`, "Environments and deployment".
 
-The unit files point at `%h/personal-projects/inkmesh`. While the repository folder is still named `comd`, a symlink `~/personal-projects/inkmesh -> comd` makes that path valid. To rename for good, with no change to the units:
+## Two checkouts
 
-```sh
-cd ~/personal-projects && rm inkmesh && mv comd inkmesh
-systemctl --user reenable /home/hermes/personal-projects/inkmesh/deploy/inkmesh.service
-systemctl --user restart inkmesh
-# only if the tunnel is already enabled:
-systemctl --user reenable /home/hermes/personal-projects/inkmesh/deploy/inkmesh-tunnel.service
-```
+- **Dev**: `~/personal-projects/inkmesh`, where work, dev builds and e2e runs happen (`npm run test:e2e` runs `npm run build` and would overwrite `build/` under a live process).
+- **Prod**: `~/inkmesh-app`, a clone of the dev repository (its `origin`) kept on `main`. Only `scripts/deploy.sh` touches it. The service runs there, and both units are linked from this clone (`~/inkmesh-app/deploy/*.service`), so the live unit always matches the deployed version.
 
-`reenable` with the path rewrites the unit links in case any was resolved to the `comd` path.
+Create the prod clone once: `git clone ~/personal-projects/inkmesh ~/inkmesh-app`.
+
+While the dev folder is still named `comd`, a symlink `~/personal-projects/inkmesh -> comd` makes the dev path valid; production does not depend on it. To rename for good: `cd ~/personal-projects && rm inkmesh && mv comd inkmesh`, then `git -C ~/inkmesh-app remote set-url origin ~/personal-projects/inkmesh` if the clone recorded the `comd` path.
+
+Rollback: `cd ~/inkmesh-app && git checkout <previous sha> && npm ci && npm run build && systemctl --user restart inkmesh`; the data directory is untouched. `git checkout main` before the next `scripts/deploy.sh`.
 
 ## Phase A: quick tunnel, no domain
 
@@ -21,18 +20,18 @@ systemctl --user reenable /home/hermes/personal-projects/inkmesh/deploy/inkmesh-
    mkdir -p ~/.config/inkmesh /home/hermes/inkmesh-data
    cp deploy/env.example ~/.config/inkmesh/env
    ```
-2. App unit, linked from the repository and enabled in one step (repeatable after a `disable`):
+2. App unit, linked from the prod clone and enabled in one step (repeatable after a `disable`):
    ```sh
-   systemctl --user enable /home/hermes/personal-projects/inkmesh/deploy/inkmesh.service
+   systemctl --user enable /home/hermes/inkmesh-app/deploy/inkmesh.service
    ```
-3. Build and start the app: `scripts/deploy.sh` (pull, `npm ci`, build, restart `inkmesh`; migrations run at start). Run it again for every later deploy. Check: `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:9310/login` prints `200`.
+3. Build and start the app: `scripts/deploy.sh` (fast-forwards `~/inkmesh-app` to `main`, `npm ci`, build, restart `inkmesh`; migrations run at start). Run it again for every later deploy. Check: `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:9310/login` prints `200`.
 4. First admin (do not run the seed in production), password on stdin:
    ```sh
-   ( set -a; . ~/.config/inkmesh/env; set +a; npm run admin -- create-admin <email> "<name>" )
+   ( cd ~/inkmesh-app && set -a && . ~/.config/inkmesh/env && set +a && npm run admin -- create-admin <email> "<name>" )
    ```
 5. Publish: this step makes the app reachable from the internet, so only after the admin exists and with the owner's approval. It also starts the tunnel at every boot:
    ```sh
-   systemctl --user enable --now /home/hermes/personal-projects/inkmesh/deploy/inkmesh-tunnel.service
+   systemctl --user enable --now /home/hermes/inkmesh-app/deploy/inkmesh-tunnel.service
    ```
    Then `scripts/tunnel-url.sh` prints the `https://<words>.trycloudflare.com` URL. It changes at every tunnel restart and has no uptime promise.
 
@@ -46,5 +45,5 @@ Logs: `journalctl --user -u inkmesh -f`, `journalctl --user -u inkmesh-tunnel -f
 4. Config: `cp deploy/cloudflared.yml ~/.cloudflared/config.yml` and replace `<tunnel-id>`.
 5. DNS: `~/.local/bin/cloudflared tunnel route dns inkmesh inkmesh.ch`.
 6. Env: nothing to change. The origin keeps coming from the proxy headers (`PROTOCOL_HEADER`, `HOST_HEADER`); adapter-node 6 does not read an `ORIGIN` variable (a fixed origin would be the build-time `paths.origin` option, not needed here).
-7. Tunnel switch: in `deploy/inkmesh-tunnel.service`, comment the quick tunnel `ExecStart` and uncomment the `tunnel run` one; commit.
+7. Tunnel switch: in `deploy/inkmesh-tunnel.service`, comment the quick tunnel `ExecStart` and uncomment the `tunnel run` one; commit on `main` and run `scripts/deploy.sh` so the prod clone carries it.
 8. Restart both: `systemctl --user daemon-reload && systemctl --user restart inkmesh inkmesh-tunnel`. Sessions survive (cookie name and path unchanged). Check `https://inkmesh.ch/login`.
