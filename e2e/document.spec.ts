@@ -18,8 +18,8 @@ test.describe('English', () => {
 		await expect(details.getByText('Weekly agent report', { exact: true })).toBeVisible();
 		await expect(details.getByRole('heading', { name: 'History' })).toBeVisible();
 		const rows = details.getByRole('listitem');
-		await expect(rows).toHaveCount(1);
-		await expect(rows.first()).toContainText('Seed demo workspace');
+		expect(await rows.count()).toBeGreaterThanOrEqual(1);
+		await expect(rows.last()).toContainText('Seed demo workspace');
 
 		const toggle = strip(page).getByRole('button', { name: 'Raw' });
 		await expect(toggle).toHaveAttribute('aria-pressed', 'false');

@@ -1,17 +1,30 @@
+<script lang="ts" module>
+	export type SaveState = 'idle' | 'saving' | 'saved' | 'conflict' | 'error';
+</script>
+
 <script lang="ts">
 	import { t, type Locale } from '#lib/i18n/index.ts';
 
 	let {
 		path,
 		locale,
+		saveState,
 		raw = $bindable(),
 		details = $bindable()
-	}: { path: string; locale: Locale; raw: boolean; details: boolean } = $props();
+	}: {
+		path: string;
+		locale: Locale;
+		saveState: SaveState;
+		raw: boolean;
+		details: boolean;
+	} = $props();
 </script>
 
 <div class="strip" data-testid="file-strip">
 	<span class="path"><bdi>{path}</bdi></span>
-	<span class="state" role="status" aria-live="polite"></span>
+	<span class="state {saveState}" role="status" aria-live="polite"
+		>{saveState === 'idle' ? '' : t(`save.${saveState}`, locale)}</span
+	>
 	<button
 		class="details"
 		aria-expanded={details}
@@ -27,7 +40,7 @@
 		align-items: center;
 		gap: 12px;
 		box-sizing: border-box;
-		height: 36px;
+		min-height: 36px;
 		padding: 0 32px;
 		position: sticky;
 		top: 0;
@@ -49,6 +62,17 @@
 	}
 	.state {
 		color: var(--muted);
+	}
+	.saved {
+		color: var(--ok);
+	}
+	.conflict {
+		color: var(--warn);
+		/* The full sentence wraps instead of pushing the buttons off a narrow strip. */
+		white-space: normal;
+	}
+	.error {
+		color: var(--error);
 	}
 	button {
 		padding: 2px 8px;
