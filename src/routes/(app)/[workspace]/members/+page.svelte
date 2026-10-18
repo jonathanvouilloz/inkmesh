@@ -7,9 +7,17 @@
 	const owner = $derived(data.role === 'owner');
 	const lastOwner = $derived(data.members.filter((m) => m.role === 'owner').length === 1);
 	let copied = $state(false);
+	let linkInput = $state<HTMLInputElement>();
 
 	async function copy(link: string) {
-		await navigator.clipboard.writeText(link);
+		try {
+			await navigator.clipboard.writeText(link);
+		} catch {
+			// No clipboard outside a secure context: leave the link selected for a manual copy.
+			linkInput?.focus();
+			linkInput?.select();
+			return;
+		}
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
@@ -26,7 +34,7 @@
 		<thead>
 			<tr>
 				<th>{t('invite.name', locale)}</th>
-				<th>{t('invite.email', locale)}</th>
+				<th>{t('login.email', locale)}</th>
 				<th>{t('members.role', locale)}</th>
 				{#if owner}<td></td>{/if}
 			</tr>
@@ -38,18 +46,14 @@
 					<td class="mono">{m.user.email}</td>
 					<td>
 						{#if owner}
-							<form method="POST" action="?/setRole">
+							<form class="row" method="POST" action="?/setRole">
 								<input type="hidden" name="userId" value={m.user.id} />
-								<!-- shortcut: submits on change, no separate button; add one if keyboard users report stray submits -->
-								<select
-									name="role"
-									aria-label="{t('members.role', locale)}, {m.user.name}"
-									onchange={(e) => e.currentTarget.form?.requestSubmit()}
-								>
+								<select name="role" aria-label="{t('members.role', locale)}, {m.user.name}">
 									{#each data.roles as r (r)}
 										<option value={r} selected={r === m.role}>{t(`role.${r}`, locale)}</option>
 									{/each}
 								</select>
+								<button>{t('members.save', locale)}</button>
 							</form>
 						{:else}
 							{t(`role.${m.role}`, locale)}
@@ -118,15 +122,20 @@
 	{#if form?.link}
 		{@const link = form.link}
 		<div class="link">
-			<label>
-				{t('members.link', locale)}
-				<span class="row">
-					<input class="mono" readonly value={link} onfocus={(e) => e.currentTarget.select()} />
-					<button type="button" aria-live="polite" onclick={() => copy(link)}
-						>{t(copied ? 'members.copied' : 'members.copy', locale)}</button
-					>
-				</span>
-			</label>
+			<label for="invite-link">{t('members.link', locale)}</label>
+			<span class="row">
+				<input
+					id="invite-link"
+					class="mono"
+					readonly
+					value={link}
+					bind:this={linkInput}
+					onfocus={(e) => e.currentTarget.select()}
+				/>
+				<button type="button" aria-live="polite" onclick={() => copy(link)}
+					>{t(copied ? 'members.copied' : 'members.copy', locale)}</button
+				>
+			</span>
 			<p>{t('members.once', locale)}</p>
 		</div>
 	{/if}
@@ -196,7 +205,11 @@
 	}
 	.row {
 		display: flex;
+		align-items: center;
 		gap: 8px;
+	}
+	.link label {
+		font-weight: 600;
 	}
 	.row input {
 		flex: 1;

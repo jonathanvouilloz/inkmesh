@@ -40,7 +40,7 @@ test('an owner invites an editor who signs up and edits', async ({ page, browser
 	const invitee = await fresh(browser);
 	const visit = await invitee.newPage();
 	await visit.goto(editorLink);
-	await expect(visit.getByRole('heading', { name: 'You are invited to Demo as Editor' })).toBeVisible();
+	await expect(visit.getByRole('heading', { name: 'You are invited to Demo as editor' })).toBeVisible();
 	// The token lives in the URL only.
 	expect(await visit.content()).not.toContain(editorLink.split('/').pop()!);
 	await visit.close();
@@ -61,6 +61,7 @@ test('the last owner cannot be demoted', async ({ page }) => {
 	await page.goto('/demo/members');
 	const row = page.getByRole('row').filter({ hasText: 'owner@inkmesh.local' });
 	await row.getByRole('combobox').selectOption('reader');
+	await row.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByText('A workspace keeps at least one owner')).toBeVisible();
 	await expect(page.getByRole('row').filter({ hasText: 'owner@inkmesh.local' }).getByRole('combobox')).toHaveValue(
 		'owner'
@@ -93,7 +94,7 @@ test('an existing email is sent to sign in and back', async ({ page, browser }) 
 	await visit.getByLabel('Email').fill('nina@example.ch');
 	await visit.getByLabel('Password').fill('ten chars ok');
 	await visit.getByRole('button', { name: 'Sign in' }).click();
-	await visit.getByRole('button', { name: 'Join Demo as Reader' }).click();
+	await visit.getByRole('button', { name: 'Join Demo as reader' }).click();
 	await expect(visit).toHaveURL(/\/demo$/);
 	await context.close();
 	// Joining never lowers a role: Nina stays an editor.

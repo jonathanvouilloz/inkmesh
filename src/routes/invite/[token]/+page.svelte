@@ -8,7 +8,7 @@
 	const vars = $derived(
 		data.invitation && {
 			workspace: data.invitation.workspace.name,
-			role: t(`role.${data.invitation.role}`, locale)
+			role: t(`role.${data.invitation.role}`, locale).toLocaleLowerCase(locale)
 		}
 	);
 	const fieldError = $derived(form?.error === 'invite.password' ? 'password' : form?.error ? 'email' : null);
@@ -32,7 +32,7 @@
 					<input name="name" autocomplete="name" required maxlength="80" value={form?.name ?? ''} />
 				</label>
 				<label>
-					{t('invite.email', locale)}
+					{t('login.email', locale)}
 					<input
 						class="mono"
 						name="email"
@@ -46,8 +46,12 @@
 				</label>
 				{#if fieldError === 'email'}
 					<p id="invite-error" class="error" role="alert">
-						{t('invite.exists', locale)}
-						<a href="/login?next={encodeURIComponent(page.url.pathname)}">{t('invite.signin', locale)}</a>
+						{#if form?.error === 'invite.exists'}
+							{t('invite.exists', locale)}
+							<a href="/login?next={encodeURIComponent(page.url.pathname)}">{t('invite.signin', locale)}</a>
+						{:else}
+							{t('invite.email', locale)}
+						{/if}
 					</p>
 				{/if}
 				<label>
@@ -63,7 +67,13 @@
 						aria-describedby="password-hint"
 					/>
 				</label>
-				<p id="password-hint" class:error={fieldError === 'password'}>{t('invite.password', locale)}</p>
+				<p
+					id="password-hint"
+					class:error={fieldError === 'password'}
+					role={fieldError === 'password' ? 'alert' : undefined}
+				>
+					{t('invite.password', locale)}
+				</p>
 				<button>{t('invite.create', locale)}</button>
 			</form>
 		{/if}

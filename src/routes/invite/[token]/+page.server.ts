@@ -29,7 +29,8 @@ export const actions: Actions = {
 		if (!joined) return fail(410, { error: 'invite.invalid' as const });
 		redirect(303, '/' + joined.slug);
 	},
-	signup: async ({ params, request, cookies }) => {
+	signup: async ({ params, request, cookies, locals }) => {
+		if (locals.user) error(400); // a signed-in visitor joins instead
 		const form = await request.formData();
 		const [name, email, password] = ['name', 'email', 'password'].map((k) => form.get(k));
 		// Bounds scrypt work, like the login form.
@@ -42,9 +43,12 @@ export const actions: Actions = {
 		)
 			error(400);
 		const trimmed = name.trim();
-		if (!trimmed || trimmed.length > 80 || !email.trim()) error(400);
+		if (!trimmed || trimmed.length > 80) error(400);
 		// Checked before scrypt and before using the token, so a refused signup keeps the invitation.
 		if (!invitation(params.token)) return fail(410, { error: 'invite.invalid' as const });
+		const address = email.trim();
+		if (!address.includes('@') || address.length > 254)
+			return fail(400, { error: 'invite.email' as const, name, email });
 		if (userByEmail(email)) return fail(409, { error: 'invite.exists' as const, name, email });
 		let user;
 		try {

@@ -49,7 +49,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'invite.title': 'Invitation à rejoindre {workspace} avec le rôle {role}',
 	'invite.join': 'Rejoindre {workspace} avec le rôle {role}',
 	'invite.name': 'Nom',
-	'invite.email': 'E-mail',
+	'invite.email': 'Saisissez une adresse e-mail valide',
 	'invite.create': 'Créer le compte',
 	'invite.exists': 'Vous avez déjà un compte, connectez-vous pour accepter',
 	'invite.signin': 'Se connecter',
@@ -69,5 +69,6 @@ export const fr: Record<keyof typeof en, string> = {
 	'members.expires': 'Expire le',
 	'members.by': 'Créé par',
 	'members.revoke': 'Révoquer',
+	'members.save': 'Enregistrer',
 	'members.lastOwner': 'Un espace de travail garde au moins un propriétaire'
 };

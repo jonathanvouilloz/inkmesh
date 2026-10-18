@@ -47,7 +47,7 @@ export const en = {
 	'invite.title': 'You are invited to {workspace} as {role}',
 	'invite.join': 'Join {workspace} as {role}',
 	'invite.name': 'Name',
-	'invite.email': 'Email',
+	'invite.email': 'Enter a valid email address',
 	'invite.create': 'Create account',
 	'invite.exists': 'You already have an account, sign in to accept',
 	'invite.signin': 'Sign in',
@@ -67,5 +67,6 @@ export const en = {
 	'members.expires': 'Expires',
 	'members.by': 'Created by',
 	'members.revoke': 'Revoke',
+	'members.save': 'Save',
 	'members.lastOwner': 'A workspace keeps at least one owner'
 };
