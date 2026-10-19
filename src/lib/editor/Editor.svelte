@@ -27,7 +27,7 @@
 
 	onMount(() => {
 		load = async () => {
-			const [{ Crepe }, { crepeFeatures }] = await Promise.all([
+			const [{ Crepe }, { crepeFeatures, inertUnsafeUrls }] = await Promise.all([
 				import('@milkdown/crepe'),
 				import('./config.ts')
 			]);
@@ -39,6 +39,7 @@
 				// shortcut: only the placeholder is localised; Crepe's toolbar and slash-menu labels stay English, upgrade through featureConfigs when French users ask
 				featureConfigs: { [Crepe.Feature.Placeholder]: { text: t('editor.placeholder', locale) } }
 			});
+			inertUnsafeUrls(crepe);
 			crepe.setReadonly(untrack(() => readonly));
 			crepe.on((listener) =>
 				listener.markdownUpdated((_ctx, markdown) => {

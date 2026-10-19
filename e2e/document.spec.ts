@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 const strip = (page: Page) => page.getByTestId('file-strip');
@@ -55,6 +57,25 @@ test.describe('English', () => {
 		await expect(strip(page).getByText('notes/été.md', { exact: true })).toBeVisible();
 		await expect(page.locator('.milkdown h1')).toHaveText('été');
 		await expect(page.locator('#rail').locator('a[aria-current="page"]')).toHaveText('été');
+	});
+
+	test('a javascript link is not clickable', async ({ page }) => {
+		// Written straight to disk, as an agent or a git pull would: the editor is the only line of defence.
+		const file = path.resolve(process.env.INKMESH_DATA!, 'workspaces/demo/e2e-xss/link.md');
+		fs.mkdirSync(path.dirname(file), { recursive: true });
+		fs.writeFileSync(file, '[x](javascript:alert(1))\n');
+		let dialogs = 0;
+		page.on('dialog', (dialog) => {
+			dialogs++;
+			void dialog.dismiss();
+		});
+		await page.goto('/demo/e2e-xss/link.md');
+		const link = page.locator('.milkdown a', { hasText: 'x' });
+		await expect(link).toBeVisible();
+		await expect(link).not.toHaveAttribute('href');
+		await link.click();
+		expect(dialogs).toBe(0);
+		await expect(page).toHaveURL(/\/demo\/e2e-xss\/link\.md$/);
 	});
 
 	test('a missing document is a 404', async ({ page }) => {
