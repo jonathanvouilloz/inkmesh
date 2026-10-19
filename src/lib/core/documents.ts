@@ -123,9 +123,9 @@ export function relocate(
 	if (posix.join(posix.dirname(newDoc), t.path) === resolved) return null;
 	let rel = posix.relative(posix.dirname(newDoc), resolved) || '.';
 	if (resolved.endsWith('/')) rel += '/';
-	// `(` `)` too: a bare Markdown destination with an unbalanced one would end early.
+	// `(` `)` would end a bare destination early, `:` could read as a scheme.
 	const hex = (c: string) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
-	const next = encodeURI(rel).replace(/[?#()]/g, hex) + t.suffix;
+	const next = encodeURI(rel).replace(/[?#():]/g, hex) + t.suffix;
 	return next === url ? null : next;
 }
 
@@ -378,9 +378,10 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 			});
 		} catch (err) {
 			// Best effort per step: the commit error is what the caller must see.
+			const report = (what: string) => (e: unknown) => console.error(`move rollback: ${what}`, e);
 			for (const { rel, bytes } of rewritten)
-				await writeAtomic(join(root, rel), bytes).catch(() => {});
-			await fs.rename(dest, src).catch(() => {});
+				await writeAtomic(join(root, rel), bytes).catch(report(`restore ${rel}`));
+			await fs.rename(dest, src).catch(report(`rename ${relTo} back`));
 			throw err;
 		}
 		return relTo;

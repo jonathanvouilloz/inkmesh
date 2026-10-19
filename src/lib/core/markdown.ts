@@ -72,6 +72,8 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
  */
 // shortcut: a URL written with escapes or entities (`a\_b.md`, `&amp;`) differs from its parsed form and is left as is; upgrade by reading micromark tokens if such links show up
 export function rewriteUrls(source: string, rewrite: (url: string) => string | null): string {
+	// The parser skips a leading BOM, so its offsets would be one short.
+	if (source.startsWith('\uFEFF')) return '\uFEFF' + rewriteUrls(source.slice(1), rewrite);
 	const edits: Array<[number, number, string]> = [];
 	walk(processor.parse(source) as unknown as Node, (n) => {
 		if (n.type !== 'link' && n.type !== 'image' && n.type !== 'definition') return;

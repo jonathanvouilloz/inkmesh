@@ -433,6 +433,7 @@ describe('documents', () => {
 		expect(relocate('a.md', 'y.md', 'y.md', { from: 'a.md', to: 'z (1)/a#?.md' })).toBe(
 			'z%20%281%29/a%23%3F.md'
 		);
+		expect(relocate('a.md', 'y.md', 'y.md', { from: 'a.md', to: 'a:b.md' })).toBe('a%3Ab.md');
 		expect(relocate('b.md', 'y.md', 'y.md', a)).toBe(null);
 		for (const url of ['https://x/a.md', '/a.md', '#top', 'mailto:a@b.c'])
 			expect(relocate(url, 'y.md', 'y.md', a)).toBe(null);
@@ -471,6 +472,10 @@ describe('documents', () => {
 		write('b.md', '\uFEFF# B\n\n[a](a.md)\n');
 		await movePath('demo', 'a.md', 'z/a.md', actor);
 		expect(read('b.md')).toBe('\uFEFF# B\n\n[a](z/a.md)\n');
+		write('c.md', '\uFEFF# T\n\n[r]: z/a.md\n');
+		expect(await linksTo('demo', 'z/a.md', actor)).toEqual(['b.md', 'c.md']);
+		await movePath('demo', 'z/a.md', 'a.md', actor);
+		expect(read('c.md')).toBe('\uFEFF# T\n\n[r]: a.md\n');
 	});
 
 	it('a moved document keeps its own links', async () => {
@@ -536,8 +541,13 @@ describe('documents', () => {
 			if (++renames === 4) throw new Error('disk gone');
 			return rename(a, b);
 		});
-		await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow(/index\.lock/);
-		vi.restoreAllMocks();
+		const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow(/index\.lock/);
+			expect(logged).toHaveBeenCalledOnce();
+		} finally {
+			vi.restoreAllMocks();
+		}
 		const texts = [read('b.md'), read('c.md')];
 		expect(texts.filter((t) => t.includes('(rapports/'))).toHaveLength(1); // the other restore failed
 		expect(fs.existsSync(path.join(workspaceDir('demo'), 'rapports'))).toBe(true);
