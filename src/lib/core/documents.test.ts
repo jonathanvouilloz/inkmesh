@@ -22,8 +22,10 @@ import {
 	relocate,
 	writeDocument
 } from './documents.ts';
+import { addComment, listComments } from './comments.ts';
 import { changes } from './events.ts';
 import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
+import { createPublicLink, sharedDocument } from './publicLinks.ts';
 import { clearSessionTimers, commitAllSessions } from './sessions.ts';
 
 let actor: Actor;
@@ -633,6 +635,60 @@ describe('documents', () => {
 		await deletePath('demo', 'loose.md', actor);
 		expect(fs.existsSync(path.join(root, 'loose.md'))).toBe(false);
 		expect(head()).toBe(before);
+	});
+
+	it('comments move and leave with their document', async () => {
+		const root = workspaceDir('demo');
+		const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+		await createDocument('demo', 'f/a.md', actor);
+		await addComment('demo', 'f/a.md', 'Looks good', actor);
+		await movePath('demo', 'f/a.md', 'g/b.md', actor);
+		expect((await listComments('demo', 'g/b.md', actor)).map((c) => c.body)).toEqual(['Looks good']);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/f/a.md'))).toBe(false);
+		expect(git('log', '-1', '--format=%s').trim()).toBe('Move f/a.md to g/b.md');
+		expect(git('show', '--name-status', '--no-renames', '--format=', 'HEAD').trim().split('\n').sort()).toEqual([
+			'A\t.inkmesh/comments/g/b.md',
+			'A\tg/b.md',
+			'D\t.inkmesh/comments/f/a.md',
+			'D\tf/a.md'
+		]);
+		await movePath('demo', 'g', 'h', actor);
+		expect((await listComments('demo', 'h/b.md', actor)).map((c) => c.body)).toEqual(['Looks good']);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/g'))).toBe(false);
+		await deletePath('demo', 'h', actor);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/h'))).toBe(false);
+		expect(git('log', '-1', '--format=%s').trim()).toBe('Delete h');
+		expect(git('show', '--name-status', '--format=', 'HEAD').trim().split('\n').sort()).toEqual([
+			'D\t.inkmesh/comments/h/b.md',
+			'D\th/b.md'
+		]);
+		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
+		expect(git('status', '--porcelain')).toBe('');
+	});
+
+	it('a failed move keeps the thread in place', async () => {
+		const root = workspaceDir('demo');
+		await addComment('demo', doc, 'Stay', actor);
+		fs.writeFileSync(path.join(root, '.git/index.lock'), '');
+		await expect(movePath('demo', doc, 'x.md', actor)).rejects.toThrow(/index\.lock/);
+		await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow(/index\.lock/);
+		await expect(deletePath('demo', doc, actor)).rejects.toThrow(/index\.lock/);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments', doc))).toBe(true);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/x.md'))).toBe(false);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/r2'))).toBe(false);
+		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
+		fs.rmSync(path.join(root, '.git/index.lock'));
+		expect((await listComments('demo', doc, actor)).map((c) => c.body)).toEqual(['Stay']);
+	});
+
+	it('a public link follows its document', async () => {
+		await createDocument('demo', 'f/a.md', actor);
+		await createDocument('demo', 'f_x.md', actor);
+		const t = await createPublicLink('demo', 'f/a.md', null, actor);
+		const u = await createPublicLink('demo', 'f_x.md', null, actor);
+		await movePath('demo', 'f', 'g', actor);
+		expect((await sharedDocument(t, 'g/a.md')).source).toBe('# a\n');
+		expect((await sharedDocument(u, 'f_x.md')).source).toBe('# f_x\n');
 	});
 
 	it('readers cannot delete', async () => {

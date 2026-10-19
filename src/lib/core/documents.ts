@@ -3,7 +3,9 @@ import fs from 'node:fs/promises';
 import { basename, dirname, join, posix, relative } from 'node:path';
 import { assertRole } from './access.ts';
 import { commitAuthor, type Actor } from './actor.ts';
+import { commentPath } from './comments.ts';
 import { workspaceDir } from './data.ts';
+import { db } from './db.ts';
 import { appendEvent } from './events.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
 import { serialised } from './lock.ts';
@@ -374,10 +376,19 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 		await flushSessions(slug, () => true);
 		await fs.mkdir(dirname(dest), { recursive: true });
 		await fs.rename(src, dest);
+		// The thread file (or folder of threads) moves in the same commit.
+		const notesFrom = resolveInside(root, commentPath(relFrom), { inkmesh: true });
+		const notesTo = resolveInside(root, commentPath(relTo), { inkmesh: true });
+		let notesMoved = false;
 		// Original bytes of every rewritten document, put back if the move fails.
 		const rewritten: Array<{ rel: string; bytes: Buffer }> = [];
 		let commit: string;
 		try {
+			if (await fs.lstat(notesFrom).catch(() => null)) {
+				await fs.mkdir(dirname(notesTo), { recursive: true });
+				await fs.rename(notesFrom, notesTo);
+				notesMoved = true;
+			}
 			// shortcut: parses every document on each move, fine for a few thousand; upgrade to a link index if moves get slow
 			for (const rel of await documentPaths(root)) {
 				const doc = await readText(join(root, rel));
@@ -390,7 +401,7 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 				await writeAtomic(join(root, rel), next);
 			}
 			commit = await gitCommit(root, {
-				paths: [relFrom, relTo, ...rewritten.map((r) => r.rel)],
+				paths: [relFrom, relTo, commentPath(relFrom), commentPath(relTo), ...rewritten.map((r) => r.rel)],
 				message: `Move ${relFrom} to ${relTo}`,
 				author: commitAuthor(actor)
 			});
@@ -400,8 +411,16 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 			for (const { rel, bytes } of rewritten)
 				await writeAtomic(join(root, rel), bytes).catch(report(`restore ${rel}`));
 			await fs.rename(dest, src).catch(report(`rename ${relTo} back`));
+			if (notesMoved) await fs.rename(notesTo, notesFrom).catch(report(`rename comments of ${relTo} back`));
 			throw err;
 		}
+		// Prefix comparison, not LIKE: `_` and `%` are legal in names.
+		db()
+			.prepare(
+				`UPDATE public_links SET path = ? || substr(path, length(?) + 1)
+				 WHERE workspace = ? AND (path = ? OR substr(path, 1, length(?) + 1) = ? || '/')`
+			)
+			.run(relTo, relFrom, slug, relFrom, relFrom, relFrom);
 		// Also for an empty folder, whose move git does not see: commit is ''.
 		appendEvent(slug, actor, { type: 'move', path: relTo, from: relFrom, commit });
 		return relTo;
@@ -426,18 +445,33 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 		const trash = join(root, '.inkmesh', `trash-${randomBytes(6).toString('hex')}`);
 		await fs.mkdir(dirname(trash), { recursive: true });
 		await fs.rename(target, trash);
+		const notes = resolveInside(root, commentPath(rel), { inkmesh: true });
+		let notesMoved = false;
 		let commit: string;
 		try {
-			commit = await gitCommit(root, { paths: [rel], message: `Delete ${rel}`, author: commitAuthor(actor) });
+			if (await fs.lstat(notes).catch(() => null)) {
+				await fs.rename(notes, `${trash}-comments`);
+				notesMoved = true;
+			}
+			commit = await gitCommit(root, {
+				paths: [rel, commentPath(rel)],
+				message: `Delete ${rel}`,
+				author: commitAuthor(actor)
+			});
 		} catch (err) {
 			await fs.rename(trash, target).catch((e) => console.error(`delete rollback: rename ${rel} back`, e));
+			if (notesMoved)
+				await fs
+					.rename(`${trash}-comments`, notes)
+					.catch((e) => console.error(`delete rollback: rename comments of ${rel} back`, e));
 			throw err;
 		}
 		appendEvent(slug, actor, { type: 'delete', path: rel, commit });
 		// The commit holds the delete; a leftover trash entry is hidden and harmless.
-		await fs
-			.rm(trash, { recursive: true, force: true })
-			.catch((e) => console.error(`delete: remove ${trash}`, e));
+		for (const entry of [trash, `${trash}-comments`])
+			await fs
+				.rm(entry, { recursive: true, force: true })
+				.catch((e) => console.error(`delete: remove ${entry}`, e));
 	});
 }
 
