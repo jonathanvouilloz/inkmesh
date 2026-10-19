@@ -15,6 +15,7 @@ import {
 	importDocument,
 	listTree,
 	MAX_DOCUMENT_BYTES,
+	movePath,
 	readDocument,
 	writeDocument
 } from './documents.ts';
@@ -324,6 +325,108 @@ describe('documents', () => {
 		// No false conflict afterwards: the original hash still writes.
 		await writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor });
 		expect(fs.readdirSync(path.dirname(file))).toEqual(['réunion été.md']); // no temporary file left
+	});
+
+	it('moves a document and keeps its history', async () => {
+		expect(await movePath('demo', doc, 'archive/vieux.md', actor)).toBe('archive/vieux.md');
+		const root = workspaceDir('demo');
+		expect(fs.existsSync(path.join(root, doc))).toBe(false);
+		expect((await readDocument('demo', 'archive/vieux.md', actor)).source).toBe('# réunion été\n');
+		const log = execFileSync('git', ['log', '--follow', '--format=%s', '--', 'archive/vieux.md'], {
+			cwd: root,
+			encoding: 'utf8'
+		});
+		expect(log.trim().split('\n')).toEqual([`Move ${doc} to archive/vieux.md`, `Create ${doc}`]);
+		expect(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' })).toBe('');
+	});
+
+	it('renames a folder with its documents', async () => {
+		await createDocument('demo', 'rapports/sub/b.md', actor);
+		expect(await movePath('demo', 'rapports', 'notes/2026', actor)).toBe('notes/2026');
+		const tree = await listTree('demo', actor);
+		expect(tree.map((n) => n.path)).toEqual(['notes']);
+		expect(tree[0].children!.map((n) => n.path)).toEqual(['notes/2026']);
+		await readDocument('demo', 'notes/2026/réunion été.md', actor);
+		await readDocument('demo', 'notes/2026/sub/b.md', actor);
+		expect((await history('demo', 'notes/2026/sub/b.md', actor))[0].message).toBe(
+			'Move rapports to notes/2026'
+		);
+	});
+
+	it('refuses to move a folder into itself', async () => {
+		const before = await listTree('demo', actor);
+		await expect(movePath('demo', 'rapports', 'rapports', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'rapports', 'rapports/b', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'rapports', './rapports/b/', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', doc, doc, actor)).rejects.toThrow(InvalidPath);
+		expect(await listTree('demo', actor)).toEqual(before);
+	});
+
+	it('refuses invalid targets and sources', async () => {
+		await expect(movePath('demo', doc, 'x.txt', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', doc, 'a.md/x.md', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'rapports', 'r.md', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'rapports', '.r', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', '.git', 'g', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'missing.md', 'x.md', actor)).rejects.toMatchObject({
+			code: 'ENOENT'
+		});
+	});
+
+	it('refuses to overwrite', async () => {
+		await createDocument('demo', 'other.md', actor);
+		await expect(movePath('demo', 'other.md', doc, actor)).rejects.toThrow(Conflict);
+		await createFolder('demo', 'x', actor);
+		await expect(movePath('demo', 'rapports', 'x', actor)).rejects.toThrow(Conflict);
+		expect((await readDocument('demo', 'other.md', actor)).source).toBe('# other\n');
+		expect((await readDocument('demo', doc, actor)).source).toBe('# réunion été\n');
+	});
+
+	it('a write after a move is a conflict', async () => {
+		const { hash } = await readDocument('demo', doc, actor);
+		await movePath('demo', doc, 'moved.md', actor);
+		await expect(
+			writeDocument('demo', doc, '# late\n', { expectedHash: hash, actor })
+		).rejects.toThrow(Conflict);
+		expect(fs.existsSync(path.join(workspaceDir('demo'), doc))).toBe(false);
+	});
+
+	it('moves an empty folder', async () => {
+		const root = workspaceDir('demo');
+		const head = () => execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+		const before = head();
+		await createFolder('demo', 'vide', actor);
+		await expect(movePath('demo', 'vide', 'plein/vide', actor)).resolves.toBe('plein/vide');
+		expect(fs.statSync(path.join(root, 'plein/vide')).isDirectory()).toBe(true);
+		expect(head()).toBe(before);
+	});
+
+	it('moves a folder holding an empty subfolder and a document', async () => {
+		await createFolder('demo', 'rapports/vide', actor);
+		await movePath('demo', 'rapports', 'r2', actor);
+		const root = workspaceDir('demo');
+		expect(fs.statSync(path.join(root, 'r2/vide')).isDirectory()).toBe(true);
+		await readDocument('demo', 'r2/réunion été.md', actor);
+		expect(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' })).toBe('');
+	});
+
+	it('renames back when the move commit fails', async () => {
+		const lock = path.join(workspaceDir('demo'), '.git/index.lock');
+		fs.writeFileSync(lock, '');
+		await expect(movePath('demo', doc, 'x.md', actor)).rejects.toThrow();
+		await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow();
+		fs.rmSync(lock);
+		await readDocument('demo', doc, actor);
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'x.md'))).toBe(false);
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'r2'))).toBe(false);
+	});
+
+	it('readers cannot move', async () => {
+		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
+		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
+		await expect(
+			movePath('demo', doc, 'x.md', { id: reader.id, name: 'R' })
+		).rejects.toBeInstanceOf(Forbidden);
 	});
 
 	it('a reader cannot write and a stranger cannot read', async () => {

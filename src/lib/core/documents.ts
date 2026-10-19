@@ -255,6 +255,42 @@ export async function createFolder(slug: string, path: string, actor: Actor): Pr
 	});
 }
 
+/** Moves or renames a document or a folder in one commit and returns the normalised target. */
+export async function movePath(slug: string, from: string, to: string, actor: Actor): Promise<string> {
+	assertRole(slug, actor, 'editor');
+	const root = workspaceDir(slug);
+	return serialised(slug, async () => {
+		const isDoc = (await fs.stat(resolveInside(root, from))).isFile();
+		let src: string, dest: string;
+		if (isDoc) {
+			src = documentFile(root, from);
+			dest = documentFile(root, to);
+		} else {
+			src = resolveInside(root, from);
+			assertFolderName(relative(root, src));
+			dest = resolveInside(root, to);
+			assertFolderName(relative(root, dest));
+		}
+		const relFrom = relative(root, src);
+		const relTo = relative(root, dest);
+		if (relTo === relFrom || relTo.startsWith(`${relFrom}/`)) throw new InvalidPath(to);
+		if (await fs.lstat(dest).catch(() => null)) throw new Conflict(`${relTo} already exists`);
+		await fs.mkdir(dirname(dest), { recursive: true });
+		await fs.rename(src, dest);
+		try {
+			await gitCommit(root, {
+				paths: [relFrom, relTo],
+				message: `Move ${relFrom} to ${relTo}`,
+				author: commitAuthor(actor)
+			});
+		} catch (err) {
+			await fs.rename(dest, src);
+			throw err;
+		}
+		return relTo;
+	});
+}
+
 export async function history(slug: string, path: string, actor: Actor): Promise<HistoryEntry[]> {
 	assertRole(slug, actor, 'reader');
 	const root = workspaceDir(slug);
