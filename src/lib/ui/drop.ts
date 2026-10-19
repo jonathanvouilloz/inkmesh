@@ -8,7 +8,7 @@ import { docHref } from './href.ts';
 /** The drag type a tree item carries: its path in the workspace. */
 export const PATH_TYPE = 'application/x-inkmesh-path';
 
-/** Set by the document page: `flush` saves the pending edit (throws `unsaved` if it stays unsaved), `reload` shows the body on disk again. */
+/** Set by the document page: `flush` saves the pending edit (throws `unsaved` if it stays unsaved), `reload` shows the body on disk again if it changed. */
 export const openDocument: { flush?: () => Promise<void>; reload?: () => void } = {};
 
 /** Set by the workspace layout, which shows the results; used by every drop target and the file picker. */
@@ -48,7 +48,8 @@ export async function moveItem(workspace: string, from: string, toFolder: string
 	// The open page is the item or lies inside it: its URL changes with the move.
 	const open = (page.params as { path?: string }).path ?? '';
 	const affected = open === from || open.startsWith(`${from}/`);
-	if (affected) await openDocument.flush?.();
+	// Any open document may be rewritten (its links follow the move): its pending edit is saved first.
+	await openDocument.flush?.();
 	const body = new FormData();
 	body.set('from', from);
 	body.set('to', to);
@@ -59,6 +60,7 @@ export async function moveItem(workspace: string, from: string, toFolder: string
 	if (refused && refused !== 'missing') throw new Error(refused === 'exists' ? 'exists' : 'invalid');
 	if (!refused && affected) return goto(docHref(workspace, to + open.slice(from.length)), { invalidateAll: true });
 	await invalidateAll();
+	openDocument.reload?.();
 }
 
 let over: HTMLElement | undefined;

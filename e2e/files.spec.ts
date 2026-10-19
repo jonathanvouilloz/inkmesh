@@ -338,6 +338,23 @@ test('a move announces the one other document it rewrites', async ({ page }) => 
 	await page.keyboard.press('Escape');
 });
 
+test('an open document whose link a move rewrites keeps saving', async ({ page }) => {
+	await page.goto('/demo/e2e-files/linker.md', hydrated);
+	await expect(page.locator('.milkdown p')).toHaveText('See target.');
+	await rail(page).getByRole('link', { name: 'Target' }).dragTo(folderInTree(page, 'sub'));
+	await expect(rail(page).getByRole('link', { name: 'Target' })).toHaveAttribute(
+		'href',
+		'/demo/e2e-files/sub/target.md'
+	);
+	await page.locator('.milkdown p').click();
+	await page.keyboard.press('End');
+	await page.keyboard.type(' typed');
+	await expect(strip(page).getByRole('status')).toHaveText('Saved', { timeout: 5000 });
+	const raw = await page.request.get('/demo/-/raw/e2e-files/linker.md');
+	expect(await raw.text()).toContain('[target](sub/target.md)');
+	expect(await raw.text()).toContain('typed');
+});
+
 test.describe('French', () => {
 	test.use({ locale: 'fr-FR' });
 

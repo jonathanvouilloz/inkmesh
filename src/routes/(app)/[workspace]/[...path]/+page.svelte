@@ -33,6 +33,10 @@
 			this.#hash = hash;
 		}
 
+		get hash() {
+			return this.#hash;
+		}
+
 		get busy() {
 			return this.dirty || !!this.#inFlight;
 		}
@@ -91,7 +95,7 @@
 	const readonly = $derived(data.role === 'reader');
 	const doc = $derived(`${data.workspace}/${data.path}`);
 	const isDoc = $derived(data.kind === 'doc');
-	// Bumped when an import replaced this document on disk: a fresh autosave and editor show it.
+	// Bumped when an import or a move rewrote this document on disk: a fresh autosave and editor show it.
 	let version = $state(0);
 	const autosave = $derived.by(() => {
 		void doc;
@@ -102,7 +106,7 @@
 		);
 	});
 	const folders = $derived(folderPaths(data.tree));
-	// Run before this document moves, from its menu or by a drag in the tree.
+	// Run before this document moves (from its menu or by a drag in the tree) and before any drag-move.
 	async function flush() {
 		// No reload: the old path's data would race the move and could 404.
 		await autosave?.save({ reload: false });
@@ -110,9 +114,9 @@
 	}
 	$effect(() => {
 		openDocument.flush = flush;
-		// An edit typed during the replace keeps its editor, and its save meets the conflict state.
+		// An edit typed during the rewrite keeps its editor, and its save meets the conflict state.
 		openDocument.reload = () => {
-			if (!autosave?.busy) version++;
+			if (data.kind === 'doc' && data.hash !== autosave?.hash && !autosave?.busy) version++;
 		};
 		return () => {
 			openDocument.flush = undefined;
