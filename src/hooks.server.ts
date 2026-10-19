@@ -3,7 +3,7 @@ import { sessionUser } from '#lib/core/accounts.ts';
 import { db } from '#lib/core/db.ts';
 import { assertGit } from '#lib/core/git.ts';
 import { commitAllSessions } from '#lib/core/sessions.ts';
-import { crossSiteForbidden } from '#lib/server/csrf.ts';
+import { crossSiteForbidden, isAgentPath } from '#lib/server/csrf.ts';
 
 export const init: ServerInit = async () => {
 	db();
@@ -25,7 +25,7 @@ export const handle: Handle = ({ event, resolve }) => {
 		return new Response('Cross-site form submissions are forbidden', { status: 403 });
 	const locale = event.request.headers.get('accept-language')?.startsWith('fr') ? 'fr' : 'en';
 	event.locals.locale = locale;
-	const token = event.cookies.get('inkmesh_session');
+	const token = isAgentPath(event.url.pathname) ? undefined : event.cookies.get('inkmesh_session');
 	const user = token ? sessionUser(token) : null;
 	// An expired or unknown token would otherwise be sent on every request.
 	if (token && !user) event.cookies.delete('inkmesh_session', { path: '/' });
