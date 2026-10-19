@@ -571,16 +571,37 @@ describe('documents', () => {
 		await deletePath('demo', 'rapports', actor);
 		expect(fs.existsSync(path.join(root, 'rapports'))).toBe(false);
 		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
-		expect(execFileSync('git', ['log', '-1', '--format=%s'], { cwd: root, encoding: 'utf8' }).trim()).toBe(
-			'Delete rapports'
-		);
+		const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+		expect(git('log', '-1', '--format=%s').trim()).toBe('Delete rapports');
+		expect(git('ls-files', 'rapports')).toBe('');
+		expect(git('status', '--porcelain', 'rapports')).toBe('');
+	});
+
+	it('puts things back when the delete commit fails', async () => {
+		const root = workspaceDir('demo');
+		await createDocument('demo', 'rapports/b.md', actor);
+		const lock = path.join(root, '.git/index.lock');
+		fs.writeFileSync(lock, '');
+		await expect(deletePath('demo', doc, actor)).rejects.toThrow(/index\.lock/);
+		await expect(deletePath('demo', 'rapports', actor)).rejects.toThrow(/index\.lock/);
+		fs.rmSync(lock);
+		expect((await readDocument('demo', doc, actor)).source).toBe('# réunion été\n');
+		expect((await readDocument('demo', 'rapports/b.md', actor)).source).toBe('# b\n');
+		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
+	});
+
+	it('a missing path cannot be deleted', async () => {
+		await expect(deletePath('demo', 'nope.md', actor)).rejects.toMatchObject({ code: 'ENOENT' });
 	});
 
 	it('deletes an untracked document', async () => {
 		const root = workspaceDir('demo');
+		const head = () => execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+		const before = head();
 		fs.writeFileSync(path.join(root, 'loose.md'), '# loose\n');
 		await deletePath('demo', 'loose.md', actor);
 		expect(fs.existsSync(path.join(root, 'loose.md'))).toBe(false);
+		expect(head()).toBe(before);
 	});
 
 	it('readers cannot delete', async () => {
