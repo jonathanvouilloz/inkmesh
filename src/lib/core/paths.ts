@@ -8,14 +8,17 @@ export class InvalidContent extends Error {}
 
 const HIDDEN = new Set(['.git', '.inkmesh']);
 
-/** Resolve `rel` inside `root`, or throw InvalidPath if it could reach outside or into hidden folders. */
-export function resolveInside(root: string, rel: string): string {
+/**
+ * Resolve `rel` inside `root`, or throw InvalidPath if it could reach outside or into hidden folders;
+ * `inkmesh` allows `.inkmesh` as the first segment only (comment threads, trash).
+ */
+export function resolveInside(root: string, rel: string, opts?: { inkmesh?: boolean }): string {
 	const segments = rel.split(/[/\\]/);
 	if (
 		!rel ||
 		rel.includes('\0') ||
 		path.isAbsolute(rel) ||
-		segments.some((s) => s === '..' || HIDDEN.has(s))
+		segments.some((s, i) => s === '..' || (HIDDEN.has(s) && !(opts?.inkmesh && i === 0 && s === '.inkmesh')))
 	)
 		throw new InvalidPath(rel);
 	const abs = path.resolve(root, rel);

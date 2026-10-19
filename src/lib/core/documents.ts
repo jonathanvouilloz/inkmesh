@@ -39,7 +39,7 @@ const sha256 = (source: string | Uint8Array) => createHash('sha256').update(sour
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
 
 /** A document is a .md file whose name is not a dot-file, inside valid folders: listTree shows nothing else. */
-function documentFile(root: string, path: string): string {
+export function documentFile(root: string, path: string): string {
 	const file = resolveInside(root, path);
 	const parent = dirname(relative(root, file));
 	if (parent !== '.') assertFolderName(parent);
@@ -49,7 +49,7 @@ function documentFile(root: string, path: string): string {
 }
 
 /** Writes through a temporary file, so a crash never leaves half a document; `exclusive` fails with EEXIST. */
-async function writeAtomic(file: string, text: string | Uint8Array, exclusive = false): Promise<void> {
+export async function writeAtomic(file: string, text: string | Uint8Array, exclusive = false): Promise<void> {
 	const tmp = `${file}.tmp-${randomBytes(6).toString('hex')}`;
 	try {
 		await fs.writeFile(tmp, text, { flag: 'wx' });
