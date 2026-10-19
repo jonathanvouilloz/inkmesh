@@ -83,6 +83,21 @@ it('reports each file of a mixed import', async () => {
 	expect(fs.readFileSync(path.join(workspaceDir('demo'), 'notes/b.md'), 'utf8')).toBe('# B\n');
 });
 
+it('stores any case of the extension as .md', async () => {
+	const result = await act('import', [
+		['folder', ''],
+		['files', file('Foo.MD', '# Foo\n')],
+		['files', file('Bar.Markdown', '# Bar\n')]
+	]);
+	expect(result).toEqual({
+		results: [
+			{ name: 'Foo.MD', path: 'Foo.md', outcome: 'imported' },
+			{ name: 'Bar.Markdown', path: 'Bar.md', outcome: 'imported' }
+		]
+	});
+	expect(fs.readFileSync(path.join(workspaceDir('demo'), 'Foo.md'), 'utf8')).toBe('# Foo\n');
+});
+
 it('replaces with overwrite and maps content errors', async () => {
 	await createDocument('demo', 'a.md', owner);
 	const result = await act('import', [

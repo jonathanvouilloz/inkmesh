@@ -110,7 +110,10 @@
 	}
 	$effect(() => {
 		openDocument.flush = flush;
-		openDocument.reload = () => version++;
+		// An edit typed during the replace keeps its editor, and its save meets the conflict state.
+		openDocument.reload = () => {
+			if (!autosave?.busy) version++;
+		};
 		return () => {
 			openDocument.flush = undefined;
 			openDocument.reload = undefined;

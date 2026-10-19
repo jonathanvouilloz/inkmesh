@@ -188,6 +188,31 @@ test('replacing the open document shows the new text', async ({ page }) => {
 	await expect(page).toHaveURL(/\/demo\/e2e-files\/dropped\.md$/);
 });
 
+test('an edit typed during a replace is kept as a conflict', async ({ page }) => {
+	await page.goto('/demo/e2e-files/dropped.md', hydrated);
+	await dropFiles(page, folderInTree(page, 'e2e-files'), [['dropped.md', '# Dropped\n\nfourth\n']]);
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => (release = resolve));
+	await page.route(
+		(url) => url.search === '?/import',
+		async (route) => {
+			await held;
+			await route.continue();
+		}
+	);
+	await page.getByRole('dialog').getByRole('button', { name: 'Replace' }).click();
+	await page.locator('.milkdown p').click();
+	await page.keyboard.press('End');
+	await page.keyboard.type(' typed');
+	await page.waitForTimeout(300); // Milkdown's change debounce
+	release();
+	await expect(page.getByText('1 imported')).toBeVisible();
+	await expect(strip(page).getByRole('status')).toHaveText(
+		'This file changed on disk since you opened it. Reload to see the new version.'
+	);
+	await expect(page.locator('.milkdown p')).toHaveText('third typed');
+});
+
 test('a failed import says so', async ({ page }) => {
 	await page.goto('/demo/e2e-files', hydrated);
 	await page.route(

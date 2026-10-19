@@ -60,7 +60,8 @@ export const actions: Actions = {
 				results.push({ name, outcome: 'invalid' });
 				continue;
 			}
-			const base = name.replace(/\.markdown$/i, '.md');
+			// Core accepts only a lowercase .md.
+			const base = name.replace(/\.(md|markdown)$/i, '.md');
 			const path = folder ? `${folder}/${base}` : base;
 			try {
 				const done = await importDocument(params.workspace, path, new Uint8Array(await file.arrayBuffer()), {

@@ -49,7 +49,7 @@
 		// Replacing the open document: its pending edit is saved first, its editor reloaded after.
 		const replacesOpen =
 			overwrite &&
-			files.some((f) => (folder ? `${folder}/` : '') + f.name.replace(/\.markdown$/i, '.md') === current);
+			files.some((f) => (folder ? `${folder}/` : '') + f.name.replace(/\.(md|markdown)$/i, '.md') === current);
 		let results;
 		try {
 			if (replacesOpen) await openDocument.flush?.();
