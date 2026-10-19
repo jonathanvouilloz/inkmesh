@@ -84,7 +84,7 @@ async function readText(file: string): Promise<{ bytes: Buffer; text: string } |
 const under = (path: string, folder: string) => path === folder || path.startsWith(`${folder}/`);
 
 /** A relative URL's path, query or fragment, and the workspace path it points to from `doc`. */
-function target(url: string, doc: string): { path: string; suffix: string; resolved: string } | null {
+export function target(url: string, doc: string): { path: string; suffix: string; resolved: string } | null {
 	if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('/') || url.startsWith('#')) return null;
 	const cut = url.search(/[?#]/);
 	const suffix = cut < 0 ? '' : url.slice(cut);
@@ -151,6 +151,11 @@ export async function ensureWorkspace(slug: string): Promise<void> {
 
 export async function listTree(slug: string, actor: Actor): Promise<TreeNode[]> {
 	assertRole(slug, actor, 'reader');
+	return walkTree(slug);
+}
+
+// Core-internal, no role check: callers check (listTree) or hold a link's scope (publicLinks).
+export async function walkTree(slug: string): Promise<TreeNode[]> {
 	const root = workspaceDir(slug);
 	async function walk(rel: string): Promise<TreeNode[]> {
 		const entries = await fs.readdir(join(root, rel), { withFileTypes: true });
@@ -188,6 +193,14 @@ export async function readDocument(
 	hash: string;
 }> {
 	assertRole(slug, actor, 'reader');
+	return readSource(slug, path);
+}
+
+// Core-internal, no role check: callers check (readDocument) or hold a link's scope (publicLinks).
+export async function readSource(
+	slug: string,
+	path: string
+): Promise<{ path: string; source: string; frontmatter: string; body: string; hash: string }> {
 	const source = await fs.readFile(documentFile(workspaceDir(slug), path), 'utf8');
 	return { path, source, ...splitFrontmatter(source), hash: sha256(source) };
 }
