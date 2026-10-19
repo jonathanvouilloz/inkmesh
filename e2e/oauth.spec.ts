@@ -41,6 +41,11 @@ test('a logged-out visitor signs in and lands on the consent screen', async ({ b
 	const consent = await context.request.get('/oauth/authorize?' + query);
 	expect(consent.headers()['x-frame-options']).toBe('DENY');
 	expect(consent.headers()['content-security-policy']).toBe("frame-ancestors 'none'");
+	// SvelteKit routes on the decoded path: an encoded one reaches the same page and needs the same headers.
+	const encoded = await context.request.get('/oauth/%61uthorize?' + query);
+	expect(encoded.status()).toBe(200);
+	expect(encoded.headers()['x-frame-options']).toBe('DENY');
+	expect(encoded.headers()['content-security-policy']).toBe("frame-ancestors 'none'");
 	query.set('redirect_uri', 'https://evil.example/cb');
 	const invalid = await context.request.get('/oauth/authorize?' + query, { maxRedirects: 0 });
 	expect(invalid.status()).toBe(400);

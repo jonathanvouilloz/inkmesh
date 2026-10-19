@@ -182,7 +182,7 @@ it('the consent screen cannot be framed, failed actions included', async () => {
 	for (const method of ['GET', 'POST']) {
 		const url = new URL('/oauth/authorize?/allow', ORIGIN);
 		const request = new Request(url, { method, headers: method === 'POST' ? { origin: ORIGIN } : {} });
-		const event = { request, url, locals: {}, cookies: { get: () => undefined } };
+		const event = { request, url, route: { id: '/(app)/oauth/authorize' }, locals: {}, cookies: { get: () => undefined } };
 		const res = await handle({ event: event as never, resolve: async () => new Response('x', { status: 400 }) });
 		expect(res.headers.get('x-frame-options')).toBe('DENY');
 		expect(res.headers.get('content-security-policy')).toBe("frame-ancestors 'none'");

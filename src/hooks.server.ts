@@ -33,7 +33,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.actor = user && { id: user.id, name: user.name };
 	const response = await resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', locale) });
 	// The consent screen cannot be framed, whatever renders it (page, failed action, error page).
-	if (event.url.pathname === '/oauth/authorize') {
+	if (event.route.id === '/(app)/oauth/authorize') {
 		response.headers.set('x-frame-options', 'DENY');
 		response.headers.set('content-security-policy', "frame-ancestors 'none'");
 	}

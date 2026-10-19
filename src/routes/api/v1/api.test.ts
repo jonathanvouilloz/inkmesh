@@ -205,6 +205,7 @@ it('never reads the session cookie on the agent paths', async () => {
 		const event = {
 			request: new Request(url),
 			url,
+			route: { id: null },
 			locals: {} as App.Locals,
 			cookies: { get: () => token, delete: () => {} }
 		};
