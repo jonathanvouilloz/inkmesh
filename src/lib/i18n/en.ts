@@ -99,7 +99,7 @@ export const en = {
 	'files.deleteFolderEmpty': 'Delete the empty folder {name}?',
 	'files.deleteFolderOne': 'Delete {name} and its document? It stays in the history.',
 	'files.exists': 'Something with this name already exists here',
-	'files.invalid': 'Use a name without / and not starting with a dot',
+	'files.invalid': 'Use a name without /, not starting with a dot, and for a folder not ending in .md',
 	'files.unsaved': 'Your last change is not saved yet. Resolve it before renaming, moving or deleting.',
 	'files.linksUpdated': 'Links in {count} other documents will be updated',
 	'files.linksUpdatedOne': 'Links in 1 other document will be updated',
