@@ -121,4 +121,16 @@ export const fr: Record<keyof typeof en, string> = {
 	'drop.notUtf8': '{name} : ce n’est pas un fichier texte UTF-8',
 	'drop.failed': 'L’import a échoué.',
 	'files.failed': 'L’opération a échoué. Réessayez.',
+	'consent.title': '« {client} » veut agir en votre nom',
+	'consent.redirect': 'Après votre réponse, vous revenez sur {host}',
+	'consent.loopback':
+		'Cette application tourne sur un ordinateur. Continuez seulement si vous venez de lancer cette connexion vous-même.',
+	'consent.name': 'Nom de cet agent',
+	'consent.nameHint': 'Il signe ses modifications : {user} via {name}',
+	'consent.roles': 'Il reçoit votre rôle dans chaque espace :',
+	'consent.none': 'Vous n’êtes membre d’aucun espace pour l’instant.',
+	'consent.allow': 'Autoriser',
+	'consent.deny': 'Refuser',
+	'consent.invalid': 'Cette demande de connexion n’est pas valide. Recommencez depuis votre application.',
+	'consent.nameBad': 'Entre 1 et 40 caractères, sans < ni >',
 };
