@@ -5,7 +5,7 @@ import path from 'node:path';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { createUser, type User } from '#lib/core/accounts.ts';
-import { authenticateToken } from '#lib/core/agents.ts';
+import { authenticateToken, createAgent } from '#lib/core/agents.ts';
 import { closeDb, db } from '#lib/core/db.ts';
 import { exchangeCode, registerClient, type OAuthClient } from '#lib/core/oauth.ts';
 import { handle } from '../../../../hooks.server.ts';
@@ -111,7 +111,7 @@ it('redirects protocol errors with state and iss', () => {
 it('allow issues a code for the named agent', async () => {
 	expect(await post('allow', query(), { name: '<b>' })).toMatchObject({
 		status: 400,
-		data: { nameError: true }
+		data: { nameError: 'consent.nameBad' }
 	});
 	const res = await post('allow', query(), { name: '  My Claude ' });
 	if (!isRedirect(res)) throw res;
@@ -133,6 +133,14 @@ it('allow issues a code for the named agent', async () => {
 	const evil = await post('allow', query({ redirect_uri: 'https://evil.example/cb' }), { name: 'x' });
 	expect(isHttpError(evil, 400)).toBe(true);
 	expect(codes()).toBe(before);
+});
+
+it("allow refuses the name of the user's other agent", async () => {
+	createAgent(jon.id, 'Script');
+	expect(await post('allow', query(), { name: ' script ' })).toMatchObject({
+		status: 400,
+		data: { nameError: 'consent.nameTaken', name: ' script ' }
+	});
 });
 
 it('deny returns access_denied', async () => {

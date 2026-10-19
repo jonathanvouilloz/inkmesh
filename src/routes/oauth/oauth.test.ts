@@ -169,14 +169,27 @@ it('unknown grant type', async () => {
 	expect((await res.json()).error).toBe('unsupported_grant_type');
 });
 
-it('throttles failed token requests only', async () => {
+it('throttles failed token requests without locking out valid grants', async () => {
 	const { clientId, code } = await authorise();
-	const { refresh_token } = await (await exchange({ clientId, code })).json();
-	for (let i = 0; i < 49; i++) expect((await token({ grant_type: 'password' })).status).toBe(400);
-	// Two successes so far: had they counted, this refresh would already be refused.
-	expect((await token({ grant_type: 'refresh_token', refresh_token, client_id: clientId })).status).toBe(200);
-	expect((await token({ grant_type: 'password' })).status).toBe(400);
+	for (let i = 0; i < 50; i++) expect((await token({ grant_type: 'password' })).status).toBe(400);
 	const res = await token({ grant_type: 'password' });
 	expect(res.status).toBe(429);
 	expect(res.headers.get('cache-control')).toBe('no-store');
+	const exchanged = await exchange({ clientId, code });
+	expect(exchanged.status).toBe(200);
+	const { refresh_token } = await exchanged.json();
+	expect((await token({ grant_type: 'refresh_token', refresh_token, client_id: clientId })).status).toBe(200);
+	expect((await token({ grant_type: 'password' })).status).toBe(429);
+});
+
+it('refuses a form body that cannot be read', async () => {
+	const res = await call(tokenPOST, '/oauth/token', {
+		method: 'POST',
+		headers: { 'content-type': 'application/x-www-form-urlencoded' },
+		body: new ReadableStream({ start: (c) => c.error(new Error('aborted')) }),
+		duplex: 'half'
+	} as RequestInit);
+	expect(res.status).toBe(400);
+	expect(res.headers.get('cache-control')).toBe('no-store');
+	expect((await res.json()).error).toBe('invalid_request');
 });

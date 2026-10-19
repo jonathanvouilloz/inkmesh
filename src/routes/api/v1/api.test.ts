@@ -90,13 +90,14 @@ it('401 without or with a bad token, with the challenge header', async () => {
 	}
 });
 
-it('throttles failed tokens', async () => {
+it('throttles failed tokens without locking out valid ones', async () => {
 	for (let i = 0; i < 10; i++)
 		expect((await call(workspacesGET, '/api/v1/workspaces', {}, bearer('ink_bad'))).status).toBe(401);
 	expect((await call(workspacesGET, '/api/v1/workspaces')).status).toBe(401);
-	const res = await call(workspacesGET, '/api/v1/workspaces', {}, bearer(jonToken));
+	const res = await call(workspacesGET, '/api/v1/workspaces', {}, bearer('ink_bad'));
 	expect(res.status).toBe(429);
 	expect((await res.json()).error.code).toBe('too_many_requests');
+	expect((await call(workspacesGET, '/api/v1/workspaces', {}, bearer(jonToken))).status).toBe(200);
 });
 
 it('requests without a token are not counted as failures', async () => {

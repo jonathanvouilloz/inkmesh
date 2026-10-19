@@ -84,9 +84,21 @@ it('rename and revoke act on my agents only', async () => {
 it('bad names are refused', async () => {
 	expect(await act('create', { name: '<b>', kind: 'script' })).toMatchObject({
 		status: 400,
-		data: { nameError: true, name: '<b>' }
+		data: { nameError: 'connect.nameBad', name: '<b>' }
 	});
 	const mine = createAgent(owner.id, 'mine').agent;
-	expect(await act('rename', { id: String(mine.id), name: ' ' })).toMatchObject({ status: 400 });
-	expect(agentsOf(owner.id).map((a) => a.name)).toEqual(['mine']);
+	expect(await act('rename', { id: String(mine.id), name: ' ' })).toMatchObject({
+		status: 400,
+		data: { renameError: 'connect.nameBad' }
+	});
+	expect(await act('create', { name: 'Mine', kind: 'script' })).toMatchObject({
+		status: 400,
+		data: { nameError: 'connect.nameTaken', name: 'Mine' }
+	});
+	const other = createAgent(owner.id, 'other').agent;
+	expect(await act('rename', { id: String(other.id), name: 'MINE' })).toMatchObject({
+		status: 400,
+		data: { renameError: 'connect.nameTaken' }
+	});
+	expect(agentsOf(owner.id).map((a) => a.name)).toEqual(['other', 'mine']);
 });

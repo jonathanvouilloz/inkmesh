@@ -76,17 +76,17 @@
 	let opener: HTMLElement | undefined;
 	let target = $state<Agent>();
 	let name = $state('');
-	let renameError = $state(false);
+	let renameError = $state<'connect.nameBad' | 'connect.nameTaken'>();
 
 	function open(dialog: HTMLDialogElement, agent: Agent, button: HTMLElement) {
-		[target, name, renameError, opener] = [agent, agent.name, false, button];
+		[target, name, renameError, opener] = [agent, agent.name, undefined, button];
 		dialog.showModal();
 	}
 	// Refreshing instead of applying the result keeps the one-time token on screen.
 	const submit: SubmitFunction = ({ formElement }) =>
 		async ({ result, update }) => {
 			if (result.type === 'failure' && result.data?.renameError) {
-				renameError = true;
+				renameError = result.data.renameError;
 				return;
 			}
 			if (result.type !== 'success') return update();
@@ -206,7 +206,7 @@
 			<button>{t('connect.create', locale)}</button>
 		</form>
 		{#if form?.nameError}
-			<p id="name-error" class="error" role="alert">{t('connect.nameBad', locale)}</p>
+			<p id="name-error" class="error" role="alert">{t(form.nameError, locale)}</p>
 		{/if}
 		{#if token}
 			{@render field('token', t('connect.token', locale), token)}
@@ -237,7 +237,7 @@
 			/>
 		</label>
 		{#if renameError}
-			<p id="rename-error" class="error" role="alert">{t('connect.nameBad', locale)}</p>
+			<p id="rename-error" class="error" role="alert">{t(renameError, locale)}</p>
 		{/if}
 		<div class="buttons">
 			<button>{t('connect.rename', locale)}</button>

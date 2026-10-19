@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { hashToken, newToken } from './accounts.ts';
-import { agentName, newAgentToken } from './agents.ts';
+import { agentName, assertNameFree, newAgentToken, UNSAFE_NAME } from './agents.ts';
 import { db, transaction } from './db.ts';
 
 type OAuthErrorCode =
@@ -57,7 +57,7 @@ export function registerClient(meta: unknown): OAuthClient {
 	if (!meta || typeof meta !== 'object') throw new OAuthError('invalid_client_metadata', 'metadata must be an object');
 	const { redirect_uris: uris, client_name } = meta as Record<string, unknown>;
 	// The name prefills the agent name at consent, so one agentName() would refuse falls back to the default.
-	const name = client_name == null || /[<>\x00-\x1f\x7f]/.test(String(client_name)) ? 'MCP client' : client_name;
+	const name = client_name == null || UNSAFE_NAME.test(String(client_name)) ? 'MCP client' : client_name;
 	if (!Array.isArray(uris) || uris.length < 1 || uris.length > MAX_URIS || !uris.every(redirectUriValid))
 		throw new OAuthError('invalid_redirect_uri', 'redirect_uris must be 1 to 5 https or loopback http URIs');
 	if (typeof name !== 'string' || !name.trim() || name.length > MAX_CLIENT_NAME)
@@ -115,6 +115,7 @@ export function issueCode(input: {
 			.prepare('SELECT id FROM agents WHERE user_id = ? AND oauth_client_id = ?')
 			.get(input.userId, input.clientId) as { id: number } | undefined;
 		let agentId = agent?.id;
+		assertNameFree(input.userId, name, agentId ?? null);
 		if (agentId) db().prepare('UPDATE agents SET name = ? WHERE id = ?').run(name, agentId);
 		else
 			agentId = Number(

@@ -133,6 +133,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'consent.deny': 'Refuser',
 	'consent.invalid': 'Cette demande de connexion n’est pas valide. Recommencez depuis votre application.',
 	'consent.nameBad': 'Entre 1 et 40 caractères, sans < ni >',
+	'consent.nameTaken': 'Vous avez déjà un agent de ce nom.',
 	'nav.connect': 'Connecter un agent',
 	'connect.title': 'Connecter un agent',
 	'connect.intro':
@@ -179,4 +180,5 @@ export const fr: Record<keyof typeof en, string> = {
 	'connect.create': 'Créer le jeton',
 	'connect.once': 'Copiez-le maintenant : il ne sera plus affiché.',
 	'connect.nameBad': 'Entre 1 et 40 caractères, sans < ni >',
+	'connect.nameTaken': 'Vous avez déjà un agent de ce nom.',
 };

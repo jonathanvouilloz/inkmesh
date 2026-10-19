@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { Forbidden } from '#lib/core/access.ts';
-import { agentsOf, createAgent, renameAgent, revokeAgent } from '#lib/core/agents.ts';
+import { agentsOf, createAgent, NameTaken, renameAgent, revokeAgent } from '#lib/core/agents.ts';
 import { requireRole } from '#lib/server/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -13,6 +13,8 @@ export const load: PageServerLoad = async ({ params, locals, parent, url }) => {
 
 const agentId = (value: FormDataEntryValue | null): number =>
 	/^\d{1,15}$/.test(String(value)) ? Number(value) : error(400);
+
+const nameError = (err: RangeError) => (err instanceof NameTaken ? ('connect.nameTaken' as const) : ('connect.nameBad' as const));
 
 // Another user's agent is a 403.
 function attempt(run: () => void) {
@@ -33,7 +35,7 @@ export const actions: Actions = {
 		try {
 			return { token: createAgent(locals.actor!.id, name).token, kind };
 		} catch (err) {
-			if (err instanceof RangeError) return fail(400, { nameError: true, name });
+			if (err instanceof RangeError) return fail(400, { nameError: nameError(err), name });
 			throw err;
 		}
 	},
@@ -44,7 +46,7 @@ export const actions: Actions = {
 		try {
 			attempt(() => renameAgent(locals.actor!.id, id, String(form.get('name') ?? '')));
 		} catch (err) {
-			if (err instanceof RangeError) return fail(400, { renameError: true });
+			if (err instanceof RangeError) return fail(400, { renameError: nameError(err) });
 			throw err;
 		}
 	},

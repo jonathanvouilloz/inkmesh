@@ -274,7 +274,8 @@ export async function importDocument(
 		throw new InvalidContent('not-utf8');
 	}
 	return serialised(slug, async () => {
-		await flushSessions(slug, (p) => p === rel, opts.actor);
+		// A replace overwrites the file, so even the writer's own session is committed first.
+		await flushSessions(slug, (p) => p === rel, opts.overwrite ? undefined : opts.actor);
 		let old: Buffer | undefined;
 		try {
 			old = await fs.readFile(file);

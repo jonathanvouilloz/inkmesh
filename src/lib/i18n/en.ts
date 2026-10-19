@@ -130,6 +130,7 @@ export const en = {
 	'consent.deny': 'Deny',
 	'consent.invalid': 'This connection request is not valid. Start again from your app.',
 	'consent.nameBad': 'Use 1 to 40 characters, without < or >',
+	'consent.nameTaken': 'You already have an agent with this name.',
 	'nav.connect': 'Connect an agent',
 	'connect.title': 'Connect an agent',
 	'connect.intro':
@@ -176,4 +177,5 @@ export const en = {
 	'connect.create': 'Create token',
 	'connect.once': 'Copy it now: it will not be shown again.',
 	'connect.nameBad': 'Use 1 to 40 characters, without < or >',
+	'connect.nameTaken': 'You already have an agent with this name.',
 };

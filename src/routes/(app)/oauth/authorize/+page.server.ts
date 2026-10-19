@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { agentName } from '#lib/core/agents.ts';
+import { NameTaken, UNSAFE_NAME } from '#lib/core/agents.ts';
 import { issueCode, oauthClient, redirectAllowed, type OAuthClient } from '#lib/core/oauth.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		redirectHost: target.host,
 		loopback: target.protocol === 'http:',
 		// Client names go up to 100 characters, agent names to 40, without the characters agentName() refuses.
-		suggestedName: client.name.replace(/[<>\x00-\x1f\x7f]/g, '').slice(0, 40).trim(),
+		suggestedName: client.name.replace(new RegExp(UNSAFE_NAME, 'g'), '').slice(0, 40).trim(),
 		// The forms post exactly the request shown, rebuilt from the validated values.
 		params: {
 			response_type: 'code',
@@ -73,20 +73,21 @@ export const actions: Actions = {
 		const valid = validOrThrow(url.searchParams, url.origin, 303);
 		const field = (await request.formData()).get('name');
 		const typed = typeof field === 'string' ? field : '';
-		let name: string;
+		let code: string;
 		try {
-			name = agentName(typed);
-		} catch {
-			return fail(400, { nameError: true, name: typed });
+			code = issueCode({
+				clientId: valid.client.clientId,
+				redirectUri: valid.redirectUri,
+				codeChallenge: valid.codeChallenge,
+				resource: valid.resource,
+				userId: locals.user.id,
+				agentName: typed
+			});
+		} catch (err) {
+			if (!(err instanceof RangeError)) throw err;
+			const nameError = err instanceof NameTaken ? ('consent.nameTaken' as const) : ('consent.nameBad' as const);
+			return fail(400, { nameError, name: typed });
 		}
-		const code = issueCode({
-			clientId: valid.client.clientId,
-			redirectUri: valid.redirectUri,
-			codeChallenge: valid.codeChallenge,
-			resource: valid.resource,
-			userId: locals.user.id,
-			agentName: name
-		});
 		redirect(303, answer(valid.redirectUri, valid.state, url.origin, { code }), { external: true });
 	},
 	deny: async ({ locals, url }) => {

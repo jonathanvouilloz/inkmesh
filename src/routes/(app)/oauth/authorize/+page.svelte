@@ -45,7 +45,7 @@
 			{t('consent.nameHint', data.locale, { user: data.user.name, name: name.trim() })}
 		</p>
 		{#if form?.nameError}
-			<p id="name-error" class="error" role="alert">{t('consent.nameBad', data.locale)}</p>
+			<p id="name-error" class="error" role="alert">{t(form.nameError, data.locale)}</p>
 		{/if}
 		<div class="actions">
 			<button class="secondary" formaction="?{query}&/deny" formnovalidate>{t('consent.deny', data.locale)}</button>

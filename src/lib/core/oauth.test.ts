@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createUser, hashToken, type User } from './accounts.ts';
-import { agentsOf, authenticateToken, revokeAgent } from './agents.ts';
+import { agentsOf, authenticateToken, createAgent, NameTaken, revokeAgent } from './agents.ts';
 import { closeDb, db } from './db.ts';
 import {
 	exchangeCode,
@@ -184,5 +184,15 @@ describe('oauth', () => {
 		consent(clientId, 'First');
 		consent(clientId, 'Second');
 		expect(agentsOf(jon.id)).toMatchObject([{ name: 'Second', oauth: true }]);
+	});
+
+	it("consent refuses the name of the user's other agent", () => {
+		createAgent(jon.id, 'Script');
+		const { clientId } = registerClient({ redirect_uris: [CALLBACK] });
+		consent(clientId, 'Claude');
+		consent(clientId, 'claude');
+		expect(() => consent(clientId, 'script')).toThrow(NameTaken);
+		expect(() => consent(registerClient({ redirect_uris: [CALLBACK] }).clientId, 'Claude')).toThrow(NameTaken);
+		expect(agentsOf(jon.id).map((a) => a.name)).toEqual(['claude', 'Script']);
 	});
 });

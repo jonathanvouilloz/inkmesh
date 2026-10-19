@@ -147,7 +147,7 @@ it('an access token for another resource is refused', async () => {
 	const { clientId } = registerClient({ redirect_uris: [redirectUri], client_name: 'Claude' });
 	const accessToken = (resource: string) => {
 		const codeChallenge = createHash('sha256').update(verifier).digest('base64url');
-		const code = issueCode({ clientId, redirectUri, codeChallenge, resource, userId: jon.id, agentName: 'Claude' });
+		const code = issueCode({ clientId, redirectUri, codeChallenge, resource, userId: jon.id, agentName: 'Claude web' });
 		return exchangeCode({ code, clientId, redirectUri, codeVerifier: verifier }).access_token;
 	};
 	expect((await post(accessToken('https://elsewhere.test/mcp'), 'tools/list')).status).toBe(401);

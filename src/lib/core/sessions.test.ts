@@ -125,6 +125,14 @@ describe('editing sessions', () => {
 		expect(updates().at(-2)!.agent).toBeUndefined();
 	});
 
+	it("a replace commits the writer's own open session first", async () => {
+		await write(jon, '# a\n\nby jon\n');
+		await importDocument('demo', 'a.md', new TextEncoder().encode('# a\n\nreplaced\n'), { actor: jon, overwrite: true });
+		expect(git('log', '-2', '--format=%s|%an').split('\n')).toEqual(['Replace a.md|Jon', 'Update a.md|Jon']);
+		expect(git('show', 'HEAD~1:a.md')).toBe('# a\n\nby jon');
+		expect(rows()).toEqual([]);
+	});
+
 	it('another human takes over the file', async () => {
 		const before = commits();
 		await write(jon, '# a\n\nby jon\n');

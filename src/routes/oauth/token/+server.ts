@@ -9,13 +9,13 @@ const answer = (body: object, status = 200) =>
 	Response.json(body, { status, headers: { 'cache-control': 'no-store' } });
 
 export const POST: RequestHandler = async ({ request, url, getClientAddress }) => {
-	const key = 'token|' + getClientAddress();
-	if (!loginAllowed(key, MAX_FAILURES)) return answer({ error: 'too_many_requests' }, 429);
 	try {
 		const type = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
 		if (type !== 'application/x-www-form-urlencoded')
 			throw new OAuthError('invalid_request', 'the body must be application/x-www-form-urlencoded');
-		const form = await request.formData();
+		const form = await request.formData().catch(() => {
+			throw new OAuthError('invalid_request', 'the body is not valid form data');
+		});
 		const field = (name: string) => {
 			const value = form.get(name);
 			if (typeof value !== 'string' || !value) throw new OAuthError('invalid_request', `${name} is required`);
@@ -41,6 +41,9 @@ export const POST: RequestHandler = async ({ request, url, getClientAddress }) =
 		throw new OAuthError('unsupported_grant_type', 'grant_type must be authorization_code or refresh_token');
 	} catch (err) {
 		if (!(err instanceof OAuthError)) throw err;
+		// Checked after the grant: failures from a shared IP must not lock out valid codes and refreshes.
+		const key = 'token|' + getClientAddress();
+		if (!loginAllowed(key, MAX_FAILURES)) return answer({ error: 'too_many_requests' }, 429);
 		loginFailed(key);
 		return answer({ error: err.code, error_description: err.message }, 400);
 	}

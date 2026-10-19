@@ -9,6 +9,7 @@ import {
 	agentsOf,
 	authenticateToken,
 	createAgent,
+	NameTaken,
 	newAgentToken,
 	renameAgent,
 	revokeAgent
@@ -100,6 +101,17 @@ describe('agents', () => {
 		expect(agentName('a'.repeat(40))).toBe('a'.repeat(40));
 		expect(() => createAgent(jon.id, '')).toThrow(RangeError);
 		expect(agentsOf(jon.id)).toEqual([]);
+	});
+
+	it("refuses a name another of the user's agents has", async () => {
+		const { agent } = createAgent(jon.id, 'Reporter');
+		const other = createAgent(jon.id, 'other').agent;
+		expect(() => createAgent(jon.id, ' reporter ')).toThrow(NameTaken);
+		expect(() => renameAgent(jon.id, other.id, 'REPORTER')).toThrow(NameTaken);
+		renameAgent(jon.id, agent.id, 'reporter');
+		const ann = await createUser({ email: 'ann@b.c', name: 'Ann', password: 'long enough 1' });
+		createAgent(ann.id, 'reporter');
+		expect(agentsOf(jon.id).map((a) => a.name)).toEqual(['other', 'reporter']);
 	});
 
 	it('records last use at most once a minute', () => {

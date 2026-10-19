@@ -11,12 +11,27 @@ const LAST_USE_MS = 60_000;
 
 export const newAgentToken = (): string => 'ink_' + newToken();
 
+export const UNSAFE_NAME = /[<>\x00-\x1f\x7f]/;
+
 // The name lands in the git author `Jon via <name>`.
 export function agentName(name: string): string {
 	const trimmed = name.trim();
-	if (!trimmed || trimmed.length > MAX_NAME || /[<>\x00-\x1f\x7f]/.test(trimmed))
-		throw new RangeError('invalid agent name');
+	if (!trimmed || trimmed.length > MAX_NAME || UNSAFE_NAME.test(trimmed)) throw new RangeError('invalid agent name');
 	return trimmed;
+}
+
+export class NameTaken extends RangeError {
+	constructor() {
+		super('agent name taken');
+	}
+}
+
+// Events tell a user's agents apart by name, so two of them never share one (case aside).
+export function assertNameFree(userId: number, name: string, exceptId: number | null = null): void {
+	const names = db().prepare('SELECT name FROM agents WHERE user_id = ? AND id IS NOT ?').all(userId, exceptId) as {
+		name: string;
+	}[];
+	if (names.some((r) => r.name.toLowerCase() === name.toLowerCase())) throw new NameTaken();
 }
 
 export function createAgent(userId: number, name: string): { agent: Agent; token: string } {
@@ -24,6 +39,7 @@ export function createAgent(userId: number, name: string): { agent: Agent; token
 	const token = newAgentToken();
 	const createdAt = new Date().toISOString();
 	const id = transaction(() => {
+		assertNameFree(userId, clean);
 		const { lastInsertRowid } = db()
 			.prepare('INSERT INTO agents (user_id, name, created_at) VALUES (?, ?, ?)')
 			.run(userId, clean, createdAt);
@@ -55,6 +71,7 @@ export function agentsOf(userId: number): Agent[] {
 
 export function renameAgent(userId: number, id: number, name: string): void {
 	const clean = agentName(name);
+	assertNameFree(userId, clean, id);
 	const { changes } = db().prepare('UPDATE agents SET name = ? WHERE id = ? AND user_id = ?').run(clean, id, userId);
 	if (!changes) throw new Forbidden('not your agent');
 }

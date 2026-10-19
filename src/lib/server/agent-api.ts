@@ -77,15 +77,14 @@ export function requireAgent(event: RequestEvent, resource: string | null): Agen
 	const header = event.request.headers.get('authorization');
 	// Not counted: MCP clients probe without a token, often from shared IP ranges.
 	if (header === null) throw new ApiError(401, 'unauthorized', 'missing or invalid bearer token');
-	const key = 'bearer|' + event.getClientAddress();
-	if (!loginAllowed(key)) throw new ApiError(429, 'too_many_requests', 'too many failed attempts, try later');
 	const token = /^Bearer +(\S+)$/i.exec(header)?.[1];
 	const auth = token ? authenticateToken(token, resource) : null;
-	if (!auth) {
-		loginFailed(key);
-		throw new ApiError(401, 'unauthorized', 'missing or invalid bearer token');
-	}
-	return auth;
+	if (auth) return auth;
+	// Checked after authenticating: failures from a shared IP must not lock out valid tokens.
+	const key = 'bearer|' + event.getClientAddress();
+	if (!loginAllowed(key)) throw new ApiError(429, 'too_many_requests', 'too many failed attempts, try later');
+	loginFailed(key);
+	throw new ApiError(401, 'unauthorized', 'missing or invalid bearer token');
 }
 
 /** The request body, refused with InvalidContent('too-large') past `max` whatever `content-length` says. */
