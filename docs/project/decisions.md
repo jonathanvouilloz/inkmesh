@@ -79,3 +79,9 @@
 - Rejected: any member creating workspaces (the VPS belongs to the owner; invitees should not fill it); an "instance owner" role mixed with workspace roles.
 - Why: keeps workspace roles as the only permission model inside content.
 - Reopen if: a trusted collaborator needs their own workspaces (then a per-user "may create" flag or a quota).
+
+## 2026-10-19 — Move and delete
+- Choice: links follow a move. In the same commit, every relative link or image URL that pointed into the moved item, and every relative URL inside a moved document, is rewritten; the move and rename dialogs say how many other documents will be updated. Delete renames the item into a trash location, then commits the removal; recovery is through git history.
+- Rejected: leaving links broken; an opt-out checkbox nobody asked for; a trash folder in the tree.
+- Why: relative links and images must survive a reorganisation, and one commit keeps the change reviewable and revertible.
+- Reopen if: a workspace grows large enough that the link scan makes moves slow.

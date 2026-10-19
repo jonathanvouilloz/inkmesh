@@ -31,6 +31,7 @@ One Node process serves a SvelteKit web app, an HTTP API and a remote MCP server
 
 - Pages, API and MCP are three thin adapters over one `core` module. A capability exists for agents the day it exists for humans, because both call the same function.
 - `core` is the only layer that reads or writes the data directory. Adapters never touch `fs` or `git`.
+- Files are managed in `core/documents.ts` by `createFolder`, `importDocument`, `movePath`, `deletePath` and `linksTo` (the documents a move would rewrite).
 - Markdown is parsed with remark (unified) both in `core` and in the editor; there is one parser configuration, shared.
 - The editor is the one large client-side island (Milkdown on ProseMirror). Everything else is server-rendered.
 
