@@ -186,7 +186,7 @@ Warm-grey neutrals carry the whole interface; one cool ink blue and three state 
 
 ### State
 - **Saved Green** (`ok`): the word "Saved" in the file strip and the confirmation sentence after a form saves on the account page ("Name saved", "Password changed", `role="status"`), nothing else.
-- **Disk-Changed Amber** (`warn`): the conflict sentence in the file strip. Adjusted from the brief's `#B26B00` because that value failed AA at 12.5px.
+- **Disk-Changed Amber** (`warn`): the conflict sentence in the file strip and the loopback warning on the consent screen. Adjusted from the brief's `#B26B00` because that value failed AA at 12.5px.
 - **Error Red** (`error`): "Could not save", form errors under their field (create path, slug, sign-in, invite, account, `role="alert"`) and the members page error line.
 
 ### Named Rules
