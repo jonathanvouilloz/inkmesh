@@ -11,6 +11,7 @@ import { closeDb, db } from './db.ts';
 import {
 	createDocument,
 	createFolder,
+	deletePath,
 	history,
 	importDocument,
 	linksTo,
@@ -551,6 +552,41 @@ describe('documents', () => {
 		const texts = [read('b.md'), read('c.md')];
 		expect(texts.filter((t) => t.includes('(rapports/'))).toHaveLength(1); // the other restore failed
 		expect(fs.existsSync(path.join(workspaceDir('demo'), 'rapports'))).toBe(true);
+	});
+
+	it('deletes a document and keeps it in history', async () => {
+		const root = workspaceDir('demo');
+		const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+		await deletePath('demo', doc, actor);
+		expect(fs.existsSync(path.join(root, doc))).toBe(false);
+		expect(git('show', `HEAD~1:${doc}`)).toBe('# réunion été\n');
+		expect(git('log', '-1', '--format=%s').trim()).toBe(`Delete ${doc}`);
+		expect(git('status', '--porcelain')).toBe('');
+	});
+
+	it('deletes a folder with everything in it', async () => {
+		const root = workspaceDir('demo');
+		await createDocument('demo', 'rapports/sub/b.md', actor);
+		fs.writeFileSync(path.join(root, 'rapports/sub/image.png'), 'png');
+		await deletePath('demo', 'rapports', actor);
+		expect(fs.existsSync(path.join(root, 'rapports'))).toBe(false);
+		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
+		expect(execFileSync('git', ['log', '-1', '--format=%s'], { cwd: root, encoding: 'utf8' }).trim()).toBe(
+			'Delete rapports'
+		);
+	});
+
+	it('deletes an untracked document', async () => {
+		const root = workspaceDir('demo');
+		fs.writeFileSync(path.join(root, 'loose.md'), '# loose\n');
+		await deletePath('demo', 'loose.md', actor);
+		expect(fs.existsSync(path.join(root, 'loose.md'))).toBe(false);
+	});
+
+	it('readers cannot delete', async () => {
+		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
+		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
+		await expect(deletePath('demo', doc, { id: reader.id, name: 'R' })).rejects.toBeInstanceOf(Forbidden);
 	});
 
 	it('readers cannot move', async () => {

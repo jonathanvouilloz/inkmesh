@@ -388,6 +388,36 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 	});
 }
 
+export async function deletePath(slug: string, path: string, actor: Actor): Promise<void> {
+	assertRole(slug, actor, 'editor');
+	const root = workspaceDir(slug);
+	return serialised(slug, async () => {
+		const isDoc = (await fs.stat(resolveInside(root, path))).isFile();
+		let target: string;
+		if (isDoc) {
+			target = documentFile(root, path);
+		} else {
+			target = resolveInside(root, path);
+			assertFolderName(relative(root, target));
+		}
+		const rel = relative(root, target);
+		// Renamed aside rather than removed, so a failed commit can put it back intact.
+		const trash = join(root, '.inkmesh', `trash-${randomBytes(6).toString('hex')}`);
+		await fs.mkdir(dirname(trash), { recursive: true });
+		await fs.rename(target, trash);
+		try {
+			await gitCommit(root, { paths: [rel], message: `Delete ${rel}`, author: commitAuthor(actor) });
+		} catch (err) {
+			await fs.rename(trash, target).catch((e) => console.error(`delete rollback: rename ${rel} back`, e));
+			throw err;
+		}
+		// The commit holds the delete; a leftover trash entry is hidden and harmless.
+		await fs
+			.rm(trash, { recursive: true, force: true })
+			.catch((e) => console.error(`delete: remove ${trash}`, e));
+	});
+}
+
 export async function history(slug: string, path: string, actor: Actor): Promise<HistoryEntry[]> {
 	assertRole(slug, actor, 'reader');
 	const root = workspaceDir(slug);
