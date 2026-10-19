@@ -336,7 +336,6 @@
 	}
 	.actions {
 		justify-content: flex-end;
-		flex-wrap: wrap;
 	}
 	fieldset {
 		display: flex;
@@ -474,6 +473,9 @@
 		}
 		.created {
 			display: none;
+		}
+		.actions {
+			flex-wrap: wrap;
 		}
 	}
 </style>
