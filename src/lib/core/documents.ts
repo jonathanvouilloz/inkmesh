@@ -98,6 +98,12 @@ function target(url: string, doc: string): { path: string; suffix: string; resol
 	return { path, suffix, resolved: posix.join(posix.dirname(doc), path) };
 }
 
+/** A relative path as a Markdown URL: `(` `)` would end a bare destination early, `:` could read as a scheme. */
+export function encodeUrlPath(rel: string): string {
+	const hex = (c: string) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
+	return encodeURI(rel).replace(/[?#():]/g, hex);
+}
+
 /** The URL that `url`, written in `oldDoc`, becomes in `newDoc` once `moved.from` is at `moved.to`; null when it needs no change. */
 export function relocate(
 	url: string,
@@ -114,9 +120,7 @@ export function relocate(
 	if (posix.join(posix.dirname(newDoc), t.path) === resolved) return null;
 	let rel = posix.relative(posix.dirname(newDoc), resolved) || '.';
 	if (resolved.endsWith('/')) rel += '/';
-	// `(` `)` would end a bare destination early, `:` could read as a scheme.
-	const hex = (c: string) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
-	const next = encodeURI(rel).replace(/[?#():]/g, hex) + t.suffix;
+	const next = encodeUrlPath(rel) + t.suffix;
 	return next === url ? null : next;
 }
 
