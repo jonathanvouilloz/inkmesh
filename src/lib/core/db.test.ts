@@ -4,7 +4,21 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb, db } from './db.ts';
 
-const TABLES = ['invitations', 'memberships', 'migrations', 'sessions', 'users', 'workspaces'];
+const TABLES = [
+	'agent_tokens',
+	'agents',
+	'editing_sessions',
+	'events',
+	'invitations',
+	'memberships',
+	'migrations',
+	'oauth_clients',
+	'oauth_codes',
+	'sessions',
+	'sqlite_sequence',
+	'users',
+	'workspaces'
+];
 
 const dirs: string[] = [];
 beforeEach(() => {
@@ -27,7 +41,7 @@ describe('db', () => {
 		expect(names()).toEqual(TABLES);
 		closeDb();
 		expect(names()).toEqual(TABLES); // second open: no error, no duplicate
-		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: 1 });
+		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: 2 });
 	});
 
 	it('enforces foreign keys and roles', () => {

@@ -21,6 +21,29 @@ CREATE TABLE invitations (token_hash TEXT PRIMARY KEY, workspace TEXT NOT NULL R
   created_by INTEGER NOT NULL REFERENCES users, created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
   used_by INTEGER REFERENCES users, used_at TEXT);
 `
+	},
+	{
+		id: '002-agents',
+		sql: `
+CREATE TABLE oauth_clients (client_id TEXT PRIMARY KEY, name TEXT NOT NULL,
+  redirect_uris TEXT NOT NULL /* JSON array */, created_at TEXT NOT NULL);
+CREATE TABLE agents (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users ON DELETE CASCADE,
+  name TEXT NOT NULL, oauth_client_id TEXT REFERENCES oauth_clients ON DELETE SET NULL,
+  created_at TEXT NOT NULL, last_used_at TEXT);
+CREATE TABLE agent_tokens (token_hash TEXT PRIMARY KEY, agent_id INTEGER NOT NULL REFERENCES agents ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('bearer','access','refresh')), resource TEXT,
+  expires_at TEXT, created_at TEXT NOT NULL);
+CREATE TABLE oauth_codes (code_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL REFERENCES oauth_clients ON DELETE CASCADE,
+  agent_id INTEGER NOT NULL REFERENCES agents ON DELETE CASCADE, redirect_uri TEXT NOT NULL,
+  code_challenge TEXT NOT NULL, resource TEXT NOT NULL, expires_at TEXT NOT NULL);
+CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, workspace TEXT NOT NULL REFERENCES workspaces ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users ON DELETE SET NULL, author TEXT NOT NULL, agent TEXT,
+  type TEXT NOT NULL CHECK (type IN ('create','update','move','delete')),
+  path TEXT NOT NULL, from_path TEXT, commit_hash TEXT, at TEXT NOT NULL);
+CREATE INDEX events_workspace ON events (workspace, id);
+CREATE TABLE editing_sessions (workspace TEXT NOT NULL REFERENCES workspaces ON DELETE CASCADE, path TEXT NOT NULL,
+  user_id INTEGER NOT NULL, author TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (workspace, path));
+`
 	}
 ];
 
