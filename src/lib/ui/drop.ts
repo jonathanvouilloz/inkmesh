@@ -8,8 +8,8 @@ import { docHref } from './href.ts';
 /** The drag type a tree item carries: its path in the workspace. */
 export const PATH_TYPE = 'application/x-inkmesh-path';
 
-/** Saves the open document's pending edit, throwing `unsaved` if it stays unsaved. Set by the document page. */
-export const openDocument: { flush?: () => Promise<void> } = {};
+/** Set by the document page: `flush` saves the pending edit (throws `unsaved` if it stays unsaved), `reload` shows the body on disk again. */
+export const openDocument: { flush?: () => Promise<void>; reload?: () => void } = {};
 
 /** Set by the workspace layout, which shows the results; used by every drop target and the file picker. */
 export const [getDrops, setDrops] = createContext<{
@@ -42,7 +42,7 @@ export async function importFiles(
 	return (result.data as { results: ImportResult[] }).results;
 }
 
-/** Throws `unsaved`, `exists` or `invalid` when nothing moved. */
+/** Throws `unsaved`, `exists`, `invalid` or `failed` when nothing moved (or any error the request throws). */
 export async function moveItem(workspace: string, from: string, toFolder: string): Promise<void> {
 	const to = (toFolder ? `${toFolder}/` : '') + from.split('/').pop();
 	// The open page is the item or lies inside it: its URL changes with the move.
@@ -53,7 +53,8 @@ export async function moveItem(workspace: string, from: string, toFolder: string
 	body.set('from', from);
 	body.set('to', to);
 	const result = await post(workspace, 'move', body);
-	const refused = result.type === 'failure' ? result.data?.moveError : result.type !== 'redirect' && 'invalid';
+	if (result.type === 'error' || result.type === 'success') throw new Error('failed');
+	const refused = result.type === 'failure' && result.data?.moveError;
 	// A missing item is already gone: the refresh shows it.
 	if (refused && refused !== 'missing') throw new Error(refused === 'exists' ? 'exists' : 'invalid');
 	if (!refused && affected) return goto(docHref(workspace, to + open.slice(from.length)), { invalidateAll: true });

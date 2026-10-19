@@ -133,8 +133,12 @@
 		outline-offset: -2px;
 		border-radius: var(--radius);
 	}
-	section:global([data-over])::after {
+	/* First in the section and sticky, so a long folder still shows it. */
+	section:global([data-over])::before {
 		content: attr(data-hint);
+		position: sticky;
+		top: var(--sticky-top);
+		background: var(--ground);
 		color: var(--muted);
 	}
 	.head {

@@ -115,4 +115,6 @@ export const fr: Record<keyof typeof en, string> = {
 	'drop.invalid': '{name} : seuls les fichiers .md peuvent être importés',
 	'drop.tooLarge': '{name} : plus de 3 Mo',
 	'drop.notUtf8': '{name} : ce n’est pas un fichier texte UTF-8',
+	'drop.failed': 'L’import a échoué. Rien n’a été importé.',
+	'files.failed': 'L’opération a échoué. Réessayez.',
 };

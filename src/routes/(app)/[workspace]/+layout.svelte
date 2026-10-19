@@ -5,7 +5,7 @@
 	import { t } from '#lib/i18n/index.ts';
 	import Header from '#lib/ui/Header.svelte';
 	import Tree from '#lib/ui/Tree.svelte';
-	import { PATH_TYPE, dropTarget, importFiles, moveItem, setDrops } from '#lib/ui/drop.ts';
+	import { PATH_TYPE, dropTarget, importFiles, moveItem, openDocument, setDrops } from '#lib/ui/drop.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -38,16 +38,39 @@
 	let replaceDialog = $state<HTMLDialogElement>()!;
 	let focused: Element | null = null;
 
+	// Emptied first, so the same result twice is announced twice.
+	async function say(lines: string[]) {
+		notes = [];
+		await tick();
+		notes = lines;
+	}
+
 	async function importInto(folder: string, files: File[], overwrite = false) {
-		const results = await importFiles(data.workspace, folder, files, overwrite);
+		// Replacing the open document: its pending edit is saved first, its editor reloaded after.
+		const replacesOpen =
+			overwrite &&
+			files.some((f) => (folder ? `${folder}/` : '') + f.name.replace(/\.markdown$/i, '.md') === current);
+		let results;
+		try {
+			if (replacesOpen) await openDocument.flush?.();
+		} catch {
+			return say([t('files.unsaved', data.locale)]);
+		}
+		try {
+			results = await importFiles(data.workspace, folder, files, overwrite);
+		} catch {
+			return say([t('drop.failed', data.locale)]);
+		}
+		if (replacesOpen && results.some((r) => r.outcome === 'replaced' && r.path === current))
+			openDocument.reload?.();
 		const count = results.filter((r) => r.outcome === 'imported' || r.outcome === 'replaced').length;
-		notes = [
+		void say([
 			...(count ? [t('drop.imported', data.locale, { count: String(count) })] : []),
 			...results.flatMap((r) => {
 				const key = refused[r.outcome as keyof typeof refused];
 				return key ? [t(key, data.locale, { name: r.name })] : [];
 			})
-		];
+		]);
 		const names = new Set(results.filter((r) => r.outcome === 'exists').map((r) => r.name));
 		if (!names.size) return;
 		existing = { folder, files: files.filter((f) => names.has(f.name)) };
@@ -64,16 +87,20 @@
 			if (!from || folder === from || folder.startsWith(`${from}/`)) return;
 			if (folder === from.split('/').slice(0, -1).join('/')) return;
 			moveItem(data.workspace, from, folder).catch((err: Error) => {
-				const key = err.message === 'unsaved' || err.message === 'exists' ? err.message : 'invalid';
-				notes = [t(`files.${key}`, data.locale)];
+				const known = ['unsaved', 'exists', 'invalid'] as const;
+				const key = known.find((k) => k === err.message) ?? 'failed';
+				void say([t(`files.${key}`, data.locale)]);
 			});
 		}
 	});
 </script>
 
 <!-- The drawer only exists below 768px; closing it on a wider viewport also lifts inert from main. -->
+<!-- A file dropped outside every target would otherwise open in the tab; targets stop the event first. -->
 <svelte:window
 	onkeydown={(e) => e.key === 'Escape' && hide()}
+	ondragover={(e) => e.dataTransfer?.types.includes('Files') && e.preventDefault()}
+	ondrop={(e) => e.dataTransfer?.types.includes('Files') && e.preventDefault()}
 	onresize={() => {
 		if (window.innerWidth >= 768) open = false;
 	}}
@@ -302,6 +329,7 @@
 		border-radius: var(--radius);
 		background: var(--ground);
 		color: var(--ink);
+		font-family: var(--font-text);
 		font-size: 13px;
 	}
 	dialog[open] {

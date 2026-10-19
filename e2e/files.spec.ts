@@ -179,6 +179,38 @@ test('asks before replacing', async ({ page }) => {
 	);
 });
 
+test('replacing the open document shows the new text', async ({ page }) => {
+	await page.goto('/demo/e2e-files/dropped.md', hydrated);
+	await expect(page.locator('.milkdown p')).toHaveText('second');
+	await dropFiles(page, folderInTree(page, 'e2e-files'), [['dropped.md', '# Dropped\n\nthird\n']]);
+	await page.getByRole('dialog').getByRole('button', { name: 'Replace' }).click();
+	await expect(page.locator('.milkdown p')).toHaveText('third');
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/dropped\.md$/);
+});
+
+test('a failed import says so', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await page.route(
+		(url) => url.search === '?/import',
+		(route) => route.abort()
+	);
+	await dropFiles(page, folderInTree(page, 'e2e-files'), [['lost.md', '# Lost\n']]);
+	await expect(page.getByText('Import failed. Nothing was imported.')).toBeVisible();
+});
+
+test('a file dropped on the editor does not open in the tab', async ({ page }) => {
+	await page.goto('/demo/e2e-files/dropped.md', hydrated);
+	const cancelled = await page.locator('.milkdown').evaluate((editor) => {
+		const data = new DataTransfer();
+		data.items.add(new File(['# Away\n'], 'away.md', { type: 'text/markdown' }));
+		return ['dragover', 'drop'].map(
+			(type) => !editor.dispatchEvent(new DragEvent(type, { dataTransfer: data, bubbles: true, cancelable: true }))
+		);
+	});
+	expect(cancelled).toEqual([true, true]);
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/dropped\.md$/);
+});
+
 test('reports a refused file', async ({ page }) => {
 	await page.goto('/demo/e2e-files', hydrated);
 	await dropFiles(page, folderInTree(page, 'e2e-files'), [['photo.png', 'not markdown']]);
@@ -200,6 +232,24 @@ test('drags a document onto a folder', async ({ page }) => {
 		'/demo/e2e-files/sub/drag.md'
 	);
 	await expect(page).toHaveURL(/\/demo\/e2e-files\/sub\/drag\.md$/);
+});
+
+test('an unsaved edit blocks a drag-move', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await newDocument(page, 'e2e-files/held.md');
+	await page.route(
+		(url) => url.search === '?/save',
+		(route) => route.abort()
+	);
+	await page.locator('.milkdown h1').click();
+	await page.keyboard.press('End');
+	await page.keyboard.type(' lost');
+	await page.waitForTimeout(300); // Milkdown's change debounce
+	await rail(page).getByRole('link', { name: 'held', exact: true }).dragTo(folderInTree(page, 'sub'));
+	await expect(page.getByRole('status').filter({ hasText: 'not saved yet' })).toHaveText(
+		'Your last change is not saved yet. Resolve it before renaming, moving or deleting.'
+	);
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/held\.md$/);
 });
 
 test('the file picker imports too', async ({ page }) => {

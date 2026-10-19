@@ -91,8 +91,11 @@
 	const readonly = $derived(data.role === 'reader');
 	const doc = $derived(`${data.workspace}/${data.path}`);
 	const isDoc = $derived(data.kind === 'doc');
+	// Bumped when an import replaced this document on disk: a fresh autosave and editor show it.
+	let version = $state(0);
 	const autosave = $derived.by(() => {
 		void doc;
+		void version;
 		if (readonly || !isDoc) return undefined;
 		return untrack(() =>
 			data.kind === 'doc' ? new Autosave(`${page.url.pathname}?/save`, data.body, data.hash) : undefined
@@ -107,7 +110,11 @@
 	}
 	$effect(() => {
 		openDocument.flush = flush;
-		return () => (openDocument.flush = undefined);
+		openDocument.reload = () => version++;
+		return () => {
+			openDocument.flush = undefined;
+			openDocument.reload = undefined;
+		};
 	});
 	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
 	$effect(() => {
@@ -158,8 +165,8 @@
 				/>
 			</FileStrip>
 			<article>
-				<!-- Keyed so another document gets a fresh editor with its own body. -->
-				{#key doc}
+				<!-- Keyed so another document, or the same one replaced, gets a fresh editor with its own body. -->
+				{#key `${doc}:${version}`}
 					<Editor
 						value={autosave?.value ?? data.body}
 						{raw}
