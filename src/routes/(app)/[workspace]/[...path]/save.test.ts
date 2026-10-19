@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -40,6 +41,20 @@ function save(body: string, hash: string, user: User | null = owner) {
 	return actions.save(event as unknown as Parameters<typeof actions.save>[0]);
 }
 
+function leave(user: User) {
+	const event = {
+		params: { workspace: 'demo', path: doc },
+		request: new Request('http://localhost/demo/x', { method: 'POST', body: new FormData() }),
+		locals: { user, actor: { id: user.id, name: user.name }, locale: 'en' }
+	};
+	return actions.leave(event as unknown as Parameters<typeof actions.leave>[0]);
+}
+
+const log = () =>
+	execFileSync('git', ['-C', workspaceDir('demo'), 'log', '--format=%an'], { encoding: 'utf8' })
+		.trim()
+		.split('\n');
+
 it('rejects a stale hash with 409', async () => {
 	expect(await save('# Changed\n', 'stale')).toMatchObject({ status: 409, data: { conflict: true } });
 	expect(fs.readFileSync(path.join(workspaceDir('demo'), doc), 'utf8')).toBe('# kitchen-sink\n');
@@ -80,4 +95,19 @@ it('refuses an anonymous save with 401', async () => {
 	const { hash } = await readDocument('demo', doc, owner);
 	await expect(save('# Changed\n', hash, null)).rejects.toMatchObject({ status: 401 });
 	expect(fs.readFileSync(path.join(workspaceDir('demo'), doc), 'utf8')).toBe('# kitchen-sink\n');
+});
+
+it('leave commits the session', async () => {
+	const { hash } = await readDocument('demo', doc, owner);
+	const first = (await save('# One\n', hash)) as { hash: string };
+	await save('# Two\n', first.hash);
+	const before = log();
+	expect(await leave(owner)).toEqual({});
+	expect(log()).toEqual(['Owner', ...before]);
+});
+
+it('a reader cannot leave', async () => {
+	const reader = await createUser({ email: 'reader@example.com', name: 'Reader', password: 'long-enough-1' });
+	acceptInvitation(createInvitation('demo', 'reader', owner), reader.id);
+	await expect(leave(reader)).rejects.toMatchObject({ status: 403 });
 });

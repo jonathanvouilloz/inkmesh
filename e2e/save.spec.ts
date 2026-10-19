@@ -18,20 +18,15 @@ async function typeAtEndOfFirstParagraph(page: Page, text: string) {
 
 test.use({ locale: 'en-US' });
 
-test('an edit autosaves, commits and keeps the code blocks byte-identical', async ({ page }) => {
+test('an edit autosaves, commits on leaving and keeps the code blocks byte-identical', async ({ page }) => {
 	await page.goto('/demo/examples/kitchen-sink.md');
 	await typeAtEndOfFirstParagraph(page, ' edited');
 	await expect(status(page)).toHaveText('Saved', { timeout: 5000 });
-	// The History block refreshes after a save, without a reload.
-	const latest = page.getByRole('complementary').getByRole('listitem').first();
-	await expect(latest).toContainText(/now|seconds? ago/);
 
 	const saved = fs.readFileSync(file, 'utf8');
 	expect(saved).toContain(' edited');
 	expect(fences(fixture)?.length).toBeGreaterThan(0);
 	expect(fences(saved)).toEqual(fences(fixture));
-	const log = execFileSync('git', ['-C', root, 'log', '-1', '--format=%an%n%s'], { encoding: 'utf8' });
-	expect(log.trim()).toBe('Owner\nUpdate examples/kitchen-sink.md');
 
 	// A hash change must keep the same autosave, with the hash returned by the last save.
 	await page.evaluate(() => {
@@ -41,6 +36,18 @@ test('an edit autosaves, commits and keeps the code blocks byte-identical', asyn
 	await expect(status(page)).toHaveText('', { timeout: 1000 });
 	await expect(status(page)).toHaveText('Saved', { timeout: 5000 });
 	expect(fs.readFileSync(file, 'utf8')).toContain(' edited!');
+
+	// The editing session is committed when the editor leaves the document.
+	const rail = page.locator('#rail');
+	await rail.getByRole('link', { name: 'PRD — inkmesh' }).click();
+	await expect(page).toHaveURL(/prd\.md$/);
+	await rail.getByRole('link', { name: 'Weekly agent report' }).click();
+	const latest = page.getByRole('complementary').getByRole('listitem').first();
+	await expect(latest).toContainText(/now|seconds? ago/);
+	const log = execFileSync('git', ['-C', root, 'log', '-1', '--format=%an%n%s'], { encoding: 'utf8' });
+	expect(log.trim()).toBe('Owner\nUpdate examples/kitchen-sink.md');
+	const committed = execFileSync('git', ['-C', root, 'show', 'HEAD:examples/kitchen-sink.md'], { encoding: 'utf8' });
+	expect(committed).toBe(fs.readFileSync(file, 'utf8'));
 });
 
 test('a file changed on disk is a conflict and is not overwritten', async ({ page }) => {

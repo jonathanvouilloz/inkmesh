@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { history, readDocument, writeDocument, type TreeNode } from '#lib/core/documents.ts';
 import { frontmatterEntries } from '#lib/core/markdown.ts';
 import { Conflict, InvalidPath } from '#lib/core/paths.ts';
+import { endSession } from '#lib/core/sessions.ts';
 import { requireRole } from '#lib/server/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -60,5 +61,10 @@ export const actions: Actions = {
 			if (err instanceof InvalidPath) return fail(400, { invalid: true });
 			throw err;
 		}
+	},
+	leave: async ({ params, locals }) => {
+		requireRole(params.workspace, locals, 'editor');
+		await endSession(params.workspace, params.path, locals.actor!);
+		return {};
 	}
 };

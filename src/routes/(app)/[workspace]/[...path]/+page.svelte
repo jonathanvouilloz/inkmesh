@@ -22,13 +22,13 @@
 		value = $state('');
 		state = $state<SaveState>('idle');
 		dirty = false;
-		#url: string;
+		readonly url: string;
 		#hash: string;
 		#timer: ReturnType<typeof setTimeout> | undefined;
 		#inFlight: Promise<void> | undefined;
 
 		constructor(url: string, value: string, hash: string) {
-			this.#url = url;
+			this.url = url;
 			this.value = value;
 			this.#hash = hash;
 		}
@@ -66,7 +66,7 @@
 			body.set('body', this.value);
 			body.set('hash', this.#hash);
 			try {
-				const res = await fetch(this.#url, {
+				const res = await fetch(`${this.url}?/save`, {
 					method: 'POST',
 					headers: { 'x-sveltekit-action': 'true' },
 					body
@@ -86,9 +86,18 @@
 				this.state = 'error';
 			}
 		}
+
+		// Ends the editing session: the server commits it. Best effort, the idle timer commits it anyway.
+		leave() {
+			fetch(`${this.url}?/leave`, {
+				method: 'POST',
+				headers: { 'x-sveltekit-action': 'true' },
+				body: new FormData()
+			}).catch(() => {});
+		}
 	}
 
-	// The action URL is fixed per document, so a save flushed after navigating still targets it.
+	// The document URL is fixed per autosave, so a save flushed after navigating still targets it.
 	// Untracked: page.url also changes on hash navigation, which reloads no data and must keep this autosave.
 	// Keyed on the document, not on data: a reload of the same document (after a save) keeps it.
 	// Readers never save: the save action would answer 403 anyway.
@@ -102,7 +111,7 @@
 		void version;
 		if (readonly || !isDoc) return undefined;
 		return untrack(() =>
-			data.kind === 'doc' ? new Autosave(`${page.url.pathname}?/save`, data.body, data.hash) : undefined
+			data.kind === 'doc' ? new Autosave(page.url.pathname, data.body, data.hash) : undefined
 		);
 	});
 	const folders = $derived(folderPaths(data.tree));
@@ -123,16 +132,19 @@
 			openDocument.reload = undefined;
 		};
 	});
-	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
+	// Leaving a document (in-app navigation or unmount) saves its pending change right away, then ends its session.
 	$effect(() => {
 		const current = autosave;
-		return () => void current?.save();
+		return () => void current?.save().then(() => current.leave());
 	});
 </script>
 
 <svelte:window
 	onbeforeunload={(event) => {
 		if (autosave?.busy) event.preventDefault();
+	}}
+	onpagehide={() => {
+		if (autosave) navigator.sendBeacon(`${autosave.url}?/leave`, new FormData());
 	}}
 />
 
