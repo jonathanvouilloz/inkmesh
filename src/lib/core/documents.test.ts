@@ -22,6 +22,7 @@ import {
 	relocate,
 	writeDocument
 } from './documents.ts';
+import { changes } from './events.ts';
 import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
 
 let actor: Actor;
@@ -239,7 +240,7 @@ describe('documents', () => {
 		const res = await importDocument('demo', 'notes/x.md', new TextEncoder().encode(source), {
 			actor
 		});
-		expect(res).toEqual({ path: 'notes/x.md', replaced: false });
+		expect(res).toEqual({ path: 'notes/x.md', replaced: false, hash: expect.any(String) });
 		expect((await readDocument('demo', 'notes/x.md', actor)).source).toBe(source);
 		const log = await history('demo', 'notes/x.md', actor);
 		expect(log).toHaveLength(1);
@@ -257,7 +258,7 @@ describe('documents', () => {
 			actor,
 			overwrite: true
 		});
-		expect(res).toEqual({ path: 'x.md', replaced: true });
+		expect(res).toEqual({ path: 'x.md', replaced: true, hash: expect.any(String) });
 		expect((await readDocument('demo', 'x.md', actor)).source).toBe('# two\n');
 		expect((await history('demo', 'x.md', actor)).map((e) => e.message)).toEqual([
 			'Replace x.md',
@@ -639,5 +640,72 @@ describe('documents', () => {
 		await expect(createDocument('demo', 'x.md', r)).rejects.toBeInstanceOf(Forbidden);
 		await expect(writeDocument('demo', doc, 'x', { expectedHash: 'h', actor: r })).rejects.toBeInstanceOf(Forbidden);
 		await expect(readDocument('demo', doc, { id: 999, name: 'S' })).rejects.toThrow('not a member');
+	});
+
+	describe('events', () => {
+		let ann: Actor;
+		let since: number;
+		beforeEach(async () => {
+			const user = await createUser({ email: 'ann@b.c', name: 'Ann', password: 'long enough 1' });
+			db().prepare("insert into memberships values ('demo', ?, 'editor')").run(user.id);
+			ann = { id: user.id, name: 'Ann' };
+			since = changes('demo', ann).cursor;
+		});
+
+		it('every write leaves one event', async () => {
+			const enc = new TextEncoder();
+			await createDocument('demo', 'a.md', actor);
+			await importDocument('demo', 'b.md', enc.encode('# b\n'), { actor });
+			await importDocument('demo', 'b.md', enc.encode('# b2\n'), { actor, overwrite: true });
+			await movePath('demo', 'b.md', 'c.md', actor);
+			await deletePath('demo', 'a.md', actor);
+			const { events } = changes('demo', ann, since);
+			expect(events.map((e) => [e.type, e.path, e.from])).toEqual([
+				['create', 'a.md', undefined],
+				['create', 'b.md', undefined],
+				['update', 'b.md', undefined],
+				['move', 'c.md', 'b.md'],
+				['delete', 'a.md', undefined]
+			]);
+			for (const e of events) expect(e.commit).toMatch(/^[0-9a-f]{40}$/);
+		});
+
+		it('an empty folder moved leaves an event without a commit', async () => {
+			await createFolder('demo', 'empty', actor);
+			await movePath('demo', 'empty', 'moved', actor);
+			const { events } = changes('demo', ann, since);
+			expect(events).toEqual([expect.objectContaining({ type: 'move', path: 'moved', from: 'empty' })]);
+			expect(events[0].commit).toBeUndefined();
+		});
+
+		it('a failed commit leaves no event', async () => {
+			const lock = path.join(workspaceDir('demo'), '.git/index.lock');
+			fs.writeFileSync(lock, '');
+			await expect(createDocument('demo', 'new.md', actor)).rejects.toThrow();
+			fs.rmSync(lock);
+			expect(changes('demo', ann, since).events).toEqual([]);
+		});
+	});
+
+	it('imports over a known hash only', async () => {
+		const enc = new TextEncoder();
+		await importDocument('demo', 'b.md', enc.encode('# b\n'), { actor });
+		const { hash } = await readDocument('demo', 'b.md', actor);
+		const res = await importDocument('demo', 'b.md', enc.encode('# b2\n'), { actor, expectedHash: hash });
+		expect(res).toMatchObject({ path: 'b.md', replaced: true });
+		expect((await history('demo', 'b.md', actor))[0].message).toBe('Update b.md');
+		await expect(
+			importDocument('demo', 'b.md', enc.encode('# b3\n'), { actor, expectedHash: hash })
+		).rejects.toThrow(Conflict);
+		expect((await readDocument('demo', 'b.md', actor)).source).toBe('# b2\n');
+		await expect(
+			importDocument('demo', 'nope.md', enc.encode('# n\n'), { actor, expectedHash: hash })
+		).rejects.toMatchObject({ code: 'ENOENT' });
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'nope.md'))).toBe(false);
+	});
+
+	it('returns the stored hash', async () => {
+		const res = await importDocument('demo', 'h.md', new TextEncoder().encode('\uFEFF# été\r\n'), { actor });
+		expect(res.hash).toBe((await readDocument('demo', 'h.md', actor)).hash);
 	});
 });

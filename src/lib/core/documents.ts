@@ -4,7 +4,9 @@ import { basename, dirname, join, posix, relative } from 'node:path';
 import { assertRole } from './access.ts';
 import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
+import { appendEvent } from './events.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
+import { serialised } from './lock.ts';
 import { patchMarkdown, rewriteUrls, splitFrontmatter } from './markdown.ts';
 import {
 	assertFolderName,
@@ -32,20 +34,8 @@ export type HistoryEntry = {
 
 export const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
 
-const sha256 = (source: string) => createHash('sha256').update(source).digest('hex');
+const sha256 = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
-
-// One write at a time per workspace, so the hash check and the write (and git's index) never interleave.
-// shortcut: in-process lock only, assumes a single server process; upgrade to a file lock if we ever run several
-const locks = new Map<string, Promise<unknown>>();
-function serialised<T>(slug: string, fn: () => Promise<T>): Promise<T> {
-	const next = (locks.get(slug) ?? Promise.resolve()).then(fn, fn);
-	locks.set(
-		slug,
-		next.catch(() => {})
-	);
-	return next;
-}
 
 /** A document is a .md file whose name is not a dot-file, inside valid folders: listTree shows nothing else. */
 function documentFile(root: string, path: string): string {
@@ -252,8 +242,9 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
+		let commit: string;
 		try {
-			await gitCommit(root, {
+			commit = await gitCommit(root, {
 				paths: [rel],
 				message: `Create ${rel}`,
 				author: commitAuthor(actor)
@@ -262,17 +253,21 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 			await fs.unlink(file); // or the document exists without a commit and cannot be created again
 			throw err;
 		}
+		appendEvent(slug, actor, { type: 'create', path: rel, commit });
 		return rel;
 	});
 }
 
-/** Brings an uploaded Markdown file in byte for byte; replaces an existing document only with `overwrite`. */
+/**
+ * Brings an uploaded Markdown file in byte for byte; replaces an existing document only with `overwrite`,
+ * or with `expectedHash`, which the existing document must match.
+ */
 export async function importDocument(
 	slug: string,
 	path: string,
 	bytes: Uint8Array,
-	opts: { actor: Actor; overwrite?: boolean }
-): Promise<{ path: string; replaced: boolean }> {
+	opts: { actor: Actor; overwrite?: boolean; expectedHash?: string }
+): Promise<{ path: string; replaced: boolean; hash: string }> {
 	assertRole(slug, opts.actor, 'editor');
 	const root = workspaceDir(slug);
 	const file = documentFile(root, path);
@@ -290,9 +285,11 @@ export async function importDocument(
 		} catch (err) {
 			if ((err as { code?: unknown }).code === 'EISDIR')
 				throw new Conflict(`${rel} is a folder`);
-			if (!isMissing(err)) throw err;
+			if (!isMissing(err) || opts.expectedHash !== undefined) throw err;
 		}
-		if (old && !opts.overwrite) throw new Conflict(`${rel} already exists`);
+		if (opts.expectedHash !== undefined) {
+			if (sha256(old!) !== opts.expectedHash) throw new Conflict(`${rel} changed since it was read`);
+		} else if (old && !opts.overwrite) throw new Conflict(`${rel} already exists`);
 		await fs.mkdir(dirname(file), { recursive: true });
 		try {
 			await writeAtomic(file, bytes, !old);
@@ -301,17 +298,21 @@ export async function importDocument(
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
+		const verb = opts.expectedHash !== undefined ? 'Update' : old ? 'Replace' : 'Import';
+		let commit: string;
 		try {
-			await gitCommit(root, {
+			commit = await gitCommit(root, {
 				paths: [rel],
-				message: `${old ? 'Replace' : 'Import'} ${rel}`,
+				message: `${verb} ${rel}`,
 				author: commitAuthor(opts.actor)
 			});
 		} catch (err) {
 			await (old ? writeAtomic(file, old) : fs.unlink(file));
 			throw err;
 		}
-		return { path: rel, replaced: !!old };
+		// Identical bytes leave no commit: nothing changed, so no event.
+		if (commit) appendEvent(slug, opts.actor, { type: old ? 'update' : 'create', path: rel, commit });
+		return { path: rel, replaced: !!old, hash: sha256(bytes) };
 	});
 }
 
@@ -359,6 +360,7 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 		await fs.rename(src, dest);
 		// Original bytes of every rewritten document, put back if the move fails.
 		const rewritten: Array<{ rel: string; bytes: Buffer }> = [];
+		let commit: string;
 		try {
 			// shortcut: parses every document on each move, fine for a few thousand; upgrade to a link index if moves get slow
 			for (const rel of await documentPaths(root)) {
@@ -371,7 +373,7 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 				rewritten.push({ rel, bytes: doc.bytes });
 				await writeAtomic(join(root, rel), next);
 			}
-			await gitCommit(root, {
+			commit = await gitCommit(root, {
 				paths: [relFrom, relTo, ...rewritten.map((r) => r.rel)],
 				message: `Move ${relFrom} to ${relTo}`,
 				author: commitAuthor(actor)
@@ -384,6 +386,8 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 			await fs.rename(dest, src).catch(report(`rename ${relTo} back`));
 			throw err;
 		}
+		// Also for an empty folder, whose move git does not see: commit is ''.
+		appendEvent(slug, actor, { type: 'move', path: relTo, from: relFrom, commit });
 		return relTo;
 	});
 }
@@ -405,12 +409,14 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 		const trash = join(root, '.inkmesh', `trash-${randomBytes(6).toString('hex')}`);
 		await fs.mkdir(dirname(trash), { recursive: true });
 		await fs.rename(target, trash);
+		let commit: string;
 		try {
-			await gitCommit(root, { paths: [rel], message: `Delete ${rel}`, author: commitAuthor(actor) });
+			commit = await gitCommit(root, { paths: [rel], message: `Delete ${rel}`, author: commitAuthor(actor) });
 		} catch (err) {
 			await fs.rename(trash, target).catch((e) => console.error(`delete rollback: rename ${rel} back`, e));
 			throw err;
 		}
+		appendEvent(slug, actor, { type: 'delete', path: rel, commit });
 		// The commit holds the delete; a leftover trash entry is hidden and harmless.
 		await fs
 			.rm(trash, { recursive: true, force: true })
