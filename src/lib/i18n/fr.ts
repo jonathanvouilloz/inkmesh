@@ -107,4 +107,12 @@ export const fr: Record<keyof typeof en, string> = {
 	'folder.empty': 'Ce dossier est vide. Déposez-y des fichiers .md ou importez-les.',
 	'folder.import': 'Importer des fichiers',
 	'folder.modified': 'Modifié {ago}',
+	'drop.here': 'Déposer pour importer dans {folder}',
+	'drop.replaceTitle': 'Ces documents existent déjà',
+	'drop.replace': 'Remplacer',
+	'drop.keep': 'Garder l’existant',
+	'drop.imported': '{count} importé(s)',
+	'drop.invalid': '{name} : seuls les fichiers .md peuvent être importés',
+	'drop.tooLarge': '{name} : plus de 3 Mo',
+	'drop.notUtf8': '{name} : ce n’est pas un fichier texte UTF-8',
 };

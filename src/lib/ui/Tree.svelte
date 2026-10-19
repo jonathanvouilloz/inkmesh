@@ -2,29 +2,43 @@
 	import type { TreeNode } from '#lib/core/documents.ts';
 	import Tree from './Tree.svelte';
 	import { docHref } from './href.ts';
+	import { PATH_TYPE, dropTarget, getDrops } from './drop.ts';
 
-	let { nodes, workspace, current }: { nodes: TreeNode[]; workspace: string; current?: string } =
-		$props();
+	let {
+		nodes,
+		workspace,
+		current,
+		editable = false
+	}: { nodes: TreeNode[]; workspace: string; current?: string; editable?: boolean } = $props();
+	const { drop } = getDrops();
+	// Editors drag an item by its link onto a folder.
+	const drag = (path: string) => (e: DragEvent) => {
+		e.dataTransfer!.setData(PATH_TYPE, path);
+		e.dataTransfer!.effectAllowed = 'move';
+	};
 </script>
 
 <ul>
 	{#each nodes as node (node.path)}
 		<li>
 			{#if node.kind === 'folder'}
-				<details open>
+				<details open {@attach editable && dropTarget((data) => drop(node.path, data))}>
 					<summary
 						><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"
 							><path d="M4.5 2.5 8 6l-3.5 3.5" /></svg
 						><a
 							href={docHref(workspace, node.path)}
-							aria-current={node.path === current ? 'page' : undefined}>{node.name}</a
+							aria-current={node.path === current ? 'page' : undefined}
+							ondragstart={editable ? drag(node.path) : undefined}>{node.name}</a
 						></summary
 					>
-					<Tree nodes={node.children ?? []} {workspace} {current} />
+					<Tree nodes={node.children ?? []} {workspace} {current} {editable} />
 				</details>
 			{:else}
-				<a href={docHref(workspace, node.path)} aria-current={node.path === current ? 'page' : undefined}
-					>{node.title}</a
+				<a
+					href={docHref(workspace, node.path)}
+					aria-current={node.path === current ? 'page' : undefined}
+					ondragstart={editable ? drag(node.path) : undefined}>{node.title}</a
 				>
 			{/if}
 		</li>
@@ -91,6 +105,12 @@
 	}
 	summary a[aria-current='page'] {
 		color: var(--accent);
+	}
+	/* The folder a drag would land in, with everything already inside it. */
+	details:global([data-over]) {
+		border-radius: var(--radius);
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
 	}
 	:is(a, summary):focus-visible {
 		outline: 2px solid var(--accent);

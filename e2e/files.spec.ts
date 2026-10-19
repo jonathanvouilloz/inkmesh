@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // Only touches e2e-files/ and what is created in it: later specs count the seeded documents' history.
 const rail = (page: Page) => page.locator('#rail');
@@ -131,4 +131,87 @@ test('an unsaved edit blocks a rename', async ({ page }) => {
 		'Your last change is not saved yet. Resolve it before renaming, moving or deleting.'
 	);
 	await expect(page).toHaveURL(/\/demo\/e2e-files\/stuck\.md$/);
+});
+
+// A drop from the computer: Playwright cannot drag real files, so the page builds the DataTransfer.
+async function dropFiles(page: Page, target: Locator, files: [name: string, content: string][]) {
+	const dataTransfer = await page.evaluateHandle((files) => {
+		const data = new DataTransfer();
+		for (const [name, content] of files) data.items.add(new File([content], name, { type: 'text/markdown' }));
+		return data;
+	}, files);
+	for (const type of ['dragenter', 'dragover', 'drop']) await target.dispatchEvent(type, { dataTransfer });
+}
+// Drops and the picker only work once the page has hydrated, which load alone does not wait for.
+const hydrated = { waitUntil: 'networkidle' } as const;
+const folderInTree = (page: Page, name: string) => rail(page).getByRole('link', { name, exact: true });
+
+test('imports dropped files into the hovered folder', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await dropFiles(page, folderInTree(page, 'e2e-files'), [['dropped.md', '# Dropped\n\nfirst\n']]);
+	await expect(page.getByText('1 imported')).toBeVisible();
+	await rail(page).getByRole('link', { name: 'Dropped' }).click();
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/dropped\.md$/);
+	await expect(page.locator('.milkdown p')).toHaveText('first');
+});
+
+test('asks before replacing', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	const dialog = page.getByRole('dialog');
+	// Events bubble up, so a drop on the heading reaches the folder view around it.
+	const folderView = page.getByRole('main').getByRole('heading', { name: 'e2e-files' });
+	await dropFiles(page, folderView, [['dropped.md', '# Dropped\n\nsecond\n']]);
+	await expect(dialog.getByRole('heading', { name: 'These documents already exist' })).toBeVisible();
+	await expect(dialog.getByRole('listitem')).toHaveText(['dropped.md']);
+	await dialog.getByRole('button', { name: 'Keep existing' }).click();
+	await expect(dialog).toBeHidden();
+	await rail(page).getByRole('link', { name: 'Dropped' }).click();
+	await expect(page.locator('.milkdown p')).toHaveText('first');
+
+	await page.goto('/demo/e2e-files', hydrated);
+	await dropFiles(page, folderView, [['dropped.md', '# Dropped\n\nsecond\n']]);
+	await dialog.getByRole('button', { name: 'Replace' }).click();
+	await expect(page.getByText('1 imported')).toBeVisible();
+	await rail(page).getByRole('link', { name: 'Dropped' }).click();
+	await expect(page.locator('.milkdown p')).toHaveText('second');
+	await expect(page.getByRole('complementary').getByRole('listitem').first()).toContainText(
+		'Replace e2e-files/dropped.md'
+	);
+});
+
+test('reports a refused file', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await dropFiles(page, folderInTree(page, 'e2e-files'), [['photo.png', 'not markdown']]);
+	await expect(page.getByRole('status').filter({ hasText: 'photo.png' })).toHaveText(
+		'photo.png: only .md files can be imported'
+	);
+});
+
+test('drags a document onto a folder', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await page.getByRole('main').getByText('New folder', { exact: true }).click();
+	await page.getByLabel('Folder name').fill('sub');
+	await page.getByRole('main').getByRole('button', { name: 'Create' }).click();
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/sub$/);
+	await newDocument(page, 'e2e-files/drag.md');
+	await rail(page).getByRole('link', { name: 'drag', exact: true }).dragTo(folderInTree(page, 'sub'));
+	await expect(rail(page).getByRole('link', { name: 'drag', exact: true })).toHaveAttribute(
+		'href',
+		'/demo/e2e-files/sub/drag.md'
+	);
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/sub\/drag\.md$/);
+});
+
+test('the file picker imports too', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await page.locator('input[type="file"]').setInputFiles({
+		name: 'picked.md',
+		mimeType: 'text/markdown',
+		buffer: Buffer.from('# Picked\n')
+	});
+	await expect(page.getByText('1 imported')).toBeVisible();
+	await expect(rail(page).getByRole('link', { name: 'Picked' })).toHaveAttribute(
+		'href',
+		'/demo/e2e-files/picked.md'
+	);
 });

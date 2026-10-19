@@ -3,6 +3,7 @@
 	import FileActions, { folderPaths } from '#lib/ui/FileActions.svelte';
 	import FileStrip from '#lib/ui/FileStrip.svelte';
 	import FolderView from '#lib/ui/FolderView.svelte';
+	import { openDocument } from '#lib/ui/drop.ts';
 	import RightRail from '#lib/ui/RightRail.svelte';
 	import { untrack } from 'svelte';
 	import { deserialize } from '$app/forms';
@@ -98,6 +99,16 @@
 		);
 	});
 	const folders = $derived(folderPaths(data.tree));
+	// Run before this document moves, from its menu or by a drag in the tree.
+	async function flush() {
+		// No reload: the old path's data would race the move and could 404.
+		await autosave?.save({ reload: false });
+		if (autosave?.dirty) throw new Error('unsaved');
+	}
+	$effect(() => {
+		openDocument.flush = flush;
+		return () => (openDocument.flush = undefined);
+	});
 	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
 	$effect(() => {
 		const current = autosave;
@@ -143,11 +154,7 @@
 					{folders}
 					role={data.role}
 					locale={data.locale}
-					beforesubmit={async () => {
-						// No reload: the old path's data would race the move and could 404.
-						await autosave?.save({ reload: false });
-						if (autosave?.dirty) throw new Error('unsaved');
-					}}
+					beforesubmit={flush}
 				/>
 			</FileStrip>
 			<article>

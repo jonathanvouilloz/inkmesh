@@ -105,4 +105,12 @@ export const en = {
 	'folder.empty': 'This folder is empty. Drop .md files here or import them.',
 	'folder.import': 'Import files',
 	'folder.modified': 'Changed {ago}',
+	'drop.here': 'Drop to import into {folder}',
+	'drop.replaceTitle': 'These documents already exist',
+	'drop.replace': 'Replace',
+	'drop.keep': 'Keep existing',
+	'drop.imported': '{count} imported',
+	'drop.invalid': '{name}: only .md files can be imported',
+	'drop.tooLarge': '{name}: larger than 3 MB',
+	'drop.notUtf8': '{name}: not a UTF-8 text file',
 };

@@ -7,6 +7,7 @@
 	import FileActions from './FileActions.svelte';
 	import { ago } from './time.ts';
 	import { docHref } from './href.ts';
+	import { dropTarget, getDrops } from './drop.ts';
 
 	let {
 		workspace,
@@ -32,9 +33,13 @@
 	const documents = (ns: TreeNode[]): number =>
 		ns.reduce((n, c) => n + (c.kind === 'doc' ? 1 : documents(c.children ?? [])), 0);
 	let picker = $state<HTMLInputElement>()!;
+	const { drop, importInto } = getDrops();
 </script>
 
-<section>
+<section
+	{@attach role !== 'reader' && dropTarget((data) => drop(path, data))}
+	data-hint={t('drop.here', locale, { folder: name })}
+>
 	<div class="head">
 		<h1>{name}</h1>
 		{#if path && role !== 'reader'}
@@ -74,19 +79,18 @@
 					<button>{t('tree.create', locale)}</button>
 				</form>
 			</details>
-			<form method="POST" action="/{workspace}?/import" enctype="multipart/form-data" use:enhance>
-				<input type="hidden" name="folder" value={path} />
-				<input
-					bind:this={picker}
-					type="file"
-					name="files"
-					multiple
-					accept=".md,.markdown"
-					hidden
-					onchange={(e) => e.currentTarget.form!.requestSubmit()}
-				/>
-				<button type="button" onclick={() => picker.click()}>{t('folder.import', locale)}</button>
-			</form>
+			<input
+				bind:this={picker}
+				type="file"
+				multiple
+				accept=".md,.markdown"
+				hidden
+				onchange={(e) => {
+					importInto(path, [...e.currentTarget.files!]);
+					e.currentTarget.value = ''; // the same file picked again still fires a change
+				}}
+			/>
+			<button type="button" onclick={() => picker.click()}>{t('folder.import', locale)}</button>
 		</div>
 	{/if}
 
@@ -123,6 +127,15 @@
 		flex-direction: column;
 		gap: 24px;
 		font-size: 13px;
+	}
+	section:global([data-over]) {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+		border-radius: var(--radius);
+	}
+	section:global([data-over])::after {
+		content: attr(data-hint);
+		color: var(--muted);
 	}
 	.head {
 		display: flex;
