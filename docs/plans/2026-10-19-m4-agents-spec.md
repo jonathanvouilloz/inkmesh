@@ -117,21 +117,21 @@ One-command drop of a report: `curl -X PUT -H "Authorization: Bearer $INKMESH_TO
 
 ## MCP server
 
-`POST /mcp` (and `GET`, `DELETE`, answered by the SDK) at `<origin>/mcp`. Without a valid token: 401 with `WWW-Authenticate: Bearer resource_metadata="<origin>/.well-known/oauth-protected-resource/mcp"` (plus `error="invalid_token"` when a token was sent). Server info `{ name: 'inkmesh', version: <package.json version> }`, instructions: "Every tool takes a workspace slug: call list_workspaces first. Paths are relative to the workspace; documents end in .md. Read a document before updating it and pass its hash as expected_hash." Request body limit 8 MiB (a 3 MiB document JSON-escaped).
+`POST /mcp` (and `GET`, `DELETE`, answered by the SDK) at `<origin>/mcp`. Without a valid token: 401 with `WWW-Authenticate: Bearer resource_metadata="<origin>/.well-known/oauth-protected-resource/mcp"` (plus `error="invalid_token"` when a token was sent). Server info `{ name: 'inkmesh', version: <package.json version> }`, instructions: "Every tool takes a workspace slug: call list_workspaces first. Paths are relative to the workspace; documents end in .md. Read a document before updating it and pass its hash as expected_hash." Request body limit 6 × the document cap + 64 KiB (worst-case JSON escaping of a 3 MiB document: a control byte becomes `\u00XX`, six bytes).
 
 | Tool | Input (zod) | Output (text content, JSON) | Annotations |
 |---|---|---|---|
 | `list_workspaces` | `{}` | `{ workspaces: [{ slug, name, role }] }` | readOnly |
 | `list_tree` | `{ workspace: string }` | `{ tree }` | readOnly |
 | `read_document` | `{ workspace, path }` | `{ path, content, hash }` | readOnly |
-| `create_document` | `{ workspace, path, content }` | `{ path, hash }`; conflict when it exists | — |
+| `create_document` | `{ workspace, path, content }` | `{ path, hash }`; conflict when it exists | not destructive |
 | `update_document` | `{ workspace, path, content, expected_hash }` | `{ path, hash }`; conflict carries `currentHash` | — |
 | `replace_document` | `{ workspace, path, content }` | `{ path, hash, replaced }` | destructive |
 | `move` | `{ workspace, from, to }` | `{ path }` | — |
 | `delete` | `{ workspace, path }` | `{ deleted: path }` | destructive |
 | `changes` | `{ workspace, since?: number }` | `{ events, cursor, more }` | readOnly |
 
-All strings are `z.string().min(1)`; `content` is `z.string()` (may be empty), `since` is `z.number().int().min(0).optional()`. A failed call returns `isError: true` with the same `{ "error": { "code", "message", … } }` body as the API, so the model can read it; protocol errors are left to the SDK. `content` is the full file, frontmatter included, stored byte for byte (no `patchMarkdown`: an agent writes like a text editor).
+Every tool also declares `openWorldHint: false` (it touches only this instance); `—` means the MCP default (`destructiveHint` true for a tool that is not read-only). All strings are `z.string().min(1)`; `content` is `z.string()` (may be empty), `since` is `z.number().int().min(0).optional()`. A failed call returns `isError: true` with the same `{ "error": { "code", "message", … } }` body as the API, so the model can read it; protocol errors are left to the SDK. `content` is the full file, frontmatter included, stored byte for byte (no `patchMarkdown`: an agent writes like a text editor).
 
 ## OAuth 2.1 authorisation server
 
@@ -145,7 +145,7 @@ All strings are `z.string().min(1)`; `content` is `z.string()` (may be empty), `
 
 ### Registration — `POST /oauth/register` (RFC 7591)
 
-JSON body ≤ 16 KiB. Accepted: `redirect_uris` (1–5 strings, each ≤ 512 chars, `https:` or `http:` with host `localhost` or `127.0.0.1`, no fragment), `client_name` (≤ 100 chars, default "MCP client"); every other field is ignored. Answer 201 `{ "client_id": <uuid>, "client_id_issued_at", "client_name", "redirect_uris", "grant_types": ["authorization_code","refresh_token"], "response_types": ["code"], "token_endpoint_auth_method": "none" }` (public client whatever was asked). Errors 400 `{ "error": "invalid_redirect_uri" | "invalid_client_metadata", "error_description" }`. Throttle: 10 registrations per client IP per 15 minutes, then 429.
+JSON body ≤ 16 KiB. Accepted: `redirect_uris` (1–5 strings, each ≤ 512 chars, `https:` or `http:` with host `localhost` or `127.0.0.1`, no fragment), `client_name` (≤ 100 chars, default "MCP client"); every other field is ignored. Answer 201 `{ "client_id": <uuid>, "client_id_issued_at", "client_name", "redirect_uris", "grant_types": ["authorization_code","refresh_token"], "response_types": ["code"], "token_endpoint_auth_method": "none" }` (public client whatever was asked). Errors 400 `{ "error": "invalid_redirect_uri" | "invalid_client_metadata", "error_description" }`. Throttle: 100 registrations per client IP per 15 minutes, then 429.
 
 ### Authorisation — `GET /oauth/authorize` (consent page, behind login)
 
@@ -164,7 +164,7 @@ Query: `response_type=code`, `client_id`, `redirect_uri`, `code_challenge`, `cod
 - `grant_type=authorization_code`, `code`, `redirect_uri`, `client_id`, `code_verifier`, optional `resource`: the code must exist, be unexpired, match client, redirect URI and (when sent) resource, and `base64url(sha256(code_verifier))` must equal the challenge. The code is deleted in the same transaction that issues the tokens, whatever the outcome after lookup (a second use always fails).
 - `grant_type=refresh_token`, `refresh_token`, `client_id`, optional `resource`: the refresh token must exist, be unexpired, belong to an agent of this client; it is deleted and a new pair issued (rotation).
 - Success 200 `{ "access_token", "token_type": "Bearer", "expires_in": 3600, "refresh_token" }`. Errors 400 `{ "error": "invalid_request" | "invalid_grant" | "invalid_client" | "unsupported_grant_type" | "invalid_target" }`; `invalid_grant` for any expired, used, revoked or mismatched code or refresh token.
-- Throttle: 10 failed requests per client IP per 15 minutes, then 429.
+- Throttle: 50 failed requests per client IP per 15 minutes, then 429.
 
 No revocation endpoint: revocation is on the Connect page.
 
@@ -188,7 +188,7 @@ i18n: every string in `en` and `fr` (French with « » and non-breaking spaces b
 - **CSRF.** The replacement check in `handle` refuses (403) a `POST/PUT/PATCH/DELETE` with a form or missing content type whose `Origin` is not `url.origin`, on every path except `/api/`, `/mcp`, `/oauth/token`, `/oauth/register`.
 - **Roles.** Unchanged: `core` checks the user's role on every call; an agent of a reader cannot write; a workspace the user is not a member of answers 404.
 - **OAuth.** PKCE S256 required; redirect URIs exact (loopback port excepted) and checked before any redirect; codes 60 s and single use; access tokens 1 h bound to `<origin>/mcp`; refresh tokens rotated; `iss` in every authorisation response (RFC 9207); consent cannot be framed; the consent form is a SvelteKit action (same-origin check applies).
-- **Rate limits** (the existing in-memory throttle, 10 per key per 15 minutes, keys namespaced): failed bearer authentications per IP (`bearer|<ip>`), registrations per IP (`register|<ip>`), failed token requests per IP (`token|<ip>`). Successful agent traffic is not limited in M4. Anthropic's connector traffic comes from one shared range, so these limits are per Claude-wide IP, not per user; acceptable at this instance's size.
+- **Rate limits** (the existing in-memory throttle, per key per 15 minutes, keys namespaced): failed bearer authentications per IP (`bearer|<ip>`, 10, counted only when a token was sent: clients probe without one), registrations per IP (`register|<ip>`, 100), failed token requests per IP (`token|<ip>`, 50). Successful agent traffic is not limited in M4. Anthropic's connector traffic comes from one shared range, so these limits are per Claude-wide IP, not per user; acceptable at this instance's size.
 - **Audit.** Every agent write is a commit `<Name> via <agent>` and an event with `user_id` and `agent`. Agents and their last use are on the Connect page. Reads are not logged.
 - **Secrets.** Tokens never appear in logs or URLs (query-string tokens are refused: only the header is read). Shown once.
 - **Reserved slug.** `oauth` joins the reserved workspace slugs (`/oauth/...` routes). Before deploying, check that no production workspace uses it.

@@ -1,5 +1,5 @@
 # Architecture — inkmesh
-Updated: 2026-10-18
+Updated: 2026-10-19
 
 ## In one sentence
 
@@ -32,6 +32,8 @@ One Node process serves a SvelteKit web app, an HTTP API and a remote MCP server
 - Pages, API and MCP are three thin adapters over one `core` module. A capability exists for agents the day it exists for humans, because both call the same function.
 - `core` is the only layer that reads or writes the data directory. Adapters never touch `fs` or `git`.
 - Files are managed in `core/documents.ts` by `createFolder`, `importDocument`, `movePath`, `deletePath` and `linksTo` (the documents a move would rewrite).
+- Agent support in `core`: `lock` (`serialised(slug, …)`, one write at a time per workspace), `events` (one event per write, the `changes` cursor), `sessions` (editing sessions persisted in SQLite, committed on idle, leave, another author's write or restart), `agents` (named agents of a user, bearer tokens, revocation), `oauth` (client registration, codes, access and refresh tokens).
+- Routes: pages and form actions under `(app)/` (cookie session); `api/v1/` the HTTP API and `mcp/` the MCP server (bearer only); `.well-known/` the OAuth authorisation-server and protected-resource metadata; `oauth/register` and `oauth/token` (public endpoints) and `(app)/oauth/authorize`, the consent screen.
 - Markdown is parsed with remark (unified) both in `core` and in the editor; there is one parser configuration, shared.
 - The editor is the one large client-side island (Milkdown on ProseMirror). Everything else is server-rendered.
 
@@ -53,7 +55,7 @@ One Node process serves a SvelteKit web app, an HTTP API and a remote MCP server
 
 ## Invariants
 
-1. Every document write goes through `core.documents.write`, which writes the file, updates the index, appends an event and commits (immediately for agents, per editing session for the editor).
+1. Every document write goes through `core` inside `serialised(slug, …)`: it first commits the open editing sessions it touches (each under its own human), then writes, commits and appends exactly one event; agents commit at once, the editor once per editing session, so two authors never share a commit.
 2. Paths are resolved inside the workspace folder; `..`, absolute paths, symlinks, `.git/` and `.inkmesh/` are rejected by the document functions.
 3. Saving a document that the user did not edit must not change a byte of the file. Round-trip fidelity is tested on fixture files in CI.
 4. Reading never requires the index: if the database is deleted, the workspaces are still complete.

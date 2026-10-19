@@ -85,3 +85,39 @@
 - Rejected: leaving links broken; an opt-out checkbox nobody asked for; a trash folder in the tree.
 - Why: relative links and images must survive a reorganisation, and one commit keeps the change reviewable and revertible.
 - Reopen if: a workspace grows large enough that the link scan makes moves slow.
+
+## 2026-10-19 — MCP SDK v2 server package
+- Choice: `@modelcontextprotocol/server` with `createMcpHandler`, mounted in a SvelteKit `+server.ts` at `/mcp`.
+- Rejected: the v1 monolith `@modelcontextprotocol/sdk` (17 runtime packages, express and hono among them).
+- Why: two dependencies (`zod` and the SDK core) and a handler that takes a web `Request`, which is what SvelteKit gives.
+- Reopen if: the v2 line is abandoned.
+
+## 2026-10-19 — OAuth registration by DCR, no CIMD yet
+- Choice: dynamic client registration (`POST /oauth/register`), public clients, PKCE S256.
+- Rejected: Client ID Metadata Documents for now.
+- Why: every target client (Claude, Claude Code, ChatGPT, Cursor) registers by DCR, and CIMD means fetching arbitrary URLs from the VPS.
+- Reopen if: a target client drops DCR.
+
+## 2026-10-19 — Editing sessions persisted in SQLite
+- Choice: an open editing session (workspace, path, author) is a database row; it is committed under its author on idle, on leave, before another author writes the file, and at the next start after a crash or deploy.
+- Rejected: committing everything dirty at start as an unknown author.
+- Why: a restart must not lose who wrote what.
+- Reopen if: sessions move out of the single process.
+
+## 2026-10-19 — Origin check in handle
+- Choice: SvelteKit's built-in origin check is off; `handle` refuses form and content-type-less writes whose `Origin` is not the app's own, except on the cookie-free agent endpoints (`/api/`, `/mcp`, `/oauth/token`, `/oauth/register`, `/.well-known/oauth-*`).
+- Rejected: per-route exceptions, which SvelteKit does not offer.
+- Why: SvelteKit 3.1 refuses origin-less form posts, which OAuth token requests and curl uploads are.
+- Reopen if: SvelteKit adds per-route exemptions.
+
+## 2026-10-19 — Rate limits sized for shared connector IPs
+- Choice: per IP and per 15 minutes, 100 client registrations, 50 failed token requests, 10 failed bearer authentications, counted only when a token was sent.
+- Rejected: the login limit of 10 everywhere.
+- Why: Claude's connector traffic shares egress IPs across all its users, and MCP clients probe without a token first.
+- Reopen if: registration spam appears.
+
+## 2026-10-19 — MCP tool hints and body limit
+- Choice: `openWorldHint: false` on every tool, `destructiveHint: false` on `create_document`; the `/mcp` body limit is 6 × the document cap + 64 KiB.
+- Rejected: the SDK defaults (open world, destructive), which make clients ask for confirmation on a create; a flat 8 MiB limit.
+- Why: the tools touch only this instance and a create never overwrites; a control byte JSON-escapes to six bytes, so a document at the cap must still fit.
+- Reopen if: a tool starts reaching outside the instance, or the document cap changes shape.
