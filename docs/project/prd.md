@@ -1,5 +1,5 @@
 # PRD — inkmesh
-Updated: 2026-10-18
+Updated: 2026-10-19
 
 ## Problem
 
@@ -13,7 +13,7 @@ inkmesh is a self-hosted, open-source collaboration space where the unit of cont
 - **Invited collaborators.** Members of a project workspace. Some write Markdown, most do not: they need a simple rich-text editor with headings, bold, lists, tables and images. A few times a week, desktop and phone.
 - **AI agents.** Each agent is connected by a human and acts with that human's rights, under its own name. It lists, reads, creates, edits and searches documents, reads comments. Several agents per human are expected (Claude Code, a reporting script, etc.).
 
-No public signup. Everyone on the instance was invited by the owner or by a workspace member.
+No public signup. Everyone with an account was invited by the owner or by a workspace member, or joined through a public link whose owner allowed it (item 12).
 
 ## Expected outcome
 
@@ -30,18 +30,19 @@ The repository is publishable as open source at that point: English code and doc
 ## Scope, in priority order
 
 1. **Workspaces and roles.** A workspace is a folder of Markdown files and assets on disk, versioned by git. Each member has one role: owner (manages members, roles and public links), editor (reads, writes, invites), reader (reads and comments). Non-members see nothing. An agent inherits the role of the human who connected it.
-2. **Browsing.** A sidebar shows the real folder tree. Document lists can be sorted and filtered by frontmatter fields (date, tags, status, author, any field present). Frontmatter is displayed as a readable metadata block at the top of the document.
-3. **Editing.** A WYSIWYG editor that reads and writes standard Markdown (CommonMark + GFM tables + frontmatter) with a limited toolbar: headings, bold, italic, bullet and numbered lists, task lists, tables, links, images, code blocks, quotes. A raw Markdown mode for those who want it. Round-tripping must not reformat content the user did not touch.
-4. **Images.** Paste or drag an image into the editor; it is stored next to the document and referenced with a standard Markdown image link.
-5. **Saving and conflicts.** The editor writes the file to disk a few seconds after the last keystroke, so no work is lost. One git commit per editing session: when the author leaves the document, after one minute idle, or right before another author writes the same file. Agent writes commit immediately, one write = one commit. Last write wins: if the file changed on disk since the editor loaded it, the editor warns before saving and shows the difference.
-6. **Agent access.** A remote MCP server (one URL, nothing to install) and an HTTP API with the same capabilities: list workspaces, list and search documents, read, create, update, delete, read comments. Each agent has its own token, issued by a human and revocable; it carries that human's rights and the agent's name.
-7. **Plug-and-play connection for non-technical users.** A "Connect your agent" page in the workspace: pick the tool (Claude Desktop, Claude Code, ChatGPT, Cursor, generic MCP client), name the agent, and get the exact thing to paste: a connector URL for tools that add remote MCP servers from their settings, a one-line command for Claude Code, a JSON snippet for the rest. Authorization goes through the browser (OAuth) where the tool supports it, so no token is ever copied by hand in that path. The page shows whether the agent has connected yet, and lets the human rename or revoke it.
-8. **History.** Every save is a git commit attributed to the human, and to the agent when one acted ("Jon via claude-code"). The browser shows the document history and restores a version.
-9. **Full-text search.** Across a workspace, same results for humans and agents.
-10. **Comments.** A discussion thread per document, stored as a file next to the document so agents read it through the same tools. No inline anchors in v1.
-11. **Public links.** A read-only link to a document or a whole workspace, usable without an account, revocable by an owner.
-12. **Notifications.** An in-app inbox for every member: new comment, document changed by someone else, invitation. An MCP tool and API endpoint "what changed since my last visit" that returns the same events to agents. Email delivery (daily digest, immediate on mention) comes last in the build order.
-13. **Accounts.** Password or magic-link login, invitation by an owner or editor, French and English interface.
+2. **Browsing.** A sidebar shows the real folder tree. Opening a folder shows its contents as a list (folders first, then documents with title and last change), which can be sorted and filtered by frontmatter fields (date, tags, status, author, any field present). Frontmatter is displayed as a readable metadata block at the top of the document.
+3. **Managing files.** Editors drag `.md` files from their computer onto the workspace or onto a folder (in the tree or in the folder view) to add them; a file picker does the same without dragging. Editors create folders, rename a document or a folder, move it to another folder (drag in the tree, or a "Move to…" menu that works with the keyboard and on a phone), and delete it after a confirmation. Every operation is one git commit, so a deleted or overwritten document can be recovered from history. Anyone who can read a document can download its `.md` file. Imported files must be UTF-8 Markdown of at most 3 MiB; an import that would overwrite an existing document asks first.
+4. **Editing.** A WYSIWYG editor that reads and writes standard Markdown (CommonMark + GFM tables + frontmatter) with a limited toolbar: headings, bold, italic, bullet and numbered lists, task lists, tables, links, images, code blocks, quotes. A raw Markdown mode for those who want it. Round-tripping must not reformat content the user did not touch.
+5. **Images.** Paste or drag an image into the editor; it is stored next to the document and referenced with a standard Markdown image link.
+6. **Saving and conflicts.** The editor writes the file to disk a few seconds after the last keystroke, so no work is lost. One git commit per editing session: when the author leaves the document, after one minute idle, or right before another author writes the same file. Agent writes commit immediately, one write = one commit. Last write wins: if the file changed on disk since the editor loaded it, the editor warns before saving and shows the difference.
+7. **Agent access.** A remote MCP server (one URL, nothing to install) and an HTTP API with the same capabilities: list workspaces, list and search documents, read, create, update, rename, move, delete, read and add comments. Each agent has its own token, issued by a human and revocable; it carries that human's rights and the agent's name.
+8. **Plug-and-play connection for non-technical users.** A "Connect your agent" page in the workspace: pick the tool (Claude Desktop, Claude Code, ChatGPT, Cursor, generic MCP client), name the agent, and get the exact thing to paste: a connector URL for tools that add remote MCP servers from their settings, a one-line command for Claude Code, a JSON snippet for the rest. Authorization goes through the browser (OAuth) where the tool supports it, so no token is ever copied by hand in that path. The page shows whether the agent has connected yet, and lets the human rename or revoke it.
+9. **History.** Every save is a git commit attributed to the human, and to the agent when one acted ("Jon via claude-code"). The browser shows the document history and restores a version; the workspace history lists deleted documents and restores them.
+10. **Full-text search.** Across a workspace, same results for humans and agents.
+11. **Comments.** A discussion thread per document, stored as a file in the workspace so agents read it through the same tools. Readers comment; a comment can be marked resolved. No inline anchors: a comment is about the whole document.
+12. **Public links.** A read-only link to a document or a whole workspace, usable without an account, revocable by an owner. The visitor reads the rendered document, browses the tree when the link covers the workspace, and downloads the `.md`. An "Edit" button leads to sign-in. The owner can allow sign-up from a link: the visitor then creates an account and joins the workspace with the role the owner chose (reader or editor); turned off by default, turned off again at any time.
+13. **Notifications.** An in-app inbox for every member: new comment, document changed by someone else, invitation. An MCP tool and API endpoint "what changed since my last visit" that returns the same events to agents. Email delivery (daily digest, immediate on mention) comes last in the build order.
+14. **Accounts.** Password or magic-link login, invitation by an owner or editor, French and English interface.
 
 ## Out of scope
 
@@ -66,7 +67,5 @@ The repository is publishable as open source at that point: English code and doc
 
 ## Open questions
 
-- Comment file format and location (sidecar `doc.comments.md` vs a `.inkmesh/` folder per workspace). Decided in architecture.
 - Whether a workspace can be an existing git repository the owner points to, or must be created by inkmesh. Leaning: created by inkmesh in v1.
-- How an agent discovers which workspace to write to by default (token scoped to one workspace, or workspace named in each call).
 - Which clients support adding a remote MCP server with OAuth from their settings today (Claude Desktop and claude.ai do; to verify for ChatGPT, Cursor and others before writing the connection recipes).
