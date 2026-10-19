@@ -12,11 +12,13 @@ import {
 	createDocument,
 	createFolder,
 	history,
+	importDocument,
 	listTree,
+	MAX_DOCUMENT_BYTES,
 	readDocument,
 	writeDocument
 } from './documents.ts';
-import { Conflict, InvalidPath } from './paths.ts';
+import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
 
 let actor: Actor;
 let agent: Actor;
@@ -228,6 +230,60 @@ describe('documents', () => {
 		}
 	});
 
+	it('imports bytes verbatim', async () => {
+		const source = '---\r\ntitle: x\r\n---\r\n# Notes\r\n\r\nété\r\n';
+		const res = await importDocument('demo', 'notes/x.md', new TextEncoder().encode(source), {
+			actor
+		});
+		expect(res).toEqual({ path: 'notes/x.md', replaced: false });
+		expect((await readDocument('demo', 'notes/x.md', actor)).source).toBe(source);
+		const log = await history('demo', 'notes/x.md', actor);
+		expect(log).toHaveLength(1);
+		expect(log[0]).toMatchObject({ name: 'Jon', message: 'Import notes/x.md' });
+	});
+
+	it('replaces only with overwrite and keeps history', async () => {
+		const enc = new TextEncoder();
+		await importDocument('demo', 'x.md', enc.encode('# one\n'), { actor });
+		await expect(importDocument('demo', 'x.md', enc.encode('# two\n'), { actor })).rejects.toThrow(
+			Conflict
+		);
+		expect((await readDocument('demo', 'x.md', actor)).source).toBe('# one\n');
+		const res = await importDocument('demo', 'x.md', enc.encode('# two\n'), {
+			actor,
+			overwrite: true
+		});
+		expect(res).toEqual({ path: 'x.md', replaced: true });
+		expect((await readDocument('demo', 'x.md', actor)).source).toBe('# two\n');
+		expect((await history('demo', 'x.md', actor)).map((e) => e.message)).toEqual([
+			'Replace x.md',
+			'Import x.md'
+		]);
+	});
+
+	it('rejects oversize and non-UTF-8', async () => {
+		const big = new Uint8Array(MAX_DOCUMENT_BYTES + 1).fill(0x61);
+		await expect(importDocument('demo', 'big.md', big, { actor })).rejects.toThrow(
+			new InvalidContent('too-large')
+		);
+		const bad = Uint8Array.of(0xff, 0xfe, 0x00);
+		await expect(importDocument('demo', 'bad.md', bad, { actor })).rejects.toThrow(
+			new InvalidContent('not-utf8')
+		);
+		await expect(importDocument('demo', 'bad.md', bad, { actor })).rejects.toBeInstanceOf(
+			InvalidContent
+		);
+		expect(fs.readdirSync(workspaceDir('demo')).sort()).toEqual(['.git', 'rapports']);
+	});
+
+	it('readers cannot import', async () => {
+		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
+		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
+		await expect(
+			importDocument('demo', 'x.md', Uint8Array.of(0x61), { actor: { id: reader.id, name: 'R' } })
+		).rejects.toBeInstanceOf(Forbidden);
+	});
+
 	it('restores the file when the commit fails', async () => {
 		const lock = path.join(workspaceDir('demo'), '.git/index.lock');
 		const file = path.join(workspaceDir('demo'), doc);
@@ -240,6 +296,11 @@ describe('documents', () => {
 		expect(fs.readFileSync(file, 'utf8')).toBe(before);
 		await expect(createDocument('demo', 'new.md', actor)).rejects.toThrow();
 		expect(fs.existsSync(path.join(workspaceDir('demo'), 'new.md'))).toBe(false);
+		const bytes = new TextEncoder().encode('# imported\n');
+		await expect(importDocument('demo', 'new.md', bytes, { actor })).rejects.toThrow();
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'new.md'))).toBe(false);
+		await expect(importDocument('demo', doc, bytes, { actor, overwrite: true })).rejects.toThrow();
+		expect(fs.readFileSync(file, 'utf8')).toBe(before);
 		fs.rmSync(lock);
 		// No false conflict afterwards: the original hash still writes.
 		await writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor });

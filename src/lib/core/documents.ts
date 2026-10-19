@@ -6,7 +6,13 @@ import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
 import { patchMarkdown, splitFrontmatter } from './markdown.ts';
-import { assertFolderName, Conflict, InvalidPath, resolveInside } from './paths.ts';
+import {
+	assertFolderName,
+	Conflict,
+	InvalidContent,
+	InvalidPath,
+	resolveInside
+} from './paths.ts';
 
 export type TreeNode = {
 	name: string;
@@ -23,6 +29,8 @@ export type HistoryEntry = {
 	date: string;
 	message: string;
 };
+
+export const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
 
 const sha256 = (source: string) => createHash('sha256').update(source).digest('hex');
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
@@ -48,7 +56,7 @@ function documentFile(root: string, path: string): string {
 }
 
 /** Writes through a temporary file, so a crash never leaves half a document; `exclusive` fails with EEXIST. */
-async function writeAtomic(file: string, text: string, exclusive = false): Promise<void> {
+async function writeAtomic(file: string, text: string | Uint8Array, exclusive = false): Promise<void> {
 	const tmp = `${file}.tmp-${randomBytes(6).toString('hex')}`;
 	try {
 		await fs.writeFile(tmp, text, { flag: 'wx' });
@@ -173,6 +181,53 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 			throw err;
 		}
 		return rel;
+	});
+}
+
+/** Brings an uploaded Markdown file in byte for byte; replaces an existing document only with `overwrite`. */
+export async function importDocument(
+	slug: string,
+	path: string,
+	bytes: Uint8Array,
+	opts: { actor: Actor; overwrite?: boolean }
+): Promise<{ path: string; replaced: boolean }> {
+	assertRole(slug, opts.actor, 'editor');
+	const root = workspaceDir(slug);
+	const file = documentFile(root, path);
+	const rel = relative(root, file);
+	if (bytes.byteLength > MAX_DOCUMENT_BYTES) throw new InvalidContent('too-large');
+	try {
+		new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+	} catch {
+		throw new InvalidContent('not-utf8');
+	}
+	return serialised(slug, async () => {
+		let old: Buffer | undefined;
+		try {
+			old = await fs.readFile(file);
+		} catch (err) {
+			if (!isMissing(err)) throw err;
+		}
+		if (old && !opts.overwrite) throw new Conflict(`${rel} already exists`);
+		await fs.mkdir(dirname(file), { recursive: true });
+		try {
+			await writeAtomic(file, bytes, !old);
+		} catch (err) {
+			if ((err as { code?: unknown }).code === 'EEXIST')
+				throw new Conflict(`${rel} already exists`);
+			throw err;
+		}
+		try {
+			await gitCommit(root, {
+				paths: [rel],
+				message: `${old ? 'Replace' : 'Import'} ${rel}`,
+				author: commitAuthor(opts.actor)
+			});
+		} catch (err) {
+			await (old ? writeAtomic(file, old) : fs.unlink(file));
+			throw err;
+		}
+		return { path: rel, replaced: !!old };
 	});
 }
 

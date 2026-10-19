@@ -3,6 +3,8 @@ import path from 'node:path';
 
 export class InvalidPath extends Error {}
 export class Conflict extends Error {}
+/** An imported file that is not a document: `message` is 'too-large' or 'not-utf8'. */
+export class InvalidContent extends Error {}
 
 const HIDDEN = new Set(['.git', '.inkmesh']);
 
