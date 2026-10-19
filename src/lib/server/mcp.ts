@@ -1,6 +1,8 @@
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { Actor } from '#lib/core/actor.ts';
+import { MAX_DOCUMENT_BYTES } from '#lib/core/documents.ts';
+import { InvalidContent } from '#lib/core/paths.ts';
 import { ops, toApiError } from '#lib/server/agent-api.ts';
 import { version } from '../../../package.json';
 
@@ -9,7 +11,11 @@ const instructions =
 
 const name = z.string().min(1);
 const text = (value: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value) }] });
-const bytes = (content: string) => new TextEncoder().encode(content);
+// TextEncoder would silently turn a lone surrogate into U+FFFD.
+function bytes(content: string): Uint8Array {
+	if (!content.isWellFormed()) throw new InvalidContent('not-utf8');
+	return new TextEncoder().encode(content);
+}
 
 async function run(fn: () => unknown) {
 	try {
@@ -29,7 +35,11 @@ async function run(fn: () => unknown) {
 
 export function mcpServer(actor: Actor): McpServer {
 	const server = new McpServer({ name: 'inkmesh', version }, { instructions });
-	const readOnly = { readOnlyHint: true };
+	const readOnly = { readOnlyHint: true, openWorldHint: false };
+	const destructive = { destructiveHint: true, openWorldHint: false };
+	// MCP defaults destructiveHint to true for tools that are not read-only.
+	const additive = { destructiveHint: false, openWorldHint: false };
+	const closed = { openWorldHint: false };
 	server.registerTool(
 		'list_workspaces',
 		{
@@ -65,7 +75,8 @@ export function mcpServer(actor: Actor): McpServer {
 		{
 			title: 'Create document',
 			description: 'Creates a document; fails with a conflict when it exists.',
-			inputSchema: z.object({ workspace: name, path: name, content: z.string() })
+			inputSchema: z.object({ workspace: name, path: name, content: z.string() }),
+			annotations: additive
 		},
 		({ workspace, path, content }) =>
 			run(async () => {
@@ -79,7 +90,8 @@ export function mcpServer(actor: Actor): McpServer {
 			title: 'Update document',
 			description:
 				'Replaces the full file if it still has expected_hash; a conflict carries currentHash.',
-			inputSchema: z.object({ workspace: name, path: name, content: z.string(), expected_hash: name })
+			inputSchema: z.object({ workspace: name, path: name, content: z.string(), expected_hash: name }),
+			annotations: closed
 		},
 		({ workspace, path, content, expected_hash }) =>
 			run(async () => {
@@ -94,7 +106,7 @@ export function mcpServer(actor: Actor): McpServer {
 			title: 'Replace document',
 			description: 'Writes the full file whatever it holds now, creating it if missing.',
 			inputSchema: z.object({ workspace: name, path: name, content: z.string() }),
-			annotations: { destructiveHint: true }
+			annotations: destructive
 		},
 		({ workspace, path, content }) =>
 			run(async () => {
@@ -107,7 +119,8 @@ export function mcpServer(actor: Actor): McpServer {
 		{
 			title: 'Move',
 			description: 'Moves or renames a document or folder; links to it are rewritten.',
-			inputSchema: z.object({ workspace: name, from: name, to: name })
+			inputSchema: z.object({ workspace: name, from: name, to: name }),
+			annotations: closed
 		},
 		({ workspace, from, to }) => run(() => ops.move(actor, workspace, from, to))
 	);
@@ -117,7 +130,7 @@ export function mcpServer(actor: Actor): McpServer {
 			title: 'Delete',
 			description: 'Deletes a document or a folder with its content.',
 			inputSchema: z.object({ workspace: name, path: name }),
-			annotations: { destructiveHint: true }
+			annotations: destructive
 		},
 		({ workspace, path }) =>
 			run(async () => {
@@ -140,5 +153,6 @@ export function mcpServer(actor: Actor): McpServer {
 }
 
 export const mcpHandler = createMcpHandler(({ authInfo }) => mcpServer(authInfo!.extra!.actor as Actor), {
-	maxRequestBodySize: 8 * 1024 * 1024
+	// Worst-case JSON escaping of a legal document (\u00XX per control byte), plus the envelope.
+	maxRequestBodySize: 6 * MAX_DOCUMENT_BYTES + 64 * 1024
 });

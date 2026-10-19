@@ -96,6 +96,9 @@ it('lists the nine tools', async () => {
 	]);
 	const read = result.tools.find((t: { name: string }) => t.name === 'read_document');
 	expect(read.annotations.readOnlyHint).toBe(true);
+	for (const t of result.tools) expect(t.annotations.openWorldHint).toBe(false);
+	const create = result.tools.find((t: { name: string }) => t.name === 'create_document');
+	expect(create.annotations.destructiveHint).toBe(false);
 });
 
 it('reads and updates with a hash', async () => {
@@ -122,6 +125,14 @@ it('reads and updates with a hash', async () => {
 	expect(stale.isError).toBe(true);
 	expect(stale.body.error.code).toBe('conflict');
 	expect(stale.body.error.currentHash).toBe(update.body.hash);
+});
+
+it('refuses content that is not well-formed', async () => {
+	const res = await tool(jonToken, 'create_document', { workspace: 'demo', path: 'b.md', content: 'x\ud800y' });
+	expect(res.isError).toBe(true);
+	expect(res.body.error.code).toBe('bad_request');
+	const tree = await tool(jonToken, 'list_tree', { workspace: 'demo' });
+	expect(JSON.stringify(tree.body)).not.toContain('b.md');
 });
 
 it("a reader's agent cannot write", async () => {
