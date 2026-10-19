@@ -14,12 +14,11 @@ export const load: PageServerLoad = async ({ params, locals, parent, url }) => {
 const agentId = (value: FormDataEntryValue | null): number =>
 	/^\d{1,15}$/.test(String(value)) ? Number(value) : error(400);
 
-// A bad name is the user's to fix; another user's agent is a 403.
+// Another user's agent is a 403.
 function attempt(run: () => void) {
 	try {
 		run();
 	} catch (err) {
-		if (err instanceof RangeError) return fail(400, { renameError: true });
 		if (err instanceof Forbidden) error(403);
 		throw err;
 	}
@@ -42,11 +41,16 @@ export const actions: Actions = {
 		requireRole(params.workspace, locals, 'reader');
 		const form = await request.formData();
 		const id = agentId(form.get('id'));
-		return attempt(() => renameAgent(locals.actor!.id, id, String(form.get('name') ?? '')));
+		try {
+			attempt(() => renameAgent(locals.actor!.id, id, String(form.get('name') ?? '')));
+		} catch (err) {
+			if (err instanceof RangeError) return fail(400, { renameError: true });
+			throw err;
+		}
 	},
 	revoke: async ({ params, locals, request }) => {
 		requireRole(params.workspace, locals, 'reader');
 		const id = agentId((await request.formData()).get('id'));
-		return attempt(() => revokeAgent(locals.actor!.id, id));
+		attempt(() => revokeAgent(locals.actor!.id, id));
 	}
 };

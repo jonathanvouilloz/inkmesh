@@ -46,6 +46,8 @@
 	});
 
 	let copied = $state('');
+	let copyTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => () => clearTimeout(copyTimer));
 	async function copy(id: string, value: string) {
 		try {
 			await navigator.clipboard.writeText(value);
@@ -55,7 +57,8 @@
 			return;
 		}
 		copied = id;
-		setTimeout(() => copied === id && (copied = ''), 2000);
+		clearTimeout(copyTimer);
+		copyTimer = setTimeout(() => (copied = ''), 2000);
 	}
 
 	// Refresh the list until every agent has connected, only while someone can see it.
@@ -82,7 +85,7 @@
 	// Refreshing instead of applying the result keeps the one-time token on screen.
 	const submit: SubmitFunction = ({ formElement }) =>
 		async ({ result, update }) => {
-			if (result.type === 'failure') {
+			if (result.type === 'failure' && result.data?.renameError) {
 				renameError = true;
 				return;
 			}
@@ -106,7 +109,7 @@
 			{:else}
 				<input {id} class="mono" readonly {value} onfocus={(e) => e.currentTarget.select()} />
 			{/if}
-			<button type="button" aria-live="polite" onclick={() => copy(id, value)}
+			<button type="button" onclick={() => copy(id, value)}
 				>{t(copied === id ? 'connect.copied' : 'connect.copy', locale)}</button
 			>
 		</span>
@@ -114,6 +117,7 @@
 {/snippet}
 
 <div class="page">
+	<p class="visually-hidden" role="status">{copied ? t('connect.copied', locale) : ''}</p>
 	<h1>{t('connect.title', locale)}</h1>
 	<p>{t('connect.intro', locale, { user: data.user.name })}</p>
 
@@ -276,6 +280,14 @@
 	h2 {
 		margin-top: 16px;
 		font-size: 13px;
+	}
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 	h2:focus {
 		outline: none;

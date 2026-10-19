@@ -69,7 +69,13 @@
 			<summary><span class="current">{user.name}</span></summary>
 			<ul>
 				{#if current}
-					<li class="phone"><a href="/{current}/-/connect">{t('nav.connect', locale)}</a></li>
+					<li class="phone">
+						<a
+							href="/{current}/-/connect"
+							aria-current={page.route.id === '/(app)/[workspace]/-/connect' ? 'page' : undefined}
+							>{t('nav.connect', locale)}</a
+						>
+					</li>
 				{/if}
 				<li><a href="/account">{t('nav.account', locale)}</a></li>
 				<li>
@@ -119,9 +125,6 @@
 	.user,
 	.connect {
 		margin-left: auto;
-	}
-	.connect + .user {
-		margin-left: 0;
 	}
 	.connect {
 		padding: 3px 6px;
@@ -228,6 +231,9 @@
 		}
 		.phone {
 			display: none;
+		}
+		.connect + .user {
+			margin-left: 0;
 		}
 	}
 	/* Phones: one row; long workspace and user names shrink to an ellipsis, the connect link moves into the user menu. */

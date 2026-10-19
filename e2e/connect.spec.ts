@@ -40,7 +40,19 @@ test('create a token, use it, revoke it', async ({ page }) => {
 test('the Claude Code recipe holds the server URL', async ({ page }) => {
 	await page.goto('/demo/-/connect');
 	await page.getByRole('radio', { name: 'Claude Code' }).check();
-	await expect(page.locator('textarea').first()).toHaveValue(
+	await expect(page.getByLabel('Terminal')).toHaveValue(
 		'claude mcp add --transport http --scope user inkmesh http://localhost:4173/mcp'
 	);
+});
+
+test('on a phone the connect link sits in the user menu', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/demo');
+	const user = page.locator('header summary').filter({ hasText: 'Owner' });
+	// The hidden bar link must not pull the user menu away from the right edge.
+	const box = (await user.boundingBox())!;
+	expect(390 - (box.x + box.width)).toBeLessThan(16);
+	await user.click();
+	await page.getByRole('link', { name: 'Connect an agent' }).click();
+	await expect(page).toHaveURL('/demo/-/connect');
 });
