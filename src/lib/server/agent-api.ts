@@ -88,14 +88,14 @@ export function requireAgent(event: RequestEvent, resource: string | null): Agen
 	return auth;
 }
 
-/** The request body, refused with 413 past MAX_DOCUMENT_BYTES whatever `content-length` says. */
-export async function readBody(request: Request): Promise<Uint8Array> {
-	if (Number(request.headers.get('content-length')) > MAX_DOCUMENT_BYTES) throw new InvalidContent('too-large');
+/** The request body, refused with InvalidContent('too-large') past `max` whatever `content-length` says. */
+export async function readBody(request: Request, max = MAX_DOCUMENT_BYTES): Promise<Uint8Array> {
+	if (Number(request.headers.get('content-length')) > max) throw new InvalidContent('too-large');
 	const chunks: Uint8Array[] = [];
 	let size = 0;
 	for await (const chunk of request.body ?? []) {
 		size += chunk.byteLength;
-		if (size > MAX_DOCUMENT_BYTES) throw new InvalidContent('too-large');
+		if (size > max) throw new InvalidContent('too-large');
 		chunks.push(chunk);
 	}
 	return Buffer.concat(chunks);
