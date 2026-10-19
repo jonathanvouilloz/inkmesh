@@ -6,12 +6,23 @@ import { acceptInvitation, createInvitation, createWorkspace } from '#lib/core/a
 import { createSession, createUser, loginSucceeded, type User } from '#lib/core/accounts.ts';
 import { createAgent } from '#lib/core/agents.ts';
 import { closeDb } from '#lib/core/db.ts';
-import { createDocument, importDocument, readDocument } from '#lib/core/documents.ts';
+import {
+	createDocument,
+	history,
+	importDocument,
+	MAX_DOCUMENT_BYTES,
+	readDocument
+} from '#lib/core/documents.ts';
 import { clearSessionTimers } from '#lib/core/sessions.ts';
 import { handle } from '../../../hooks.server.ts';
 import { fallback } from '../[...rest]/+server.ts';
 import { GET as changesGET } from './workspaces/[workspace]/changes/+server.ts';
-import { GET as documentGET } from './workspaces/[workspace]/documents/[...path]/+server.ts';
+import {
+	DELETE as documentDELETE,
+	GET as documentGET,
+	PUT as documentPUT
+} from './workspaces/[workspace]/documents/[...path]/+server.ts';
+import { POST as movePOST } from './workspaces/[workspace]/move/+server.ts';
 import { GET as treeGET } from './workspaces/[workspace]/tree/+server.ts';
 import { GET as workspacesGET } from './workspaces/+server.ts';
 
@@ -52,10 +63,11 @@ function call(
 	handler: Handler,
 	target: string,
 	params: Record<string, string> = {},
-	headers: Record<string, string> = {}
+	headers: Record<string, string> = {},
+	init: RequestInit = {}
 ) {
 	const url = new URL(target, 'http://localhost');
-	const event = { request: new Request(url, { headers }), url, params, getClientAddress: () => IP };
+	const event = { request: new Request(url, { headers, ...init }), url, params, getClientAddress: () => IP };
 	return handler(event as never);
 }
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
@@ -81,9 +93,15 @@ it('401 without or with a bad token, with the challenge header', async () => {
 it('throttles failed tokens', async () => {
 	for (let i = 0; i < 10; i++)
 		expect((await call(workspacesGET, '/api/v1/workspaces', {}, bearer('ink_bad'))).status).toBe(401);
+	expect((await call(workspacesGET, '/api/v1/workspaces')).status).toBe(401);
 	const res = await call(workspacesGET, '/api/v1/workspaces', {}, bearer(jonToken));
 	expect(res.status).toBe(429);
 	expect((await res.json()).error.code).toBe('too_many_requests');
+});
+
+it('requests without a token are not counted as failures', async () => {
+	for (let i = 0; i < 20; i++) expect((await call(workspacesGET, '/api/v1/workspaces')).status).toBe(401);
+	expect((await call(workspacesGET, '/api/v1/workspaces', {}, bearer(jonToken))).status).toBe(200);
 });
 
 it('a non-member gets 404 for an existing workspace and for a missing one', async () => {
@@ -191,5 +209,126 @@ it('never reads the session cookie on the agent paths', async () => {
 		await handle({ event: event as never, resolve: async () => new Response('') });
 		expect(event.locals.actor === null, p).toBe(!actor);
 		expect(event.locals.user === null, p).toBe(!actor);
+	}
+});
+
+const enc = (s: string) => new TextEncoder().encode(s);
+const put = (path: string, body: BodyInit, headers: Record<string, string> = {}, token = jonToken) =>
+	call(documentPUT, '/x', { workspace: 'demo', path }, { ...bearer(token), ...headers }, { method: 'PUT', body });
+const get = (path: string) => call(documentGET, '/x', { workspace: 'demo', path }, bearer(jonToken));
+const hashOf = async (path: string) => (await readDocument('demo', path, jon)).hash;
+
+it('creates with If-None-Match and refuses a second create', async () => {
+	const res = await put('notes/b.md', '# B\n', { 'if-none-match': '*' });
+	expect(res.status).toBe(201);
+	const hash = await hashOf('notes/b.md');
+	expect(await res.json()).toEqual({ path: 'notes/b.md', hash });
+	const again = await put('notes/b.md', '# other\n', { 'if-none-match': '*' });
+	expect(again.status).toBe(409);
+	expect((await again.json()).error).toMatchObject({ code: 'conflict', currentHash: hash });
+});
+
+it('updates with If-Match', async () => {
+	const old = await hashOf('notes/a.md');
+	const res = await put('notes/a.md', '# A2\n', { 'if-match': `"${old}"` });
+	expect(res.status).toBe(200);
+	const hash = await hashOf('notes/a.md');
+	expect(await res.json()).toEqual({ path: 'notes/a.md', hash });
+	expect((await history('demo', 'notes/a.md', jon))[0]).toMatchObject({
+		message: 'Update notes/a.md',
+		name: 'Jon',
+		agent: 'reporter'
+	});
+	const stale = await put('notes/a.md', '# A3\n', { 'if-match': `"${old}"` });
+	expect(stale.status).toBe(409);
+	expect((await stale.json()).error).toMatchObject({ code: 'conflict', currentHash: hash });
+	expect((await readDocument('demo', 'notes/a.md', jon)).source).toBe('# A2\n');
+	expect((await put('notes/missing.md', '# M\n', { 'if-match': `"${old}"` })).status).toBe(404);
+	for (const bad of ['*', `"${hash}", "${old}"`, hash])
+		expect((await put('notes/a.md', '# A4\n', { 'if-match': bad })).status, bad).toBe(400);
+	expect((await put('notes/a.md', '# A4\n', { 'if-none-match': `"${hash}"` })).status).toBe(400);
+});
+
+it('replaces without a precondition', async () => {
+	const res = await put('notes/a.md', '# replaced\n');
+	expect(res.status).toBe(200);
+	expect((await history('demo', 'notes/a.md', jon))[0]).toMatchObject({
+		message: 'Replace notes/a.md',
+		name: 'Jon',
+		agent: 'reporter'
+	});
+	expect((await put('notes/new.md', '# new\n')).status).toBe(201);
+});
+
+it('stores the body byte for byte', async () => {
+	const source = '---\r\ntitle: x\r\n---\r\n# Hi\r\n\r\ntext  \r\n';
+	expect((await put('notes/crlf.md', enc(source))).status).toBe(201);
+	expect((await (await get('notes/crlf.md')).json()).content).toBe(source);
+});
+
+it('413 above 3 MiB and 400 for invalid UTF-8', async () => {
+	const big = new Uint8Array(MAX_DOCUMENT_BYTES + 1).fill(97);
+	const declared = await put('notes/big.md', 'small', { 'content-length': String(MAX_DOCUMENT_BYTES + 1) });
+	expect(declared.status).toBe(413);
+	expect((await declared.json()).error.code).toBe('payload_too_large');
+	// No content-length on a stream: the cap applies to the bytes actually read.
+	const stream = new Blob([big]).stream();
+	const res = await call(
+		documentPUT,
+		'/x',
+		{ workspace: 'demo', path: 'notes/big.md' },
+		bearer(jonToken),
+		{ method: 'PUT', body: stream, duplex: 'half' } as RequestInit
+	);
+	expect(res.status).toBe(413);
+	const bad = await put('notes/bad.md', new Uint8Array([0xff, 0xfe]));
+	expect(bad.status).toBe(400);
+	expect((await bad.json()).error.code).toBe('bad_request');
+	expect((await get('notes/big.md')).status).toBe(404);
+});
+
+it("a reader's agent gets 403 on every write", async () => {
+	const results = [
+		await put('notes/a.md', '# x\n', {}, annToken),
+		await put('notes/r.md', '# x\n', { 'if-none-match': '*' }, annToken),
+		await call(documentDELETE, '/x', { workspace: 'demo', path: 'notes/a.md' }, bearer(annToken), {
+			method: 'DELETE'
+		}),
+		await call(movePOST, '/x', { workspace: 'demo' }, bearer(annToken), {
+			method: 'POST',
+			body: JSON.stringify({ from: 'notes/a.md', to: 'b.md' })
+		})
+	];
+	for (const res of results) {
+		expect(res.status).toBe(403);
+		expect((await res.json()).error.code).toBe('forbidden');
+	}
+});
+
+it('moves and deletes', async () => {
+	const move = await call(movePOST, '/x', { workspace: 'demo' }, bearer(jonToken), {
+		method: 'POST',
+		body: JSON.stringify({ from: 'notes/a.md', to: 'archive/a.md' })
+	});
+	expect(move.status).toBe(200);
+	expect(await move.json()).toEqual({ path: 'archive/a.md' });
+	const del = await call(documentDELETE, '/x', { workspace: 'demo', path: 'archive' }, bearer(jonToken), {
+		method: 'DELETE'
+	});
+	expect(del.status).toBe(204);
+	expect(await del.text()).toBe('');
+	expect((await get('archive/a.md')).status).toBe(404);
+	const again = await call(documentDELETE, '/x', { workspace: 'demo', path: 'archive' }, bearer(jonToken), {
+		method: 'DELETE'
+	});
+	expect(again.status).toBe(404);
+});
+
+it('bad move bodies are 400', async () => {
+	const bodies = [JSON.stringify({ from: 1, to: 'b.md' }), JSON.stringify({ from: 'notes/a.md' }), '{nope', 'null'];
+	for (const body of bodies) {
+		const res = await call(movePOST, '/x', { workspace: 'demo' }, bearer(jonToken), { method: 'POST', body });
+		expect(res.status, body).toBe(400);
+		expect((await res.json()).error.code).toBe('bad_request');
 	}
 });

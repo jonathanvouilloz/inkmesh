@@ -3,7 +3,14 @@ import { Forbidden, workspacesOf } from '#lib/core/access.ts';
 import { loginAllowed, loginFailed } from '#lib/core/accounts.ts';
 import type { Actor } from '#lib/core/actor.ts';
 import { authenticateToken, type AgentAuth } from '#lib/core/agents.ts';
-import { listTree, readDocument } from '#lib/core/documents.ts';
+import {
+	deletePath,
+	importDocument,
+	listTree,
+	MAX_DOCUMENT_BYTES,
+	movePath,
+	readDocument
+} from '#lib/core/documents.ts';
 import { changes } from '#lib/core/events.ts';
 import { Conflict, InvalidContent, InvalidPath } from '#lib/core/paths.ts';
 
@@ -27,7 +34,7 @@ export class ApiError extends Error {
 	}
 }
 
-const MISSING = new Set(['ENOENT', 'ENOTDIR']);
+const MISSING = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
 
 /** Maps core errors to API errors; anything else is a bug and is rethrown (500, logged, never echoed). */
 export function toApiError(err: unknown): ApiError {
@@ -67,9 +74,12 @@ export async function apiResponse(
 
 /** Bearer header only: the session cookie and the query string are never read. */
 export function requireAgent(event: RequestEvent, resource: string | null): AgentAuth {
+	const header = event.request.headers.get('authorization');
+	// Not counted: MCP clients probe without a token, often from shared IP ranges.
+	if (header === null) throw new ApiError(401, 'unauthorized', 'missing or invalid bearer token');
 	const key = 'bearer|' + event.getClientAddress();
 	if (!loginAllowed(key)) throw new ApiError(429, 'too_many_requests', 'too many failed attempts, try later');
-	const token = /^Bearer +(\S+)$/i.exec(event.request.headers.get('authorization') ?? '')?.[1];
+	const token = /^Bearer +(\S+)$/i.exec(header)?.[1];
 	const auth = token ? authenticateToken(token, resource) : null;
 	if (!auth) {
 		loginFailed(key);
@@ -78,6 +88,21 @@ export function requireAgent(event: RequestEvent, resource: string | null): Agen
 	return auth;
 }
 
+/** The request body, refused with 413 past MAX_DOCUMENT_BYTES whatever `content-length` says. */
+export async function readBody(request: Request): Promise<Uint8Array> {
+	if (Number(request.headers.get('content-length')) > MAX_DOCUMENT_BYTES) throw new InvalidContent('too-large');
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	for await (const chunk of request.body ?? []) {
+		size += chunk.byteLength;
+		if (size > MAX_DOCUMENT_BYTES) throw new InvalidContent('too-large');
+		chunks.push(chunk);
+	}
+	return Buffer.concat(chunks);
+}
+
+export type WriteMode = 'create' | 'replace' | { expectedHash: string };
+
 export const ops = {
 	workspaces: (actor: Actor) => ({ workspaces: workspacesOf(actor.id) }),
 	tree: async (actor: Actor, ws: string) => ({ tree: await listTree(ws, actor) }),
@@ -85,6 +110,27 @@ export const ops = {
 		const { source, hash } = await readDocument(ws, path, actor);
 		return { path, content: source, hash };
 	},
+	write: async (actor: Actor, ws: string, path: string, bytes: Uint8Array, mode: WriteMode) => {
+		try {
+			const done = await importDocument(ws, path, bytes, {
+				actor,
+				overwrite: mode === 'replace',
+				expectedHash: typeof mode === 'object' ? mode.expectedHash : undefined
+			});
+			return { path: done.path, hash: done.hash, created: !done.replaced };
+		} catch (err) {
+			if (!(err instanceof Conflict)) throw err;
+			const currentHash = await readDocument(ws, path, actor).then(
+				(doc) => doc.hash,
+				() => null
+			);
+			throw new ApiError(409, 'conflict', err.message, { currentHash });
+		}
+	},
+	move: async (actor: Actor, ws: string, from: string, to: string) => ({
+		path: await movePath(ws, from, to, actor)
+	}),
+	remove: (actor: Actor, ws: string, path: string) => deletePath(ws, path, actor),
 	// Without `since`: the 50 latest and `more: false`, even when older events exist.
 	changes: (actor: Actor, ws: string, since?: number) => changes(ws, actor, since)
 };
