@@ -96,6 +96,7 @@ export const en = {
 	'files.root': 'Workspace root',
 	'files.deleteDoc': 'Delete {name}? It stays in the history.',
 	'files.deleteFolder': 'Delete {name} and its {count} documents? They stay in the history.',
+	'files.deleteFolderEmpty': 'Delete the empty folder {name}?',
 	'files.deleteFolderOne': 'Delete {name} and its document? It stays in the history.',
 	'files.exists': 'Something with this name already exists here',
 	'files.invalid': 'Use a name without / and not starting with a dot',

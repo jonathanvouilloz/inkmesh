@@ -65,7 +65,9 @@
 			openDocument.reload?.();
 		const count = results.filter((r) => r.outcome === 'imported' || r.outcome === 'replaced').length;
 		void say([
-			...(count ? [t(count === 1 ? 'drop.importedOne' : 'drop.imported', data.locale, { count: String(count) })] : []),
+			...(count
+				? [t(count === 1 ? 'drop.importedOne' : 'drop.imported', data.locale, { count: String(count) })]
+				: []),
 			...results.flatMap((r) => {
 				const key = refused[r.outcome as keyof typeof refused];
 				return key ? [t(key, data.locale, { name: r.name })] : [];

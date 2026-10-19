@@ -98,6 +98,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'files.root': 'Racine de l’espace',
 	'files.deleteDoc': 'Supprimer {name} ? Le document reste dans l’historique.',
 	'files.deleteFolder': 'Supprimer {name} et ses {count} documents ? Ils restent dans l’historique.',
+	'files.deleteFolderEmpty': 'Supprimer le dossier vide {name} ?',
 	'files.deleteFolderOne': 'Supprimer {name} et son document ? Il reste dans l’historique.',
 	'files.exists': 'Un élément porte déjà ce nom ici',
 	'files.invalid': 'Choisissez un nom sans / qui ne commence pas par un point',

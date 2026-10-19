@@ -98,6 +98,7 @@ test('delete asks first', async ({ page }) => {
 	await expect(page.getByRole('main').getByRole('link', { name: 'a', exact: true })).toBeVisible();
 });
 
+// Relies on the seed: examples/ holds exactly one document.
 test('a folder of one document says so in the singular', async ({ page }) => {
 	await page.goto('/demo/examples');
 	await page.getByRole('main').getByText('Actions', { exact: true }).click();
@@ -300,4 +301,49 @@ test('the file picker imports too', async ({ page }) => {
 		'href',
 		'/demo/e2e-files/picked.md'
 	);
+});
+
+test('a spaced folder name is the fold button name, and nested folds survive', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await page.getByRole('main').getByText('New folder', { exact: true }).click();
+	await page.getByLabel('Folder name').fill('my notes');
+	await page.getByRole('main').getByRole('button', { name: 'Create' }).click();
+	await expect(page.getByRole('main').getByRole('heading', { name: 'my notes' })).toBeVisible();
+
+	const fold = (name: string) => rail(page).getByRole('button', { name, exact: true });
+	await fold('my notes').click();
+	await expect(fold('my notes')).toHaveAttribute('aria-expanded', 'false');
+	await fold('e2e-files').click();
+	await expect(fold('my notes')).toHaveCount(0);
+	await fold('e2e-files').click();
+	await expect(fold('my notes')).toHaveAttribute('aria-expanded', 'false');
+
+	await page.getByRole('main').getByText('Actions', { exact: true }).click();
+	await page.getByRole('main').getByRole('button', { name: 'Delete' }).click();
+	await expect(page.getByRole('dialog')).toContainText('Delete the empty folder my notes?');
+	await page.keyboard.press('Escape');
+});
+
+test('a move announces the one other document it rewrites', async ({ page }) => {
+	await page.goto('/demo/e2e-files', hydrated);
+	await dropFiles(page, folderInTree(page, 'e2e-files'), [
+		['target.md', '# Target\n'],
+		['linker.md', '# Linker\n\nSee [target](target.md).\n']
+	]);
+	await expect(page.getByText('2 imported')).toBeVisible();
+	await rail(page).getByRole('link', { name: 'Target' }).click();
+	await expect(strip(page).getByText('e2e-files/target.md', { exact: true })).toBeVisible();
+	await action(page, 'Rename');
+	await expect(page.getByRole('dialog')).toContainText('Links in 1 other document will be updated');
+	await page.keyboard.press('Escape');
+});
+
+test.describe('French', () => {
+	test.use({ locale: 'fr-FR' });
+
+	test('one imported file is singular', async ({ page }) => {
+		await page.goto('/demo/e2e-files', hydrated);
+		await dropFiles(page, folderInTree(page, 'e2e-files'), [['seul.md', '# Seul\n']]);
+		await expect(page.getByText('1 importé', { exact: true })).toBeVisible();
+	});
 });
