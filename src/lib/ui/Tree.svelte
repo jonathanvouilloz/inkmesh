@@ -9,11 +9,17 @@
 		nodes,
 		workspace,
 		current,
-		editable = false
-	}: { nodes: TreeNode[]; workspace: string; current?: string; editable?: boolean } = $props();
+		editable = false,
+		// Folders start open; the folded ones by path, one set for the whole tree.
+		closed = new SvelteSet<string>()
+	}: {
+		nodes: TreeNode[];
+		workspace: string;
+		current?: string;
+		editable?: boolean;
+		closed?: SvelteSet<string>;
+	} = $props();
 	const { drop } = getDrops();
-	// Folders start open; the ones folded here, by path.
-	const closed = new SvelteSet<string>();
 	// Editors drag an item by its link onto a folder.
 	const drag = (path: string) => (e: DragEvent) => {
 		e.dataTransfer!.setData(PATH_TYPE, path);
@@ -31,20 +37,19 @@
 						<button
 							type="button"
 							aria-expanded={!closed.has(node.path)}
-							aria-labelledby="tree-{node.path}"
+							aria-label={node.name}
 							onclick={() => (closed.has(node.path) ? closed.delete(node.path) : closed.add(node.path))}
 							><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"
 								><path d="M4.5 2.5 8 6l-3.5 3.5" /></svg
 							></button
 						><a
-							id="tree-{node.path}"
 							href={docHref(workspace, node.path)}
 							aria-current={node.path === current ? 'page' : undefined}
 							ondragstart={editable ? drag(node.path) : undefined}>{node.name}</a
 						>
 					</div>
 					{#if !closed.has(node.path)}
-						<Tree nodes={node.children ?? []} {workspace} {current} {editable} />
+						<Tree nodes={node.children ?? []} {workspace} {current} {editable} {closed} />
 					{/if}
 				</div>
 			{:else}
@@ -135,5 +140,24 @@
 	:is(a, button):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: -2px;
+	}
+	/* In the phone drawer, rows and the fold button are touch targets. */
+	@media (max-width: 767px) {
+		li > a,
+		.row {
+			display: flex;
+			align-items: center;
+			min-height: 44px;
+			box-sizing: border-box;
+		}
+		button,
+		.row a {
+			display: flex;
+			align-self: stretch;
+			align-items: center;
+		}
+		button {
+			min-width: 32px;
+		}
 	}
 </style>
