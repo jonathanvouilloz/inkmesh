@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import fs from 'node:fs';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -38,10 +40,14 @@ export async function gitCommit(
 		author: { name: string; email: string };
 	}
 ): Promise<string> {
-	if (opts.paths.length === 0) return '';
-	await git(dir, ['add', '-A', '--', ...opts.paths]);
+	// `git add` fails on a path matching nothing: an untracked item already moved or deleted.
+	const paths: string[] = [];
+	for (const p of opts.paths)
+		if (fs.existsSync(join(dir, p)) || (await git(dir, ['ls-files', '-z', '--', p]))) paths.push(p);
+	if (paths.length === 0) return '';
+	await git(dir, ['add', '-A', '--', ...paths]);
 	try {
-		await git(dir, ['diff', '--cached', '--quiet', '--', ...opts.paths]);
+		await git(dir, ['diff', '--cached', '--quiet', '--', ...paths]);
 		return ''; // exit 0: nothing staged
 	} catch (err) {
 		if ((err as { code?: unknown }).code !== 1) throw err;
@@ -49,7 +55,7 @@ export async function gitCommit(
 	const { name, email } = opts.author;
 	await git(
 		dir,
-		['commit', '-q', `--author=${name} <${email}>`, '-m', opts.message, '--', ...opts.paths],
+		['commit', '-q', `--author=${name} <${email}>`, '-m', opts.message, '--', ...paths],
 		{
 			GIT_COMMITTER_NAME: name,
 			GIT_COMMITTER_EMAIL: email

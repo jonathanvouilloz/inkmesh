@@ -44,6 +44,31 @@ describe('git helpers', () => {
 		expect(files.trim()).toBe('a.md');
 	});
 
+	it('ignores paths git does not know', async () => {
+		await gitInit(dir);
+		fs.mkdirSync(path.join(dir, 'empty-folder'));
+		expect(
+			await gitCommit(dir, { paths: ['gone.md', 'empty-folder'], message: 'none', author })
+		).toBe('');
+
+		fs.writeFileSync(path.join(dir, 'a.md'), 'a\n');
+		await gitCommit(dir, { paths: ['a.md'], message: 'add a', author });
+		fs.renameSync(path.join(dir, 'a.md'), path.join(dir, 'b.md'));
+		const hash = await gitCommit(dir, {
+			paths: ['a.md', 'b.md', 'never.md'],
+			message: 'Move a.md to b.md',
+			author
+		});
+		expect(hash).toMatch(/^[0-9a-f]{40}$/);
+		// --no-renames: git would otherwise fold the pair into one R line.
+		const status = execFileSync(
+			'git',
+			['show', '--name-status', '--no-renames', '--format=', 'HEAD'],
+			{ cwd: dir, encoding: 'utf8' }
+		);
+		expect(status.trim().split('\n').sort()).toEqual(['A\tb.md', 'D\ta.md']);
+	});
+
 	it('returns an empty log on a repository with no commits', async () => {
 		await gitInit(dir);
 		expect(await gitLog(dir, 'a.md', 5)).toEqual([]);
