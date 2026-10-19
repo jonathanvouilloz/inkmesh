@@ -1,13 +1,14 @@
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { Actor } from '#lib/core/actor.ts';
+import { MAX_COMMENT_CHARS } from '#lib/core/comments.ts';
 import { MAX_DOCUMENT_BYTES } from '#lib/core/documents.ts';
 import { InvalidContent } from '#lib/core/paths.ts';
 import { ops, toApiError } from '#lib/server/agent-api.ts';
 import { version } from '../../../package.json';
 
 const instructions =
-	'Every tool takes a workspace slug: call list_workspaces first. Paths are relative to the workspace; documents end in .md. Read a document before updating it and pass its hash as expected_hash.';
+	'Every tool takes a workspace slug: call list_workspaces first. Paths are relative to the workspace; documents end in .md. Read a document before updating it and pass its hash as expected_hash. Comments on a document are read with read_comments and added with add_comment.';
 
 const name = z.string().min(1);
 const text = (value: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value) }] });
@@ -148,6 +149,36 @@ export function mcpServer(actor: Actor): McpServer {
 			annotations: readOnly
 		},
 		({ workspace, since }) => run(() => ops.changes(actor, workspace, since))
+	);
+	server.registerTool(
+		'search',
+		{
+			title: 'Search',
+			description: 'Full-text search of the documents of a workspace, best first, at most 20.',
+			inputSchema: z.object({ workspace: name, query: name }),
+			annotations: readOnly
+		},
+		({ workspace, query }) => run(() => ops.search(actor, workspace, query))
+	);
+	server.registerTool(
+		'read_comments',
+		{
+			title: 'Read comments',
+			description: "A document's comments, oldest first.",
+			inputSchema: z.object({ workspace: name, path: name }),
+			annotations: readOnly
+		},
+		({ workspace, path }) => run(() => ops.comments(actor, workspace, path))
+	);
+	server.registerTool(
+		'add_comment',
+		{
+			title: 'Add comment',
+			description: "Adds a Markdown comment at the end of a document's thread.",
+			inputSchema: z.object({ workspace: name, path: name, body: z.string().min(1).max(MAX_COMMENT_CHARS) }),
+			annotations: additive
+		},
+		({ workspace, path, body }) => run(() => ops.comment(actor, workspace, path, body))
 	);
 	return server;
 }
