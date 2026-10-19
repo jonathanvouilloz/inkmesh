@@ -266,6 +266,9 @@ describe('documents', () => {
 		await expect(importDocument('demo', 'big.md', big, { actor })).rejects.toThrow(
 			new InvalidContent('too-large')
 		);
+		await expect(importDocument('demo', 'big.md', big, { actor })).rejects.toBeInstanceOf(
+			InvalidContent
+		);
 		const bad = Uint8Array.of(0xff, 0xfe, 0x00);
 		await expect(importDocument('demo', 'bad.md', bad, { actor })).rejects.toThrow(
 			new InvalidContent('not-utf8')
@@ -274,6 +277,22 @@ describe('documents', () => {
 			InvalidContent
 		);
 		expect(fs.readdirSync(workspaceDir('demo')).sort()).toEqual(['.git', 'rapports']);
+	});
+
+	it('refuses document paths under a .md or dot folder', async () => {
+		const bytes = Uint8Array.of(0x61);
+		for (const p of ['a.md/x.md', '.x/y.md']) {
+			await expect(createDocument('demo', p, actor)).rejects.toThrow(InvalidPath);
+			await expect(importDocument('demo', p, bytes, { actor })).rejects.toThrow(InvalidPath);
+		}
+		expect(fs.readdirSync(workspaceDir('demo')).sort()).toEqual(['.git', 'rapports']);
+	});
+
+	it('refuses to import over a folder', async () => {
+		fs.mkdirSync(path.join(workspaceDir('demo'), 'dir.md'));
+		await expect(
+			importDocument('demo', 'dir.md', Uint8Array.of(0x61), { actor, overwrite: true })
+		).rejects.toThrow(Conflict);
 	});
 
 	it('readers cannot import', async () => {

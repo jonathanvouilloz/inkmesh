@@ -47,9 +47,11 @@ function serialised<T>(slug: string, fn: () => Promise<T>): Promise<T> {
 	return next;
 }
 
-/** A document is a .md file whose name is not a dot-file: listTree shows nothing else. */
+/** A document is a .md file whose name is not a dot-file, inside valid folders: listTree shows nothing else. */
 function documentFile(root: string, path: string): string {
 	const file = resolveInside(root, path);
+	const parent = dirname(relative(root, file));
+	if (parent !== '.') assertFolderName(parent);
 	const name = basename(file).slice(0, -3);
 	if (!file.endsWith('.md') || !name || name.startsWith('.')) throw new InvalidPath(path);
 	return file;
@@ -206,6 +208,8 @@ export async function importDocument(
 		try {
 			old = await fs.readFile(file);
 		} catch (err) {
+			if ((err as { code?: unknown }).code === 'EISDIR')
+				throw new Conflict(`${rel} is a folder`);
 			if (!isMissing(err)) throw err;
 		}
 		if (old && !opts.overwrite) throw new Conflict(`${rel} already exists`);
