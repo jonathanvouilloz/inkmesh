@@ -57,7 +57,7 @@
 <style>
 	main {
 		box-sizing: border-box;
-		max-width: 480px;
+		max-width: 360px;
 		margin: 0 auto;
 		padding: 24px 16px;
 		min-height: 100vh;
