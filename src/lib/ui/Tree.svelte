@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { TreeNode } from '#lib/core/documents.ts';
 	import Tree from './Tree.svelte';
+	import { docHref } from './href.ts';
 
 	let { nodes, workspace, current }: { nodes: TreeNode[]; workspace: string; current?: string } =
 		$props();
-	const href = (path: string) => `/${workspace}/${path.split('/').map(encodeURIComponent).join('/')}`;
+	const href = (path: string) => docHref(workspace, path);
 </script>
 
 <ul>
