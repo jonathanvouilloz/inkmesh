@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
-import { basename, dirname, join, relative } from 'node:path';
+import { basename, dirname, join, posix, relative } from 'node:path';
 import { assertRole } from './access.ts';
 import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
-import { patchMarkdown, splitFrontmatter } from './markdown.ts';
+import { patchMarkdown, rewriteUrls, splitFrontmatter } from './markdown.ts';
 import {
 	assertFolderName,
 	Conflict,
@@ -66,6 +66,86 @@ async function writeAtomic(file: string, text: string | Uint8Array, exclusive = 
 	} finally {
 		await fs.rm(tmp, { force: true });
 	}
+}
+
+/** Every document's workspace-relative path, skipping dot entries and symlinks like listTree. */
+async function documentPaths(root: string, rel = ''): Promise<string[]> {
+	const paths: string[] = [];
+	for (const entry of await fs.readdir(join(root, rel), { withFileTypes: true })) {
+		if (entry.name.startsWith('.')) continue;
+		const p = rel ? `${rel}/${entry.name}` : entry.name;
+		if (entry.isDirectory()) paths.push(...(await documentPaths(root, p)));
+		else if (entry.isFile() && entry.name.endsWith('.md')) paths.push(p);
+	}
+	return paths;
+}
+
+/** Reads a document's text, or null when it is not UTF-8 (copied in by an agent): never rewrite such bytes. */
+async function readText(file: string): Promise<{ bytes: Buffer; text: string } | null> {
+	const bytes = await fs.readFile(file);
+	try {
+		return { bytes, text: new TextDecoder('utf-8', { fatal: true }).decode(bytes) };
+	} catch {
+		return null;
+	}
+}
+
+const under = (path: string, folder: string) => path === folder || path.startsWith(`${folder}/`);
+
+/** A relative URL's path, query or fragment, and the workspace path it points to from `doc`. */
+function target(url: string, doc: string): { path: string; suffix: string; resolved: string } | null {
+	if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('/') || url.startsWith('#')) return null;
+	const cut = url.search(/[?#]/);
+	const suffix = cut < 0 ? '' : url.slice(cut);
+	let path: string;
+	try {
+		path = decodeURIComponent(cut < 0 ? url : url.slice(0, cut));
+	} catch {
+		return null; // a malformed escape: not a link we can follow
+	}
+	if (!path) return null;
+	return { path, suffix, resolved: posix.join(posix.dirname(doc), path) };
+}
+
+/** The URL that `url`, written in `oldDoc`, becomes in `newDoc` once `moved.from` is at `moved.to`; null when it needs no change. */
+export function relocate(
+	url: string,
+	oldDoc: string,
+	newDoc: string,
+	moved: { from: string; to: string }
+): string | null {
+	const t = target(url, oldDoc);
+	if (!t) return null;
+	const resolved = under(t.resolved, moved.from)
+		? moved.to + t.resolved.slice(moved.from.length)
+		: t.resolved;
+	// Still pointing at the same place from the new location: keep the bytes as written.
+	if (posix.join(posix.dirname(newDoc), t.path) === resolved) return null;
+	let rel = posix.relative(posix.dirname(newDoc), resolved) || '.';
+	if (resolved.endsWith('/')) rel += '/';
+	const next = encodeURI(rel).replace(/[?#]/g, encodeURIComponent) + t.suffix;
+	return next === url ? null : next;
+}
+
+/** The documents outside `path` holding a relative link or image that points to `path` or under it. */
+export async function linksTo(slug: string, path: string, actor: Actor): Promise<string[]> {
+	assertRole(slug, actor, 'reader');
+	const root = workspaceDir(slug);
+	const rel = relative(root, resolveInside(root, path));
+	const found: string[] = [];
+	for (const doc of await documentPaths(root)) {
+		if (under(doc, rel)) continue;
+		const text = (await readText(join(root, doc)))?.text;
+		let hit = false;
+		if (text)
+			rewriteUrls(text, (url) => {
+				const t = target(url, doc);
+				hit ||= !!t && under(t.resolved.replace(/\/$/, ''), rel);
+				return null;
+			});
+		if (hit) found.push(doc);
+	}
+	return found;
 }
 
 export async function ensureWorkspace(slug: string): Promise<void> {
@@ -277,13 +357,27 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 		if (await fs.lstat(dest).catch(() => null)) throw new Conflict(`${relTo} already exists`);
 		await fs.mkdir(dirname(dest), { recursive: true });
 		await fs.rename(src, dest);
+		// Original bytes of every rewritten document, put back if the move fails.
+		const rewritten: Array<{ rel: string; bytes: Buffer }> = [];
 		try {
+			// shortcut: parses every document on each move, fine for a few thousand; upgrade to a link index if moves get slow
+			for (const rel of await documentPaths(root)) {
+				const doc = await readText(join(root, rel));
+				if (!doc) continue;
+				const old = under(rel, relTo) ? relFrom + rel.slice(relTo.length) : rel;
+				const moved = { from: relFrom, to: relTo };
+				const next = rewriteUrls(doc.text, (url) => relocate(url, old, rel, moved));
+				if (next === doc.text) continue;
+				rewritten.push({ rel, bytes: doc.bytes });
+				await writeAtomic(join(root, rel), next);
+			}
 			await gitCommit(root, {
-				paths: [relFrom, relTo],
+				paths: [relFrom, relTo, ...rewritten.map((r) => r.rel)],
 				message: `Move ${relFrom} to ${relTo}`,
 				author: commitAuthor(actor)
 			});
 		} catch (err) {
+			for (const { rel, bytes } of rewritten) await writeAtomic(join(root, rel), bytes);
 			await fs.rename(dest, src);
 			throw err;
 		}

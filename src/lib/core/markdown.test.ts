@@ -1,7 +1,13 @@
 import fs from 'node:fs';
 import { structuredPatch } from 'diff';
 import { describe, expect, it } from 'vitest';
-import { frontmatterEntries, patchMarkdown, processor, splitFrontmatter } from './markdown.ts';
+import {
+	frontmatterEntries,
+	patchMarkdown,
+	processor,
+	rewriteUrls,
+	splitFrontmatter
+} from './markdown.ts';
 
 const fixture = (name: string) => fs.readFileSync(`tests/fixtures/${name}`, 'utf8');
 const fixtures = ['prd.md', 'architecture.md', 'kitchen-sink.md', 'kitchen-sink-crlf.md', 'reference-links.md'];
@@ -128,6 +134,50 @@ describe('patchMarkdown local fallback', () => {
 	it('takes the edited slice of a kept list that would merge with a new adjacent list', () => {
 		expect(patchMarkdown('# H\nUpdated: x\n\n* a\n\nPara.\n', '# H\n\nUpdated: x\n\n- a\n\n* b\n')).toBe(
 			'# H\nUpdated: x\n\n- a\n\n* b\n'
+		);
+	});
+});
+
+describe('rewriteUrls', () => {
+	const up = (url: string) => (url.startsWith('#') || url.includes(':') ? null : `new/${url}`);
+
+	it('changes only the URL characters', () => {
+		const source = [
+			'---',
+			'link: "[f](f.md)"',
+			'---',
+			'See [a](b.md "t") and ![i](img/x.png).',
+			'',
+			'| col | [c](c.md) |',
+			'| --- | --- |',
+			'',
+			'- item [d]( d.md )',
+			'',
+			'[r]: <dir/my file.md> "title"',
+			'[e]: e.md',
+			'[h](#x) [m](mailto:a@b.c) [w](https://x/a.md)',
+			''
+		].join('\n');
+		expect(rewriteUrls(source, up)).toBe(
+			source
+				.replace('(b.md', '(new/b.md')
+				.replace('(img/', '(new/img/')
+				.replace('(c.md', '(new/c.md')
+				.replace('( d.md', '( new/d.md')
+				.replace('<dir/', '<new/dir/')
+				.replace(': e.md', ': new/e.md')
+		);
+	});
+
+	it('returns the identical string when nothing changes', () => {
+		const source = 'A [ref][r] and [b](b.md).\n\n[r]: r.md\n';
+		expect(rewriteUrls(source, () => null)).toBe(source);
+		expect(rewriteUrls(source, (u) => u)).toBe(source);
+	});
+
+	it('finds the URL after an image alt or link text that repeats it', () => {
+		expect(rewriteUrls('![x.png](x.png) [b.md](b.md "b.md")\n', up)).toBe(
+			'![x.png](new/x.png) [b.md](new/b.md "b.md")\n'
 		);
 	});
 });

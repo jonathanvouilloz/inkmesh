@@ -13,10 +13,12 @@ import {
 	createFolder,
 	history,
 	importDocument,
+	linksTo,
 	listTree,
 	MAX_DOCUMENT_BYTES,
 	movePath,
 	readDocument,
+	relocate,
 	writeDocument
 } from './documents.ts';
 import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
@@ -419,6 +421,97 @@ describe('documents', () => {
 		await readDocument('demo', doc, actor);
 		expect(fs.existsSync(path.join(workspaceDir('demo'), 'x.md'))).toBe(false);
 		expect(fs.existsSync(path.join(workspaceDir('demo'), 'r2'))).toBe(false);
+	});
+
+	it('relocates relative URLs only', () => {
+		const a = { from: 'a.md', to: 'z/a.md' };
+		expect(relocate('../a.md', 'x/y.md', 'x/y.md', a)).toBe('../z/a.md');
+		expect(relocate('a%20b.md#h', 'y.md', 'y.md', { from: 'a b.md', to: 'z/a b.md' })).toBe(
+			'z/a%20b.md#h'
+		);
+		expect(relocate('d/a.md?v=1', 'y.md', 'y.md', { from: 'd', to: 'e/f' })).toBe('e/f/a.md?v=1');
+		expect(relocate('b.md', 'y.md', 'y.md', a)).toBe(null);
+		for (const url of ['https://x/a.md', '/a.md', '#top', 'mailto:a@b.c'])
+			expect(relocate(url, 'y.md', 'y.md', a)).toBe(null);
+	});
+
+	const write = (rel: string, text: string) => {
+		const file = path.join(workspaceDir('demo'), rel);
+		fs.mkdirSync(path.dirname(file), { recursive: true });
+		fs.writeFileSync(file, text);
+	};
+	const read = (rel: string) => fs.readFileSync(path.join(workspaceDir('demo'), rel), 'utf8');
+	const git = (...args: string[]) =>
+		execFileSync('git', args, { cwd: workspaceDir('demo'), encoding: 'utf8' });
+
+	it('links follow a moved document', async () => {
+		write('a.md', '# a\n');
+		write('notes/b.md', '---\nx: ../a.md\n---\nSee [a](../a.md "A") and [top](#x).\n');
+		await importDocument('demo', 'c.md', new TextEncoder().encode('[r]: a.md\n'), { actor });
+		await movePath('demo', 'a.md', 'archive/a.md', actor);
+		expect(read('notes/b.md')).toBe(
+			'---\nx: ../a.md\n---\nSee [a](../archive/a.md "A") and [top](#x).\n'
+		);
+		expect(read('c.md')).toBe('[r]: archive/a.md\n');
+		expect(git('show', '--name-only', '--format=%s', 'HEAD').trim().split('\n')).toEqual([
+			'Move a.md to archive/a.md',
+			'',
+			'archive/a.md',
+			'c.md',
+			'notes/b.md'
+		]);
+		expect(git('status', '--porcelain')).toBe('');
+	});
+
+	it('a moved document keeps its own links', async () => {
+		write('x/doc.md', '![p](p.png) [me](doc.md#h) [b](../b.md) [m](mailto:a@b.c)\n');
+		await movePath('demo', 'x/doc.md', 'y/doc.md', actor);
+		expect(read('y/doc.md')).toBe(
+			'![p](../x/p.png) [me](doc.md#h) [b](../b.md) [m](mailto:a@b.c)\n'
+		);
+		await movePath('demo', 'y/doc.md', 'y/renamed.md', actor);
+		expect(read('y/renamed.md')).toBe(
+			'![p](../x/p.png) [me](renamed.md#h) [b](../b.md) [m](mailto:a@b.c)\n'
+		);
+	});
+
+	it('links inside a moved folder stay as they are', async () => {
+		const text = '[s](sub/b.md) ![i](./img.png) [o](../out.md)\n';
+		write('rapports/a.md', text);
+		write('rapports/sub/b.md', '[a](../a.md)\n');
+		await movePath('demo', 'rapports', 'deep/r', actor);
+		expect(read('deep/r/a.md')).toBe(text.replace('../out.md', '../../out.md'));
+		expect(read('deep/r/sub/b.md')).toBe('[a](../a.md)\n');
+	});
+
+	it('moves a folder holding an empty subfolder and a document linked from outside', async () => {
+		await createFolder('demo', 'rapports/vide', actor);
+		const link = '[r](rapports/r%C3%A9union%20%C3%A9t%C3%A9.md)\n';
+		await importDocument('demo', 'idx.md', new TextEncoder().encode(link), { actor });
+		await movePath('demo', 'rapports', 'r2', actor);
+		expect(read('idx.md')).toBe('[r](r2/r%C3%A9union%20%C3%A9t%C3%A9.md)\n');
+		expect(fs.statSync(path.join(workspaceDir('demo'), 'r2/vide')).isDirectory()).toBe(true);
+		expect(git('status', '--porcelain')).toBe('');
+	});
+
+	it('restores rewritten links when the move commit fails', async () => {
+		write('b.md', '[d](rapports/x.md)\n');
+		fs.writeFileSync(path.join(workspaceDir('demo'), '.git/index.lock'), '');
+		await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow();
+		expect(read('b.md')).toBe('[d](rapports/x.md)\n');
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'r2'))).toBe(false);
+	});
+
+	it('linksTo lists only outside documents', async () => {
+		write('rapports/in.md', '[d](../rapports/x.md)\n');
+		write('out.md', '[d](rapports/x.md)\n');
+		write('notes/o.md', '[d](../rapports)\n');
+		write('notes/n.md', '[d](rapports/x.md) [e](https://x/rapports)\n');
+		expect((await linksTo('demo', 'rapports', actor)).sort()).toEqual(['notes/o.md', 'out.md']);
+		expect((await linksTo('demo', 'rapports/x.md', actor)).sort()).toEqual([
+			'out.md',
+			'rapports/in.md'
+		]);
 	});
 
 	it('readers cannot move', async () => {

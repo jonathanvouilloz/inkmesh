@@ -64,6 +64,37 @@ function blocks(text: string): Block[] {
 	}));
 }
 
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Replaces the URL of every link, image and definition for which `rewrite` returns a new one,
+ * changing only the URL's characters (title, brackets and `<…>` form stay).
+ */
+// shortcut: a URL written with escapes or entities (`a\_b.md`, `&amp;`) differs from its parsed form and is left as is; upgrade by reading micromark tokens if such links show up
+export function rewriteUrls(source: string, rewrite: (url: string) => string | null): string {
+	const edits: Array<[number, number, string]> = [];
+	walk(processor.parse(source) as unknown as Node, (n) => {
+		if (n.type !== 'link' && n.type !== 'image' && n.type !== 'definition') return;
+		const url = n.url as string;
+		const next = rewrite(url);
+		if (next === null || next === url) return;
+		const { start, end } = n.position as { start: { offset: number }; end: { offset: number } };
+		// The destination follows `](` (`]:` for a definition), after a link's text so the text cannot hold it.
+		const last = n.children?.at(-1)?.position as { end: { offset: number } } | undefined;
+		const from = last ? last.end.offset : start.offset;
+		const opener = n.type === 'definition' ? ':' : '\\(';
+		const destination = new RegExp(`\\]${opener}\\s*<?${escapeRegExp(url)}`);
+		const match = destination.exec(source.slice(from, end.offset));
+		if (!match) return;
+		const at = from + match.index + match[0].length - url.length;
+		edits.push([at, at + url.length, next]);
+	});
+	let out = source;
+	for (const [a, b, text] of edits.sort((x, y) => y[0] - x[0]))
+		out = out.slice(0, a) + text + out.slice(b);
+	return out;
+}
+
 /**
  * Rewrites `edited` so that every top-level block whose normalised form is
  * unchanged keeps its original bytes. Blocks are paired by an LCS on their
