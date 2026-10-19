@@ -69,6 +69,16 @@ describe('git helpers', () => {
 		expect(status.trim().split('\n').sort()).toEqual(['A\tb.md', 'D\ta.md']);
 	});
 
+	it('unstages its paths when the commit fails', async () => {
+		await gitInit(dir);
+		fs.writeFileSync(path.join(dir, 'a.md'), 'a\n');
+		const hook = path.join(dir, '.git/hooks/pre-commit');
+		fs.writeFileSync(hook, '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+		await expect(gitCommit(dir, { paths: ['a.md'], message: 'add a', author })).rejects.toThrow();
+		const status = execFileSync('git', ['status', '--porcelain'], { cwd: dir, encoding: 'utf8' });
+		expect(status).toBe('?? a.md\n');
+	});
+
 	it('returns an empty log on a repository with no commits', async () => {
 		await gitInit(dir);
 		expect(await gitLog(dir, 'a.md', 5)).toEqual([]);

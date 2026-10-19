@@ -46,21 +46,29 @@ export async function gitCommit(
 		if (fs.existsSync(join(dir, p)) || (await git(dir, ['ls-files', '-z', '--', p]))) paths.push(p);
 	if (paths.length === 0) return '';
 	await git(dir, ['add', '-A', '--', ...paths]);
-	try {
-		await git(dir, ['diff', '--cached', '--quiet', '--', ...paths]);
-		return ''; // exit 0: nothing staged
-	} catch (err) {
-		if ((err as { code?: unknown }).code !== 1) throw err;
-	}
+	// Commit only what was staged: `git commit -- p` fails on a path git does not track (an empty folder).
+	// No renames: a rename lists only its new path, which would leave the deletion uncommitted.
+	const staged = (
+		await git(dir, ['diff', '--cached', '--no-renames', '--name-only', '-z', '--', ...paths])
+	)
+		.split('\0')
+		.filter(Boolean);
+	if (staged.length === 0) return '';
 	const { name, email } = opts.author;
-	await git(
-		dir,
-		['commit', '-q', `--author=${name} <${email}>`, '-m', opts.message, '--', ...paths],
-		{
-			GIT_COMMITTER_NAME: name,
-			GIT_COMMITTER_EMAIL: email
-		}
-	);
+	try {
+		await git(
+			dir,
+			['commit', '-q', `--author=${name} <${email}>`, '-m', opts.message, '--', ...staged],
+			{
+				GIT_COMMITTER_NAME: name,
+				GIT_COMMITTER_EMAIL: email
+			}
+		);
+	} catch (err) {
+		// Leaves the index as it was, so the caller's rollback is not committed by the next write.
+		await git(dir, ['reset', '-q', '--', ...staged]).catch(() => {});
+		throw err;
+	}
 	return (await git(dir, ['rev-parse', 'HEAD'])).trim();
 }
 

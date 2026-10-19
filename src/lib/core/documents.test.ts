@@ -510,6 +510,19 @@ describe('documents', () => {
 		expect(git('status', '--porcelain')).toBe('');
 	});
 
+	it('moves an empty folder a document links to', async () => {
+		await createFolder('demo', 'vide', actor);
+		await importDocument('demo', 'idx.md', new TextEncoder().encode('[v](vide/)\n'), { actor });
+		await movePath('demo', 'vide', 'v2', actor);
+		expect(read('idx.md')).toBe('[v](v2/)\n');
+		expect(git('show', '--name-only', '--format=%s', 'HEAD').trim().split('\n')).toEqual([
+			'Move vide to v2',
+			'',
+			'idx.md'
+		]);
+		expect(git('status', '--porcelain')).toBe('');
+	});
+
 	it('restores rewritten links when the move commit fails', async () => {
 		write('b.md', '[d](rapports/x.md)\n');
 		fs.writeFileSync(path.join(workspaceDir('demo'), '.git/index.lock'), '');
