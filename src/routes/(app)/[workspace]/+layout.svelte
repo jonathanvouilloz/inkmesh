@@ -31,6 +31,10 @@
 	});
 
 	const editable = $derived(data.role !== 'reader');
+	const search = $derived({
+		workspace: data.workspace,
+		q: page.route.id === '/(app)/[workspace]/-/search' ? (page.url.searchParams.get('q') ?? '') : ''
+	});
 	const refused = { invalid: 'drop.invalid', 'too-large': 'drop.tooLarge', 'not-utf8': 'drop.notUtf8' } as const;
 	// One line per file that was not imported, after a count of those that were.
 	let notes = $state<string[]>([]);
@@ -115,6 +119,7 @@
 	current={data.workspace}
 	user={data.user}
 	locale={data.locale}
+	{search}
 >
 	<button
 		bind:this={opener}
@@ -135,6 +140,17 @@
 		aria-label={t('nav.documents', data.locale)}
 		{@attach editable && dropTarget((transfer) => drops.drop('', transfer))}
 	>
+		<!-- The header's search box, moved here on phones. -->
+		<form class="search" role="search" action="/{search.workspace}/-/search">
+			<input
+				type="search"
+				name="q"
+				value={search.q}
+				maxlength="200"
+				aria-label={t('search.label', data.locale)}
+				placeholder={t('search.label', data.locale)}
+			/>
+		</form>
 		{#if editable}
 			<a
 				class="members"
@@ -212,8 +228,12 @@
 		grid-template-columns: 240px 1fr;
 		min-height: calc(100vh - var(--sticky-top));
 	}
-	.opener {
+	.opener,
+	.search {
 		display: none;
+	}
+	.search {
+		margin: 0;
 	}
 	.rail {
 		position: sticky;
@@ -377,7 +397,8 @@
 			--sticky-top: 0px;
 			display: block;
 		}
-		.opener {
+		.opener,
+		.search {
 			display: block;
 		}
 		.notes:not(:empty) {

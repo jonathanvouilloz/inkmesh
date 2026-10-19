@@ -196,4 +196,8 @@ export const en = {
 	'image.tooLarge': 'larger than 5 MB',
 	'image.notImage': 'only PNG, JPEG, GIF and WebP images',
 	'image.network': 'the connection failed',
+	'search.label': 'Search this workspace',
+	'search.title': 'Results for {q}',
+	'search.none': 'No document contains {q}.',
+	'search.prompt': 'Type a word to search.',
 };

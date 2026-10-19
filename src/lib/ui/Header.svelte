@@ -11,12 +11,15 @@
 		current,
 		user,
 		locale,
+		search,
 		children
 	}: {
 		workspaces: Workspace[];
 		current?: string;
 		user: User;
 		locale: Locale;
+		/** The workspace search box, and the query to show in it. */
+		search?: { workspace: string; q: string };
 		/** Rendered first: the workspace shell puts its phone drawer opener here. */
 		children?: Snippet;
 	} = $props();
@@ -57,6 +60,18 @@
 				{/each}
 			</ul>
 		</details>
+		{#if search}
+			<form class="search" role="search" action="/{search.workspace}/-/search">
+				<input
+					type="search"
+					name="q"
+					value={search.q}
+					maxlength="200"
+					aria-label={t('search.label', locale)}
+					placeholder={t('search.label', locale)}
+				/>
+			</form>
+		{/if}
 		{#if current}
 			<a
 				class="connect"
@@ -216,7 +231,17 @@
 		font: inherit;
 		cursor: pointer;
 	}
-	:is(a, summary, button):focus-visible {
+	.search input {
+		box-sizing: border-box;
+		width: 200px;
+		padding: 4px 8px;
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius);
+		background: var(--ground);
+		color: var(--ink);
+		font: inherit;
+	}
+	:is(a, summary, button, input):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
@@ -236,9 +261,21 @@
 			margin-left: 0;
 		}
 	}
+	@media (min-width: 1024px) {
+		.search input:focus {
+			width: 280px;
+		}
+	}
+	@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+		.search input {
+			transition: width var(--ease);
+		}
+	}
 	/* Phones: one row; long workspace and user names shrink to an ellipsis, the connect link moves into the user menu. */
 	@media (max-width: 767px) {
-		.connect {
+		/* On phones the search box sits at the top of the drawer instead. */
+		.connect,
+		.search {
 			display: none;
 		}
 		header {
