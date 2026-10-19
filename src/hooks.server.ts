@@ -20,7 +20,7 @@ export const init: ServerInit = async () => {
 	);
 };
 
-export const handle: Handle = ({ event, resolve }) => {
+export const handle: Handle = async ({ event, resolve }) => {
 	if (crossSiteForbidden(event.request, event.url))
 		return new Response('Cross-site form submissions are forbidden', { status: 403 });
 	const locale = event.request.headers.get('accept-language')?.startsWith('fr') ? 'fr' : 'en';
@@ -31,5 +31,11 @@ export const handle: Handle = ({ event, resolve }) => {
 	if (token && !user) event.cookies.delete('inkmesh_session', { path: '/' });
 	event.locals.user = user;
 	event.locals.actor = user && { id: user.id, name: user.name };
-	return resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', locale) });
+	const response = await resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', locale) });
+	// The consent screen cannot be framed, whatever renders it (page, failed action, error page).
+	if (event.url.pathname === '/oauth/authorize') {
+		response.headers.set('x-frame-options', 'DENY');
+		response.headers.set('content-security-policy', "frame-ancestors 'none'");
+	}
+	return response;
 };

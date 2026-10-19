@@ -6,8 +6,9 @@ import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { createUser, type User } from '#lib/core/accounts.ts';
 import { authenticateToken } from '#lib/core/agents.ts';
-import { closeDb } from '#lib/core/db.ts';
+import { closeDb, db } from '#lib/core/db.ts';
 import { exchangeCode, registerClient, type OAuthClient } from '#lib/core/oauth.ts';
+import { handle } from '../../../../hooks.server.ts';
 import { actions, load, _validateRequest } from './+page.server.ts';
 
 const ORIGIN = 'http://localhost';
@@ -65,6 +66,28 @@ it('never redirects to an unregistered URI', () => {
 	expect(_validateRequest(params, ORIGIN)).toEqual({ page: 'invalid' });
 });
 
+const codes = () => (db().prepare('SELECT COUNT(*) AS n FROM oauth_codes').get() as { n: number }).n;
+
+it('refuses repeated parameters', async () => {
+	const other = registerClient({ redirect_uris: ['https://evil.example/cb'] });
+	const twice = (key: string, value: string) => {
+		const params = query();
+		params.append(key, value);
+		return params;
+	};
+	expect(_validateRequest(twice('client_id', other.clientId), ORIGIN)).toEqual({ page: 'invalid' });
+	expect(_validateRequest(twice('redirect_uri', 'https://evil.example/cb'), ORIGIN)).toEqual({ page: 'invalid' });
+	const result = _validateRequest(twice('state', 's2'), ORIGIN);
+	if (!('redirect' in result)) throw new Error('expected a redirect');
+	const url = new URL(result.redirect);
+	expect(url.origin + url.pathname).toBe(CALLBACK);
+	expect(url.searchParams.get('error')).toBe('invalid_request');
+	// The shown request and the approved one cannot differ: the action refuses and issues nothing.
+	const res = await post('allow', twice('client_id', other.clientId), { name: 'x' });
+	expect(isHttpError(res, 400)).toBe(true);
+	expect(codes()).toBe(0);
+});
+
 it('redirects protocol errors with state and iss', () => {
 	const errorOf = (params: URLSearchParams) => {
 		const result = _validateRequest(params, ORIGIN);
@@ -104,8 +127,12 @@ it('allow issues a code for the named agent', async () => {
 		codeVerifier: VERIFIER
 	});
 	expect(authenticateToken(tokens.access_token, ORIGIN + '/mcp')?.actor).toMatchObject({ id: jon.id, agent: 'My Claude' });
-	// An unknown client must not reach issueCode's foreign key.
+	// An unknown client must not reach issueCode's foreign key, an unregistered URI gets no code.
 	expect(isHttpError(await post('allow', query({ client_id: 'nope' }), { name: 'x' }), 400)).toBe(true);
+	const before = codes();
+	const evil = await post('allow', query({ redirect_uri: 'https://evil.example/cb' }), { name: 'x' });
+	expect(isHttpError(evil, 400)).toBe(true);
+	expect(codes()).toBe(before);
 });
 
 it('deny returns access_denied', async () => {
@@ -121,19 +148,43 @@ it('deny returns access_denied', async () => {
 
 it('loopback redirects are flagged', async () => {
 	const run = async (redirectUri: string) => {
-		const headers: Record<string, string> = {};
-		const url = new URL('/oauth/authorize?' + query({ redirect_uri: redirectUri }), ORIGIN);
-		const result = await load({
-			url,
-			parent: async () => ({ user: jon, workspaces: [] }),
-			setHeaders: (h: Record<string, string>) => Object.assign(headers, h)
-		} as never);
-		expect(headers).toEqual({ 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'" });
-		return result as { loopback: boolean; redirectHost: string; suggestedName: string; clientName: string };
+		const url = new URL('/oauth/authorize?' + query({ redirect_uri: redirectUri, scope: 'x' }), ORIGIN);
+		const result = await load({ url, parent: async () => ({ user: jon, workspaces: [] }) } as never);
+		return result as {
+			loopback: boolean;
+			redirectHost: string;
+			suggestedName: string;
+			clientName: string;
+			params: Record<string, string>;
+		};
 	};
-	expect(await run('http://localhost:3118/callback')).toMatchObject({ loopback: true, redirectHost: 'localhost:3118' });
+	const local = await run('http://localhost:3118/callback');
+	expect(local).toMatchObject({ loopback: true, redirectHost: 'localhost:3118' });
+	// The forms carry the validated request only.
+	expect(local.params).toEqual({
+		response_type: 'code',
+		client_id: client.clientId,
+		redirect_uri: 'http://localhost:3118/callback',
+		code_challenge: CHALLENGE,
+		code_challenge_method: 'S256',
+		resource: ORIGIN + '/mcp',
+		state: 's1'
+	});
 	client = registerClient({ redirect_uris: ['https://claude.ai/api/mcp/auth_callback'], client_name: 'C'.repeat(60) + ' ' });
 	const remote = await run('https://claude.ai/api/mcp/auth_callback');
 	expect(remote).toMatchObject({ loopback: false, redirectHost: 'claude.ai', clientName: 'C'.repeat(60) });
 	expect(remote.suggestedName).toBe('C'.repeat(40));
+	db().prepare('UPDATE oauth_clients SET name = ? WHERE client_id = ?').run('<b>Bot</b>\x07', client.clientId);
+	expect((await run('https://claude.ai/api/mcp/auth_callback')).suggestedName).toBe('bBot/b');
+});
+
+it('the consent screen cannot be framed, failed actions included', async () => {
+	for (const method of ['GET', 'POST']) {
+		const url = new URL('/oauth/authorize?/allow', ORIGIN);
+		const request = new Request(url, { method, headers: method === 'POST' ? { origin: ORIGIN } : {} });
+		const event = { request, url, locals: {}, cookies: { get: () => undefined } };
+		const res = await handle({ event: event as never, resolve: async () => new Response('x', { status: 400 }) });
+		expect(res.headers.get('x-frame-options')).toBe('DENY');
+		expect(res.headers.get('content-security-policy')).toBe("frame-ancestors 'none'");
+	}
 });

@@ -15,11 +15,15 @@ function answer(redirectUri: string, state: string | null, origin: string, field
 }
 
 export function _validateRequest(params: URLSearchParams, origin: string): Valid | { page: 'invalid' } | { redirect: string } {
+	// RFC 6749 §3.1: a repeated parameter could show one request and approve another.
+	const repeated = [...new Set(params.keys())].filter((key) => params.getAll(key).length > 1);
+	if (repeated.includes('client_id') || repeated.includes('redirect_uri')) return { page: 'invalid' };
 	const client = oauthClient(params.get('client_id') ?? '');
 	const redirectUri = params.get('redirect_uri');
 	if (!client || !redirectUri || !redirectAllowed(client, redirectUri)) return { page: 'invalid' };
-	const state = params.get('state');
+	const state = repeated.includes('state') ? null : params.get('state');
 	const refuse = (code: string) => ({ redirect: answer(redirectUri, state, origin, { error: code }) });
+	if (repeated.length) return refuse('invalid_request');
 	if (params.get('response_type') !== 'code') return refuse('unsupported_response_type');
 	const codeChallenge = params.get('code_challenge');
 	// An S256 challenge is base64url(sha256), 43 characters.
@@ -37,19 +41,27 @@ function validOrThrow(params: URLSearchParams, origin: string, status: 302 | 303
 	return result;
 }
 
-export const load: PageServerLoad = async ({ url, parent, setHeaders }) => {
+// The clickjacking headers are set in hooks.server.ts, for the actions' error pages too.
+export const load: PageServerLoad = async ({ url, parent }) => {
 	await parent(); // the (app) layout sends anonymous visitors to /login first
-	setHeaders({ 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'" });
-	const { client, redirectUri } = validOrThrow(url.searchParams, url.origin, 302);
+	const { client, redirectUri, state, codeChallenge, resource } = validOrThrow(url.searchParams, url.origin, 302);
 	const target = new URL(redirectUri);
 	return {
 		clientName: client.name,
 		redirectHost: target.host,
 		loopback: target.protocol === 'http:',
-		// Client names go up to 100 characters, agent names to 40.
-		suggestedName: client.name.slice(0, 40).trim(),
-		// Without the action key ("/allow") a failed action leaves in the URL.
-		params: Object.fromEntries([...url.searchParams].filter(([key]) => !key.startsWith('/')))
+		// Client names go up to 100 characters, agent names to 40, without the characters agentName() refuses.
+		suggestedName: client.name.replace(/[<>\x00-\x1f\x7f]/g, '').slice(0, 40).trim(),
+		// The forms post exactly the request shown, rebuilt from the validated values.
+		params: {
+			response_type: 'code',
+			client_id: client.clientId,
+			redirect_uri: redirectUri,
+			code_challenge: codeChallenge,
+			code_challenge_method: 'S256',
+			resource,
+			...(state === null ? {} : { state })
+		}
 	};
 };
 
