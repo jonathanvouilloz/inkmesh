@@ -1,4 +1,4 @@
-import type { Reroute } from '@sveltejs/kit';
+import type { Reroute } from '@sveltejs/kit/hooks';
 
 // Images are linked by their natural URL (next to their document); the raw routes serve them.
 const workspaceImage = /^\/(?!api\/)([a-z0-9][a-z0-9-]{1,39})\/(?!-\/)(.+\.(?:png|jpe?g|gif|webp))$/i;

@@ -38,7 +38,7 @@ afterEach(() => {
 const locals = (user: User) => ({ user, actor: { id: user.id, name: user.name }, locale: 'en' });
 
 // Resolves to the response, or to the status of the error the handler threw.
-async function status(p: Promise<Response>) {
+async function status(p: Response | Promise<Response>) {
 	try {
 		return (await p).status;
 	} catch (err) {
@@ -62,7 +62,7 @@ function serve(file: string, user: User = owner) {
 	return GET(event as unknown as Parameters<typeof GET>[0]);
 }
 
-const image = (bytes: Uint8Array, name: string, type = 'image/png') => new File([bytes], name, { type });
+const image = (bytes: Uint8Array<ArrayBuffer>, name: string, type = 'image/png') => new File([bytes], name, { type });
 
 it('uploads and serves an image', async () => {
 	const res = await upload([['doc', 'notes/report.md'], ['file', image(png, 'shot.png')]]);
