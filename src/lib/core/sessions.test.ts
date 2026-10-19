@@ -10,7 +10,8 @@ import { workspaceDir } from './data.ts';
 import { closeDb, db } from './db.ts';
 import { deletePath, importDocument, movePath, readDocument, writeDocument } from './documents.ts';
 import { changes } from './events.ts';
-import { commitAllSessions, endSession } from './sessions.ts';
+import { Conflict } from './paths.ts';
+import { clearSessionTimers, commitAllSessions, endSession } from './sessions.ts';
 
 let data: string;
 let jon: Actor;
@@ -27,6 +28,7 @@ beforeEach(async () => {
 	await importDocument('demo', 'a.md', new TextEncoder().encode('# a\n'), { actor: jon });
 });
 afterEach(() => {
+	clearSessionTimers();
 	vi.useRealTimers();
 	closeDb();
 	delete process.env.INKMESH_DATA;
@@ -70,6 +72,30 @@ describe('editing sessions', () => {
 		expect(updates()).toHaveLength(1);
 	});
 
+	it('a save queued before the idle timer fires keeps the session open', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		const before = commits();
+		await write(jon, '# a\n\none\n');
+		const { hash } = await readDocument('demo', 'a.md', jon);
+		const saving = writeDocument('demo', 'a.md', '# a\n\ntwo\n', { expectedHash: hash, actor: jon });
+		vi.advanceTimersByTime(60_000); // fires while the save holds the lock; the save re-arms the timer
+		await saving;
+		await endSession('demo', 'a.md', ann); // no-op that waits for the queued timer callback
+		expect(commits()).toBe(before);
+		expect(rows()).toHaveLength(1);
+		vi.advanceTimersByTime(60_000);
+		await vi.waitFor(() => expect(commits()).toBe(before + 1));
+	});
+
+	it('a refused move commits no session', async () => {
+		await importDocument('demo', 'b.md', new TextEncoder().encode('# b\n'), { actor: jon });
+		const before = commits();
+		await write(jon, '# a\n\nopen\n');
+		await expect(movePath('demo', 'a.md', 'b.md', jon)).rejects.toThrow(Conflict);
+		expect(commits()).toBe(before);
+		expect(rows()).toHaveLength(1);
+	});
+
 	it('leaving commits my session only', async () => {
 		const before = commits();
 		await write(jon, '# a\n\nmine\n');
@@ -92,6 +118,11 @@ describe('editing sessions', () => {
 		]);
 		expect(git('show', 'HEAD~1:a.md')).toBe('# a\n\nby jon');
 		expect(rows()).toEqual([]);
+		expect(updates().slice(-2)).toEqual([
+			expect.objectContaining({ author: 'Jon', commit: git('rev-parse', 'HEAD~1') }),
+			expect.objectContaining({ author: 'Jon', agent: 'bot', commit: git('rev-parse', 'HEAD') })
+		]);
+		expect(updates().at(-2)!.agent).toBeUndefined();
 	});
 
 	it('another human takes over the file', async () => {

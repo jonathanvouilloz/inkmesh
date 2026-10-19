@@ -23,7 +23,10 @@ export function openSession(slug: string, path: string, actor: Actor): void {
 	const k = key(slug, path);
 	clearTimeout(timers.get(k));
 	const timer = setTimeout(() => {
-		serialised(slug, () => commitSession(slug, path)).catch((err) =>
+		// A save queued ahead of this callback may have re-armed the timer: then the session is not idle.
+		serialised(slug, async () => {
+			if (timers.get(k) === timer) await commitSession(slug, path);
+		}).catch((err) =>
 			console.error(`session ${slug}/${path}: idle commit failed`, err)
 		);
 	}, IDLE_MS);
@@ -75,6 +78,12 @@ export async function endSession(slug: string, path: string, actor: Actor): Prom
 			.get(slug, path) as { user_id: number } | undefined;
 		if (owner?.user_id === actor.id) await commitSession(slug, path);
 	});
+}
+
+/** For tests: no timer may fire against a data folder already removed. */
+export function clearSessionTimers(): void {
+	for (const timer of timers.values()) clearTimeout(timer);
+	timers.clear();
 }
 
 /** Commits every open session (at start and at shutdown); a failure is logged and the session kept. */

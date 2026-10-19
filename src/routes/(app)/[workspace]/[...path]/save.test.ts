@@ -7,6 +7,7 @@ import { createUser, type User } from '#lib/core/accounts.ts';
 import { workspaceDir } from '#lib/core/data.ts';
 import { closeDb } from '#lib/core/db.ts';
 import { createDocument, readDocument, writeDocument } from '#lib/core/documents.ts';
+import { clearSessionTimers } from '#lib/core/sessions.ts';
 import { actions } from './+page.server.ts';
 
 const doc = 'examples/kitchen-sink.md';
@@ -21,6 +22,7 @@ beforeEach(async () => {
 	await createDocument('demo', doc, owner);
 });
 afterEach(() => {
+	clearSessionTimers();
 	closeDb();
 	delete process.env.INKMESH_DATA;
 	fs.rmSync(data, { recursive: true, force: true });

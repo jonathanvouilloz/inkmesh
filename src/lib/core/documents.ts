@@ -195,6 +195,8 @@ export async function writeDocument(
 	body: string,
 	opts: { expectedHash: string; actor: Actor }
 ): Promise<{ hash: string }> {
+	// A session's author is a human name only; agents write through importDocument.
+	if (opts.actor.agent) throw new Error('writeDocument is for the editor, not agents');
 	assertRole(slug, opts.actor, 'editor');
 	const root = workspaceDir(slug);
 	const file = documentFile(root, path);
@@ -335,8 +337,6 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 	assertRole(slug, actor, 'editor');
 	const root = workspaceDir(slug);
 	return serialised(slug, async () => {
-		// Every session: the move may rewrite links in any document, and a session must not keep an old path.
-		await flushSessions(slug, () => true);
 		const isDoc = (await fs.stat(resolveInside(root, from))).isFile();
 		let src: string, dest: string;
 		if (isDoc) {
@@ -352,6 +352,8 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 		const relTo = relative(root, dest);
 		if (relTo === relFrom || relTo.startsWith(`${relFrom}/`)) throw new InvalidPath(to);
 		if (await fs.lstat(dest).catch(() => null)) throw new Conflict(`${relTo} already exists`);
+		// Every session: the move may rewrite links in any document, and a session must not keep an old path.
+		await flushSessions(slug, () => true);
 		await fs.mkdir(dirname(dest), { recursive: true });
 		await fs.rename(src, dest);
 		// Original bytes of every rewritten document, put back if the move fails.

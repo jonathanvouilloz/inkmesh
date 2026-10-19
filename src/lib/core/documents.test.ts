@@ -24,7 +24,7 @@ import {
 } from './documents.ts';
 import { changes } from './events.ts';
 import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
-import { commitAllSessions } from './sessions.ts';
+import { clearSessionTimers, commitAllSessions } from './sessions.ts';
 
 let actor: Actor;
 let agent: Actor;
@@ -41,6 +41,7 @@ beforeEach(async () => {
 	await createDocument('demo', doc, actor);
 });
 afterEach(() => {
+	clearSessionTimers();
 	closeDb();
 	delete process.env.INKMESH_DATA;
 	fs.rmSync(data, { recursive: true, force: true });
@@ -138,6 +139,11 @@ describe('documents', () => {
 		expect(log[1].agent).toBeUndefined();
 		expect(log[2]).toMatchObject({ name: 'Jon', message: `Create ${doc}` });
 		expect(log[2].agent).toBeUndefined();
+	});
+
+	it('refuses an agent in the editor write', async () => {
+		const { hash } = await readDocument('demo', doc, actor);
+		await expect(writeDocument('demo', doc, 'x\n', { expectedHash: hash, actor: agent })).rejects.toThrow();
 	});
 
 	it('keeps frontmatter and CRLF on write', async () => {
