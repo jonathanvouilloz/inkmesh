@@ -16,6 +16,20 @@ test.describe('English', () => {
 		);
 	});
 
+	test('a tree folder folds with its own button, apart from its link', async ({ page }) => {
+		await page.goto('/demo', { waitUntil: 'networkidle' });
+		const rail = page.locator('#rail');
+		const fold = rail.getByRole('button', { name: 'project', exact: true });
+		await expect(fold).toHaveAttribute('aria-expanded', 'true');
+		await expect(rail.locator('summary a, button a')).toHaveCount(0);
+		await fold.focus();
+		await page.keyboard.press('Enter');
+		await expect(fold).toHaveAttribute('aria-expanded', 'false');
+		await expect(rail.getByRole('link', { name: 'PRD — inkmesh' })).toHaveCount(0);
+		await page.keyboard.press('Tab');
+		await expect(rail.getByRole('link', { name: 'project', exact: true })).toBeFocused();
+	});
+
 	test('a bad path shows an error under the input', async ({ page }) => {
 		await page.goto('/demo');
 		await page.locator('#rail').getByText('New document', { exact: true }).click();
