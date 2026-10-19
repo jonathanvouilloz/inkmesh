@@ -490,7 +490,7 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 }
 
 /** A commit author as `name`, plus `agent` when an agent acted (`<name> via <agent>`, see commitAuthor). */
-function splitAuthor(author: string): { name: string; agent?: string } {
+export function splitAuthor(author: string): { name: string; agent?: string } {
 	const at = author.indexOf(' via ');
 	return at < 0 ? { name: author } : { name: author.slice(0, at), agent: author.slice(at + 5) };
 }

@@ -5,19 +5,19 @@
 	import Rendered from './Rendered.svelte';
 	import { ago } from './time.ts';
 
-	let { comments, locale }: { comments: Array<Comment & { html: string }>; locale: Locale } = $props();
+	type Item = Comment & { name: string; agent?: string; html: string };
+	let { comments, locale }: { comments: Item[]; locale: Locale } = $props();
 
 	const open = $derived(comments.filter((c) => !c.resolved));
 	const resolved = $derived(comments.filter((c) => c.resolved));
 	let commentError = $state<'empty' | 'too-large'>();
 </script>
 
-{#snippet item(c: Comment & { html: string }, resolve: boolean)}
-	{@const at = c.author.indexOf(' via ')}
+{#snippet item(c: Item, resolve: boolean)}
 	<li>
 		<p class="meta">
-			<span>{at < 0 ? c.author : c.author.slice(0, at)}</span>
-			{#if at >= 0}<span class="mono">{t('rail.via', locale)} {c.author.slice(at + 5)}</span>{/if}
+			<span>{c.name}</span>
+			{#if c.agent}<span class="mono">{t('rail.via', locale)} {c.agent}</span>{/if}
 			<time class="mono" datetime={c.at} title={c.at}>{ago(c.at, locale)}</time>
 		</p>
 		<Rendered html={c.html} />

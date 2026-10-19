@@ -5,6 +5,7 @@ import {
 	readDocument,
 	readVersion,
 	restoreVersion,
+	splitAuthor,
 	writeDocument,
 	type TreeNode
 } from '#lib/core/documents.ts';
@@ -68,6 +69,7 @@ export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 		history: await history(params.workspace, params.path, actor),
 		comments: (await listComments(params.workspace, params.path, actor)).map((c) => ({
 			...c,
+			...splitAuthor(c.author),
 			html: renderHtml(c.body)
 		}))
 	};

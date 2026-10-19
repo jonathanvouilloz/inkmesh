@@ -60,7 +60,7 @@ it('a reader comments and resolves', async () => {
 	expect(thread).toMatch(/^## Reader · .+Z\n\nLooks \*\*good\*\*\.\n$/m);
 	const [comment] = (await open()).comments as Array<{ id: string; html: string; resolved: boolean }>;
 	expect(comment.html).toBe('<p>Looks <strong>good</strong>.</p>');
-	expect(comment.resolved).toBe(false);
+	expect(comment).toMatchObject({ name: 'Reader', resolved: false });
 
 	await act('resolve', { id: comment.id, resolved: '1' }, reader);
 	expect((await open()).comments).toMatchObject([{ id: comment.id, resolved: true }]);
