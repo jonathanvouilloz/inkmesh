@@ -81,6 +81,7 @@ test('delete asks first', async ({ page }) => {
 	await action(page, 'Delete');
 	const dialog = page.getByRole('dialog');
 	await expect(dialog).toContainText('Delete gone.md? It stays in the history.');
+	await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
 	await expect(strip(page).getByText('Actions', { exact: true })).toBeFocused();
@@ -95,6 +96,16 @@ test('delete asks first', async ({ page }) => {
 	await expect(rail(page).getByRole('link', { name: 'gone' })).toHaveCount(0);
 	// b.md, renamed from a.md, keeps the title of its first heading.
 	await expect(page.getByRole('main').getByRole('link', { name: 'a', exact: true })).toBeVisible();
+});
+
+test('a folder of one document says so in the singular', async ({ page }) => {
+	await page.goto('/demo/examples');
+	await page.getByRole('main').getByText('Actions', { exact: true }).click();
+	await page.getByRole('main').getByRole('button', { name: 'Delete' }).click();
+	await expect(page.getByRole('dialog')).toContainText(
+		'Delete examples and its document? It stays in the history.'
+	);
+	await page.keyboard.press('Escape');
 });
 
 test('rename keeps an edit typed just before', async ({ page }) => {

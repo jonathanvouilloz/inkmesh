@@ -144,7 +144,9 @@
 
 {#if role !== 'reader'}
 	{@const back = () => menu.querySelector('summary')!.focus()}
-	{@const linked = t('files.linksUpdated', locale, { count: String(links) })}
+	{@const linked = t(links === 1 ? 'files.linksUpdatedOne' : 'files.linksUpdated', locale, {
+		count: String(links)
+	})}
 	<dialog bind:this={renameDialog} aria-labelledby="rename-title" onclose={back}>
 		<form method="POST" action="/{workspace}?/move" use:enhance={submit}>
 			<h2 id="rename-title">{t('files.rename', locale)}</h2>
@@ -207,14 +209,21 @@
 			<p>
 				{kind === 'doc'
 					? t('files.deleteDoc', locale, { name: base })
-					: t('files.deleteFolder', locale, { name: base, count: String(count) })}
+					: t(count === 1 ? 'files.deleteFolderOne' : 'files.deleteFolder', locale, {
+								name: base,
+								count: String(count)
+							})}
 			</p>
 			{#if error}
 				<p class="error" role="alert">{t(`files.${error}`, locale)}</p>
 			{/if}
 			<div class="buttons">
 				<button>{t('files.delete', locale)}</button>
-				<button type="button" onclick={() => deleteDialog.close()}>{t('files.cancel', locale)}</button>
+				<!-- Keeping is the safe answer, so it takes the focus. -->
+				<!-- svelte-ignore a11y_autofocus -->
+				<button type="button" autofocus onclick={() => deleteDialog.close()}
+					>{t('files.cancel', locale)}</button
+				>
 			</div>
 		</form>
 	</dialog>
