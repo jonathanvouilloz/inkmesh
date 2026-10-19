@@ -17,6 +17,7 @@ import {
 	InvalidPath,
 	resolveInside
 } from './paths.ts';
+import { syncIndex } from './search.ts';
 import { flushSessions, openSession } from './sessions.ts';
 
 export type TreeNode = {
@@ -62,7 +63,7 @@ export async function writeAtomic(file: string, text: string | Uint8Array, exclu
 }
 
 /** Every document's workspace-relative path, skipping dot entries and symlinks like listTree. */
-async function documentPaths(root: string, rel = ''): Promise<string[]> {
+export async function documentPaths(root: string, rel = ''): Promise<string[]> {
 	const paths: string[] = [];
 	for (const entry of await fs.readdir(join(root, rel), { withFileTypes: true })) {
 		if (entry.name.startsWith('.')) continue;
@@ -74,13 +75,18 @@ async function documentPaths(root: string, rel = ''): Promise<string[]> {
 }
 
 /** Reads a document's text, or null when it is not UTF-8 (copied in by an agent): never rewrite such bytes. */
-async function readText(file: string): Promise<{ bytes: Buffer; text: string } | null> {
+export async function readText(file: string): Promise<{ bytes: Buffer; text: string } | null> {
 	const bytes = await fs.readFile(file);
 	try {
 		return { bytes, text: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes) };
 	} catch {
 		return null;
 	}
+}
+
+/** A document's title: its first `# ` heading, else the file name without `.md`. */
+export function titleOf(body: string, fileName: string): string {
+	return /^# +(.+?)\s*$/m.exec(body)?.[1] ?? fileName.slice(0, -3);
 }
 
 const under = (path: string, folder: string) => path === folder || path.startsWith(`${folder}/`);
@@ -171,7 +177,7 @@ export async function walkTree(slug: string): Promise<TreeNode[]> {
 				folders.push({ name: entry.name, path: p, kind: 'folder', children: await walk(p) });
 			} else if (entry.isFile() && entry.name.endsWith('.md')) {
 				const { body } = splitFrontmatter(await fs.readFile(join(root, p), 'utf8'));
-				const title = /^# +(.+?)\s*$/m.exec(body)?.[1] ?? entry.name.slice(0, -3);
+				const title = titleOf(body, entry.name);
 				const modified = (await fs.stat(join(root, p))).mtime.toISOString();
 				docs.push({ name: entry.name, path: p, kind: 'doc', title, modified });
 			}
@@ -236,6 +242,7 @@ export async function writeDocument(
 		if (next === source) return { hash: opts.expectedHash };
 		await writeAtomic(file, next);
 		openSession(slug, rel, opts.actor);
+		await syncIndex(slug, [rel]);
 		return { hash: sha256(next) };
 	});
 }
@@ -268,6 +275,7 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 			throw err;
 		}
 		appendEvent(slug, actor, { type: 'create', path: rel, commit });
+		await syncIndex(slug, [rel]);
 		return rel;
 	});
 }
@@ -328,6 +336,7 @@ export async function importDocument(
 		}
 		// Identical bytes leave no commit: nothing changed, so no event.
 		if (commit) appendEvent(slug, opts.actor, { type: old ? 'update' : 'create', path: rel, commit });
+		await syncIndex(slug, [rel]);
 		return { path: rel, replaced: !!old, hash: sha256(bytes) };
 	});
 }
@@ -423,6 +432,7 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 			.run(relTo, relFrom, slug, relFrom, relFrom, relFrom);
 		// Also for an empty folder, whose move git does not see: commit is ''.
 		appendEvent(slug, actor, { type: 'move', path: relTo, from: relFrom, commit });
+		await syncIndex(slug, [relFrom, relTo, ...rewritten.map((r) => r.rel)]);
 		return relTo;
 	});
 }
@@ -467,6 +477,7 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 			throw err;
 		}
 		appendEvent(slug, actor, { type: 'delete', path: rel, commit });
+		await syncIndex(slug, [rel]);
 		// The commit holds the delete; a leftover trash entry is hidden and harmless.
 		for (const entry of [trash, `${trash}-comments`])
 			await fs

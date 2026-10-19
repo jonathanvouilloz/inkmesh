@@ -2,6 +2,7 @@ import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { sessionUser } from '#lib/core/accounts.ts';
 import { db } from '#lib/core/db.ts';
 import { assertGit } from '#lib/core/git.ts';
+import { rebuildIndex } from '#lib/core/search.ts';
 import { commitAllSessions } from '#lib/core/sessions.ts';
 import { crossSiteForbidden, isAgentPath } from '#lib/server/csrf.ts';
 
@@ -11,6 +12,8 @@ export const init: ServerInit = async () => {
 	// Sessions left by a crash are committed, with their author, before any request.
 	const recovered = await commitAllSessions();
 	if (recovered > 0) console.log(`committed ${recovered} editing session(s) left open`);
+	// Files changed outside core (an agent with shell access) are only seen here.
+	console.log(`search index: ${await rebuildIndex()} document(s)`);
 	process.once('sveltekit:shutdown', () =>
 		commitAllSessions()
 			.then((made) => {
