@@ -158,6 +158,14 @@
 				aria-current={page.route.id === '/(app)/[workspace]/members' ? 'page' : undefined}
 				>{t('nav.members', data.locale)}</a
 			>
+		{/if}
+		<a
+			class="members"
+			href="/{data.workspace}/-/history"
+			aria-current={page.route.id === '/(app)/[workspace]/-/history' ? 'page' : undefined}
+			>{t('nav.deleted', data.locale)}</a
+		>
+		{#if editable}
 			<details class="new" open={!!page.form?.createError}>
 				<summary>{t('tree.new', data.locale)}</summary>
 				<form method="POST" action="/{data.workspace}?/create">

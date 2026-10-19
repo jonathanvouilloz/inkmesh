@@ -95,3 +95,24 @@ test('restore an earlier version', async ({ page }) => {
 	await expect(page.locator('.milkdown h1')).toHaveText('restore');
 	await expect(history(page).first()).toContainText(/^Owner.*Restore e2e-collab\/restore\.md to [0-9a-f]{7}$/);
 });
+
+test('restore a deleted document', async ({ page }) => {
+	// Not gone.md: files.spec checks that no tree link named gone remains after its own delete.
+	const doc = 'e2e-collab/trashed.md';
+	await newDocument(page, doc);
+	await strip(page).getByText('Actions', { exact: true }).click();
+	await strip(page).getByRole('button', { name: 'Delete' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+	await expect(page).toHaveURL(/\/demo\/e2e-collab$/);
+	await expect(rail(page).getByRole('link', { name: 'trashed' })).toHaveCount(0);
+
+	await rail(page).getByRole('link', { name: 'Deleted documents' }).click();
+	await expect(page.getByRole('heading', { name: 'Deleted documents' })).toBeVisible();
+	const row = page.getByRole('row').filter({ hasText: doc });
+	await expect(row).toContainText('Owner');
+	await row.getByRole('button', { name: 'Restore' }).click();
+
+	await expect(page).toHaveURL(new RegExp(`/demo/${doc}$`));
+	await expect(strip(page).getByText(doc, { exact: true })).toBeVisible();
+	await expect(rail(page).getByRole('link', { name: 'trashed' })).toBeVisible();
+});

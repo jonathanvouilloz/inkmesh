@@ -200,4 +200,12 @@ export const en = {
 	'search.title': 'Results for {q}',
 	'search.none': 'No document contains {q}.',
 	'search.prompt': 'Type a word to search.',
+	'nav.deleted': 'Deleted documents',
+	'deleted.title': 'Deleted documents',
+	'deleted.empty': 'No document has been deleted.',
+	'deleted.path': 'Document',
+	'deleted.by': 'Deleted by',
+	'deleted.when': 'When',
+	'deleted.restore': 'Restore',
+	'deleted.exists': 'A document already exists at {path}.',
 };

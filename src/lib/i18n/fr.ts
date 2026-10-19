@@ -203,4 +203,12 @@ export const fr: Record<keyof typeof en, string> = {
 	'search.title': 'Résultats pour « {q} »',
 	'search.none': 'Aucun document ne contient « {q} ».',
 	'search.prompt': 'Tapez un mot pour chercher.',
+	'nav.deleted': 'Documents supprimés',
+	'deleted.title': 'Documents supprimés',
+	'deleted.empty': 'Aucun document n’a été supprimé.',
+	'deleted.path': 'Document',
+	'deleted.by': 'Supprimé par',
+	'deleted.when': 'Quand',
+	'deleted.restore': 'Restaurer',
+	'deleted.exists': 'Un document existe déjà à l’emplacement {path}.',
 };
