@@ -41,11 +41,13 @@ test('an edit autosaves, commits on leaving and keeps the code blocks byte-ident
 	const rail = page.locator('#rail');
 	await rail.getByRole('link', { name: 'PRD — inkmesh' }).click();
 	await expect(page).toHaveURL(/prd\.md$/);
+	// The leave request runs after the navigation: wait for its commit before coming back.
+	await expect
+		.poll(() => execFileSync('git', ['-C', root, 'log', '-1', '--format=%an%n%s'], { encoding: 'utf8' }).trim())
+		.toBe('Owner\nUpdate examples/kitchen-sink.md');
 	await rail.getByRole('link', { name: 'Weekly agent report' }).click();
 	const latest = page.getByRole('complementary').getByRole('listitem').first();
 	await expect(latest).toContainText(/now|seconds? ago/);
-	const log = execFileSync('git', ['-C', root, 'log', '-1', '--format=%an%n%s'], { encoding: 'utf8' });
-	expect(log.trim()).toBe('Owner\nUpdate examples/kitchen-sink.md');
 	const committed = execFileSync('git', ['-C', root, 'show', 'HEAD:examples/kitchen-sink.md'], { encoding: 'utf8' });
 	expect(committed).toBe(fs.readFileSync(file, 'utf8'));
 });

@@ -24,17 +24,18 @@ test('one commit per editing session', async ({ page }) => {
 	await page.waitForTimeout(3000);
 	await page.keyboard.type(' two');
 	await expect(status(page)).toHaveText('Saved', { timeout: 5000 });
-	// Two saves, no commit: the History block, refreshed after each save, has not grown.
+	// Two saves, no commit: neither the History block nor the git log has grown.
 	await expect(history(page)).toHaveCount(count);
 	expect(commits('project/architecture.md')).toEqual(before);
 
 	const rail = page.locator('#rail');
 	await rail.getByRole('link', { name: 'PRD — inkmesh' }).click();
 	await expect(page).toHaveURL(/prd\.md$/);
+	// The leave request runs after the navigation: wait for its commit before coming back.
+	await expect.poll(() => commits('project/architecture.md')).toEqual(['Owner', ...before]);
 	await rail.getByRole('link', { name: 'Architecture — inkmesh' }).click();
 	await expect(history(page)).toHaveCount(count + 1);
 	await expect(history(page).first()).toContainText('Owner');
-	expect(commits('project/architecture.md')).toEqual(['Owner', ...before]);
 });
 
 test('closing the tab ends the session with a beacon', async ({ page }) => {

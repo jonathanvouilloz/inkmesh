@@ -10,7 +10,13 @@ export const init: ServerInit = async () => {
 	// Sessions left by a crash are committed, with their author, before any request.
 	const recovered = await commitAllSessions();
 	if (recovered > 0) console.log(`committed ${recovered} editing session(s) left open`);
-	process.once('sveltekit:shutdown', () => commitAllSessions());
+	process.once('sveltekit:shutdown', () =>
+		commitAllSessions()
+			.then((made) => {
+				if (made > 0) console.log(`committed ${made} editing session(s) at shutdown`);
+			})
+			.catch((err) => console.error('editing sessions: shutdown commit failed', err))
+	);
 };
 
 export const handle: Handle = ({ event, resolve }) => {
