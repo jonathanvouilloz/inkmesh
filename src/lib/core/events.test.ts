@@ -89,6 +89,15 @@ describe('events', () => {
 		expect(changes('demo', ann, 0)).toEqual({ events: [], cursor: c, more: false });
 	});
 
+	it('records comment and join events', () => {
+		appendEvent('demo', ann, { type: 'comment', path: 'a.md', commit: 'abc' });
+		appendEvent('demo', ann, { type: 'join', path: '' });
+		expect(changes('demo', jon).events.map((e) => [e.type, e.path, e.commit])).toEqual([
+			['comment', 'a.md', 'abc'],
+			['join', '', undefined]
+		]);
+	});
+
 	it('a stranger is Forbidden', async () => {
 		const eve = await createUser({ email: 'eve@example.ch', name: 'Eve', password: 'long enough 1' });
 		expect(() => changes('demo', eve)).toThrow(Forbidden);

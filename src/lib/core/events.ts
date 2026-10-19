@@ -2,7 +2,7 @@ import { assertRole } from './access.ts';
 import type { Actor } from './actor.ts';
 import { db } from './db.ts';
 
-export type EventType = 'create' | 'update' | 'move' | 'delete';
+export type EventType = 'create' | 'update' | 'move' | 'delete' | 'comment' | 'join';
 export type WorkspaceEvent = {
 	id: number;
 	type: EventType;
@@ -38,6 +38,20 @@ export function appendEvent(
 			e.commit || null, // '' (no commit) is stored as null
 			new Date().toISOString()
 		);
+}
+
+export function eventFromRow(row: Record<string, unknown>): WorkspaceEvent {
+	const r = row as Row;
+	return {
+		id: r.id,
+		type: r.type,
+		path: r.path,
+		...(r.from_path !== null && { from: r.from_path }),
+		author: r.author,
+		...(r.agent !== null && { agent: r.agent }),
+		...(r.commit_hash !== null && { commit: r.commit_hash }),
+		at: r.at
+	};
 }
 
 type Row = {
@@ -83,16 +97,7 @@ export function changes(
 		(db().prepare('SELECT max(id) AS id FROM events WHERE workspace = ?').get(slug) as { id: number | null }).id ??
 		0;
 	return {
-		events: rows.map((r) => ({
-			id: r.id,
-			type: r.type,
-			path: r.path,
-			...(r.from_path !== null && { from: r.from_path }),
-			author: r.author,
-			...(r.agent !== null && { agent: r.agent }),
-			...(r.commit_hash !== null && { commit: r.commit_hash }),
-			at: r.at
-		})),
+		events: rows.map(eventFromRow),
 		cursor,
 		more
 	};
