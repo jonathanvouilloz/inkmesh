@@ -23,7 +23,6 @@
 		folders,
 		role,
 		locale,
-		links = 0,
 		count = 0,
 		beforesubmit
 	}: {
@@ -33,8 +32,6 @@
 		folders: string[];
 		role: Role;
 		locale: Locale;
-		/** How many other documents link into this item (`linksTo`). */
-		links?: number;
 		/** Documents inside a folder, named in the delete dialog. */
 		count?: number;
 		beforesubmit?: () => Promise<void>;
@@ -55,17 +52,25 @@
 	let moveDialog = $state<HTMLDialogElement>()!;
 	let deleteDialog = $state<HTMLDialogElement>()!;
 	let name = $state('');
-	let error = $state<'exists' | 'invalid'>();
+	let error = $state<'exists' | 'invalid' | 'unsaved'>();
+	// Other documents a move would rewrite, asked when a dialog opens: a whole-workspace scan.
+	let links = $state(0);
 	// A document keeps its extension: the URL tells documents (.md) from folders.
 	const renamed = $derived.by(() => {
 		const typed = name.trim();
-		return join(parent, kind === 'doc' && !typed.endsWith('.md') ? `${typed}.md` : typed);
+		return join(parent, kind === 'doc' && !/\.md$/i.test(typed) ? `${typed}.md` : typed);
 	});
 
 	function open(dialog: HTMLDialogElement) {
 		menu.open = false;
 		name = base;
 		error = undefined;
+		links = 0;
+		if (dialog !== deleteDialog)
+			fetch(docHref(workspace, `-/links/${path}`))
+				.then((res) => (res.ok ? res.json() : { count: 0 }))
+				.then((body: { count: number }) => (links = body.count))
+				.catch(() => {});
 		dialog.showModal();
 	}
 
@@ -77,14 +82,21 @@
 			error = 'invalid';
 			return cancel();
 		}
-		await beforesubmit?.();
+		try {
+			await beforesubmit?.();
+		} catch {
+			// The open document's last change is not on disk: moving now would lose it.
+			error = 'unsaved';
+			return cancel();
+		}
 		return async ({ result, update }) => {
-			if (result.type === 'failure' && result.data?.moveError) {
-				error = result.data.moveError === 'exists' ? 'exists' : 'invalid';
+			const refused = result.type === 'failure' && result.data?.moveError;
+			if (refused && refused !== 'missing') {
+				error = refused === 'exists' ? 'exists' : 'invalid';
 				return;
 			}
 			formElement.closest('dialog')!.close();
-			// A refused delete means the item is already gone: refresh to show it.
+			// A missing item is already gone: refresh to show it.
 			if (result.type === 'failure') await invalidateAll();
 			else await update();
 		};
@@ -110,9 +122,11 @@
 			<li>
 				<button type="button" onclick={() => open(renameDialog)}>{t('files.rename', locale)}</button>
 			</li>
-			<li>
-				<button type="button" onclick={() => open(moveDialog)}>{t('files.move', locale)}</button>
-			</li>
+			{#if targets.length}
+				<li>
+					<button type="button" onclick={() => open(moveDialog)}>{t('files.move', locale)}</button>
+				</li>
+			{/if}
 		{/if}
 		{#if kind === 'doc'}
 			<li>
@@ -142,7 +156,7 @@
 					bind:value={name}
 					required
 					autofocus
-					aria-invalid={error ? 'true' : undefined}
+					aria-invalid={error && error !== 'unsaved' ? 'true' : undefined}
 					aria-describedby={error ? 'rename-error' : undefined}
 				/>
 			</label>
@@ -167,7 +181,7 @@
 				name="to"
 				autofocus
 				aria-labelledby="move-title"
-				aria-invalid={error ? 'true' : undefined}
+				aria-invalid={error && error !== 'unsaved' ? 'true' : undefined}
 				aria-describedby={error ? 'move-error' : undefined}
 			>
 				{#each targets as folder (folder)}
@@ -194,6 +208,9 @@
 					? t('files.deleteDoc', locale, { name: base })
 					: t('files.deleteFolder', locale, { name: base, count: String(count) })}
 			</p>
+			{#if error}
+				<p class="error" role="alert">{t(`files.${error}`, locale)}</p>
+			{/if}
 			<div class="buttons">
 				<button>{t('files.delete', locale)}</button>
 				<button type="button" onclick={() => deleteDialog.close()}>{t('files.cancel', locale)}</button>
@@ -204,10 +221,9 @@
 
 <style>
 	/* The header's menu: a summary trigger with a chevron, a flat list dropping 4px under it. */
+	/* The trigger takes its host's type (mono in the file strip); the menu and dialogs read in Inter. */
 	.actions {
 		position: relative;
-		font-family: var(--font-text);
-		font-size: 13px;
 	}
 	summary {
 		display: flex;
@@ -243,6 +259,8 @@
 		margin: 0;
 		padding: 4px;
 		list-style: none;
+		font-family: var(--font-text);
+		font-size: 13px;
 		background: var(--ground);
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);

@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { history, linksTo, readDocument, writeDocument, type TreeNode } from '#lib/core/documents.ts';
+import { history, readDocument, writeDocument, type TreeNode } from '#lib/core/documents.ts';
 import { frontmatterEntries } from '#lib/core/markdown.ts';
 import { Conflict, InvalidPath } from '#lib/core/paths.ts';
 import { requireRole } from '#lib/server/guard.ts';
@@ -8,18 +8,15 @@ import type { Actions, PageServerLoad } from './$types';
 const notFound = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
 
 export const load: PageServerLoad = async ({ params, locals, parent }) => {
-	const { tree, role } = await parent();
+	const { tree } = await parent();
 	const actor = locals.actor!;
-	// Only editors can rename or move, so only they need the count of documents a move would rewrite.
-	const links = async () =>
-		role === 'reader' ? 0 : (await linksTo(params.workspace, params.path, actor)).length;
 	// A folder name never ends in .md, so any other path is a folder of the tree.
 	if (!params.path.endsWith('.md')) {
 		let nodes: TreeNode[] | undefined = tree;
 		for (const segment of params.path.split('/'))
 			nodes = nodes?.find((n) => n.kind === 'folder' && n.name === segment)?.children;
 		if (!nodes) error(404);
-		return { kind: 'folder' as const, path: params.path, nodes, links: await links() };
+		return { kind: 'folder' as const, path: params.path, nodes };
 	}
 	let doc;
 	try {
@@ -36,8 +33,7 @@ export const load: PageServerLoad = async ({ params, locals, parent }) => {
 		body: doc.body.replace(/\r\n/g, '\n'),
 		hash: doc.hash,
 		entries: frontmatterEntries(doc.frontmatter),
-		history: await history(params.workspace, params.path, actor),
-		links: await links()
+		history: await history(params.workspace, params.path, actor)
 	};
 };
 

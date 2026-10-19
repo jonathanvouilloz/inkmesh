@@ -98,6 +98,7 @@ export const en = {
 	'files.deleteFolder': 'Delete {name} and its {count} documents? They stay in the history.',
 	'files.exists': 'Something with this name already exists here',
 	'files.invalid': 'Use a name without / and not starting with a dot',
+	'files.unsaved': 'Your last change is not saved yet. Resolve it before renaming, moving or deleting.',
 	'files.linksUpdated': 'Links in {count} other documents will be updated',
 	'folder.new': 'New folder',
 	'folder.name': 'Folder name',

@@ -112,3 +112,23 @@ test('rename keeps an edit typed just before', async ({ page }) => {
 	await expect(page).toHaveURL(/\/demo\/e2e-files\/edited\.md$/);
 	await expect(page.locator('.milkdown h1')).toHaveText('edit quickly');
 });
+
+test('an unsaved edit blocks a rename', async ({ page }) => {
+	await page.goto('/demo/e2e-files');
+	await newDocument(page, 'e2e-files/stuck.md');
+	await page.route(
+		(url) => url.search === '?/save',
+		(route) => route.abort()
+	);
+	await page.locator('.milkdown h1').click();
+	await page.keyboard.press('End');
+	await page.keyboard.type(' lost');
+	await page.waitForTimeout(300); // Milkdown's change debounce
+	await action(page, 'Rename');
+	await page.getByLabel('New name').fill('moved');
+	await page.keyboard.press('Enter');
+	await expect(page.getByRole('dialog').getByRole('alert')).toHaveText(
+		'Your last change is not saved yet. Resolve it before renaming, moving or deleting.'
+	);
+	await expect(page).toHaveURL(/\/demo\/e2e-files\/stuck\.md$/);
+});

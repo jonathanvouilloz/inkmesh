@@ -9,6 +9,7 @@ import { closeDb } from '#lib/core/db.ts';
 import { createDocument, MAX_DOCUMENT_BYTES } from '#lib/core/documents.ts';
 import { actions } from './+page.server.ts';
 import { GET } from './-/raw/[...path]/+server.ts';
+import { GET as LINKS } from './-/links/[...path]/+server.ts';
 
 let data: string;
 let owner: User;
@@ -241,4 +242,23 @@ it("download escapes RFC 5987's reserved characters", async () => {
 	expect(res.headers.get('content-disposition')).toBe(
 		"attachment; filename*=UTF-8''it%27s%20%281%29%2A.md"
 	);
+});
+
+function links(target: string, user: User | null = owner) {
+	const event = { params: { workspace: 'demo', path: target }, locals: locals(user) };
+	return LINKS(event as unknown as Parameters<typeof LINKS>[0]);
+}
+
+it('links counts the other documents a move would rewrite', async () => {
+	await act('import', [['folder', 'n'], ['files', file('a.md', '# A\n')]]);
+	await act('import', [['files', file('b.md', '[a](n/a.md)\n')], ['files', file('c.md', '[n](n/)\n')]]);
+	expect(await (await links('n/a.md')).json()).toEqual({ count: 1 });
+	expect(await (await links('n')).json()).toEqual({ count: 2 });
+	await expect(links('../x.md')).rejects.toMatchObject({ status: 404 });
+});
+
+it('links by a non-member is 404', async () => {
+	const stranger = await createUser({ email: 'stranger@example.com', name: 'Stranger', password: 'long-enough-1' });
+	await createDocument('demo', 'a.md', owner);
+	await expect(links('a.md', stranger)).rejects.toMatchObject({ status: 404 });
 });

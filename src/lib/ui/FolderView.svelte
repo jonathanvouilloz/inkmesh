@@ -5,7 +5,7 @@
 	import type { TreeNode } from '#lib/core/documents.ts';
 	import { t, type Locale } from '#lib/i18n/index.ts';
 	import FileActions from './FileActions.svelte';
-	import { ago } from './RightRail.svelte';
+	import { ago } from './time.ts';
 	import { docHref } from './href.ts';
 
 	let {
@@ -15,8 +15,7 @@
 		role,
 		locale,
 		name,
-		folders = [],
-		links = 0
+		folders = []
 	}: {
 		workspace: string;
 		/** '' is the workspace root. */
@@ -28,7 +27,6 @@
 		name: string;
 		/** Every folder path, for the folder's own "Move to…". */
 		folders?: string[];
-		links?: number;
 	} = $props();
 
 	const documents = (ns: TreeNode[]): number =>
@@ -47,7 +45,6 @@
 				{folders}
 				{role}
 				{locale}
-				{links}
 				count={documents(nodes)}
 			/>
 		{/if}

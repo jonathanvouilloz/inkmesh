@@ -45,18 +45,18 @@
 			this.#timer = setTimeout(() => this.save(), 2000);
 		}
 
-		async save() {
+		async save({ reload = true } = {}) {
 			clearTimeout(this.#timer);
 			while (this.#inFlight) await this.#inFlight;
 			if (!this.dirty || this.state === 'conflict') return;
 			this.dirty = false;
 			this.state = 'saving';
-			this.#inFlight = this.#post();
+			this.#inFlight = this.#post(reload);
 			await this.#inFlight;
 			this.#inFlight = undefined;
 		}
 
-		async #post() {
+		async #post(reload: boolean) {
 			const body = new FormData();
 			body.set('body', this.value);
 			body.set('hash', this.#hash);
@@ -70,7 +70,7 @@
 				if (result.type === 'success') {
 					this.#hash = (result.data as { hash: string }).hash;
 					this.state = this.dirty ? 'idle' : 'saved';
-					void invalidateAll(); // refreshes the History block; the document key below keeps this autosave
+					if (reload) void invalidateAll(); // refreshes the History block; the document key below keeps this autosave
 				} else if (result.type === 'failure' && result.status === 409) {
 					this.dirty = true; // the rejected edit is unsaved: leaving must warn
 					this.state = 'conflict';
@@ -122,7 +122,6 @@
 			locale={data.locale}
 			name={data.path.split('/').pop()!}
 			{folders}
-			links={data.links}
 		/>
 	{/key}
 {:else}
@@ -144,8 +143,11 @@
 					{folders}
 					role={data.role}
 					locale={data.locale}
-					links={data.links}
-					beforesubmit={async () => await autosave?.save()}
+					beforesubmit={async () => {
+						// No reload: the old path's data would race the move and could 404.
+						await autosave?.save({ reload: false });
+						if (autosave?.dirty) throw new Error('unsaved');
+					}}
 				/>
 			</FileStrip>
 			<article>

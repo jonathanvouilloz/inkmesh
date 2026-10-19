@@ -100,6 +100,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'files.deleteFolder': 'Supprimer {name} et ses {count} documents ? Ils restent dans l’historique.',
 	'files.exists': 'Un élément porte déjà ce nom ici',
 	'files.invalid': 'Choisissez un nom sans / qui ne commence pas par un point',
+	'files.unsaved': 'Votre dernière modification n’est pas encore enregistrée. Réglez-la avant de renommer, déplacer ou supprimer.',
 	'files.linksUpdated': 'Les liens de {count} autres documents seront mis à jour',
 	'folder.new': 'Nouveau dossier',
 	'folder.name': 'Nom du dossier',
