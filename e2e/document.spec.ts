@@ -59,7 +59,7 @@ test.describe('English', () => {
 
 	test('a missing document is a 404', async ({ page }) => {
 		expect((await page.goto('/demo/examples/nope.md'))?.status()).toBe(404);
-		expect((await page.goto('/demo/examples'))?.status()).toBe(404);
+		expect((await page.goto('/demo/nope'))?.status()).toBe(404);
 		expect((await page.goto('/demo/examples/kitchen-sink.md/x'))?.status()).toBe(404);
 	});
 });

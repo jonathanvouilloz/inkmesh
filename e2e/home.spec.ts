@@ -18,7 +18,9 @@ test('an admin creates a workspace and lands in it', async ({ page }) => {
 	await expect(page.getByLabel('Slug')).toHaveValue('side-project');
 	await page.getByRole('button', { name: 'Create' }).click();
 	await expect(page).toHaveURL(/\/side-project$/);
-	await expect(page.getByRole('main').getByText('Pick a document in the tree')).toBeVisible();
+	await expect(
+		page.getByRole('main').getByText('This folder is empty. Drop .md files here or import them.')
+	).toBeVisible();
 	// The switcher now lists both workspaces, the new one current.
 	await page.getByRole('banner').getByText('Side Project', { exact: true }).click();
 	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeVisible();

@@ -15,7 +15,10 @@
 					<summary
 						><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"
 							><path d="M4.5 2.5 8 6l-3.5 3.5" /></svg
-						>{node.name}</summary
+						><a
+							href={docHref(workspace, node.path)}
+							aria-current={node.path === current ? 'page' : undefined}>{node.name}</a
+						></summary
 					>
 					<Tree nodes={node.children ?? []} {workspace} {current} />
 				</details>
@@ -38,7 +41,7 @@
 		padding-left: 12px;
 	}
 	summary,
-	a {
+	li > a {
 		display: block;
 		padding: 3px 6px;
 		border-radius: var(--radius);
@@ -74,13 +77,20 @@
 		color: var(--ink);
 		text-decoration: none;
 	}
-	a:hover,
+	/* The folder name opens the folder view; the caret around it still folds the folder. */
+	summary a {
+		color: inherit;
+	}
+	li > a:hover,
 	summary:hover {
 		background: var(--hairline);
 	}
 	a[aria-current='page'] {
 		color: var(--accent);
 		font-weight: 500;
+	}
+	summary a[aria-current='page'] {
+		color: var(--accent);
 	}
 	:is(a, summary):focus-visible {
 		outline: 2px solid var(--accent);

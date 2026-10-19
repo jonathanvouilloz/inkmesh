@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Editor from '#lib/editor/Editor.svelte';
+	import FileActions, { folderPaths } from '#lib/ui/FileActions.svelte';
 	import FileStrip from '#lib/ui/FileStrip.svelte';
+	import FolderView from '#lib/ui/FolderView.svelte';
 	import RightRail from '#lib/ui/RightRail.svelte';
 	import { untrack } from 'svelte';
 	import { deserialize } from '$app/forms';
@@ -87,13 +89,15 @@
 	// Readers never save: the save action would answer 403 anyway.
 	const readonly = $derived(data.role === 'reader');
 	const doc = $derived(`${data.workspace}/${data.path}`);
+	const isDoc = $derived(data.kind === 'doc');
 	const autosave = $derived.by(() => {
 		void doc;
-		if (readonly) return undefined;
-		return untrack(
-			() => new Autosave(`${page.url.pathname}?/save`, data.body, data.hash)
+		if (readonly || !isDoc) return undefined;
+		return untrack(() =>
+			data.kind === 'doc' ? new Autosave(`${page.url.pathname}?/save`, data.body, data.hash) : undefined
 		);
 	});
+	const folders = $derived(folderPaths(data.tree));
 	// Leaving a document (in-app navigation or unmount) saves its pending change right away.
 	$effect(() => {
 		const current = autosave;
@@ -107,38 +111,65 @@
 	}}
 />
 
-<div class="document">
-	<div class="centre">
-		<FileStrip
+{#if data.kind === 'folder'}
+	<!-- Keyed so another folder starts with its forms closed and empty. -->
+	{#key doc}
+		<FolderView
+			workspace={data.workspace}
 			path={data.path}
+			nodes={data.nodes}
+			role={data.role}
 			locale={data.locale}
-			saveState={autosave?.state ?? 'idle'}
-			{readonly}
-			bind:raw
-			bind:details
-			bind:opener
+			name={data.path.split('/').pop()!}
+			{folders}
+			links={data.links}
 		/>
-		<article>
-			<!-- Keyed so another document gets a fresh editor with its own body. -->
-			{#key doc}
-				<Editor
-					value={autosave?.value ?? data.body}
-					{raw}
-					{readonly}
+	{/key}
+{:else}
+	<div class="document">
+		<div class="centre">
+			<FileStrip
+				path={data.path}
+				locale={data.locale}
+				saveState={autosave?.state ?? 'idle'}
+				{readonly}
+				bind:raw
+				bind:details
+				bind:opener
+			>
+				<FileActions
+					workspace={data.workspace}
+					path={data.path}
+					kind="doc"
+					{folders}
+					role={data.role}
 					locale={data.locale}
-					onchange={(markdown) => autosave?.change(markdown)}
+					links={data.links}
+					beforesubmit={async () => await autosave?.save()}
 				/>
-			{/key}
-		</article>
+			</FileStrip>
+			<article>
+				<!-- Keyed so another document gets a fresh editor with its own body. -->
+				{#key doc}
+					<Editor
+						value={autosave?.value ?? data.body}
+						{raw}
+						{readonly}
+						locale={data.locale}
+						onchange={(markdown) => autosave?.change(markdown)}
+					/>
+				{/key}
+			</article>
+		</div>
+		<RightRail
+			entries={data.entries}
+			history={data.history}
+			locale={data.locale}
+			bind:open={details}
+			{opener}
+		/>
 	</div>
-	<RightRail
-		entries={data.entries}
-		history={data.history}
-		locale={data.locale}
-		bind:open={details}
-		{opener}
-	/>
-</div>
+{/if}
 
 <style>
 	.document {

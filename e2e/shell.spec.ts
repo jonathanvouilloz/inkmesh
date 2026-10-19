@@ -9,7 +9,11 @@ test.describe('English', () => {
 		await expect(rail.getByText('project', { exact: true })).toBeVisible();
 		await expect(rail.getByText('examples', { exact: true })).toBeVisible();
 		await expect(rail.getByText('New document', { exact: true })).toBeVisible();
-		await expect(page.getByRole('main').getByText('Pick a document in the tree')).toBeVisible();
+		await expect(page.getByRole('main').getByRole('heading', { name: 'Demo' })).toBeVisible();
+		await expect(page.getByRole('main').getByRole('link', { name: 'project' })).toHaveAttribute(
+			'href',
+			'/demo/project'
+		);
 	});
 
 	test('a bad path shows an error under the input', async ({ page }) => {
@@ -54,7 +58,7 @@ test.describe('French', () => {
 			page.locator('#rail').getByText('Nouveau document', { exact: true })
 		).toBeVisible();
 		await expect(
-			page.getByRole('main').getByText('Choisissez un document dans l’arborescence')
+			page.getByRole('main').getByText('Nouveau dossier', { exact: true })
 		).toBeVisible();
 	});
 });

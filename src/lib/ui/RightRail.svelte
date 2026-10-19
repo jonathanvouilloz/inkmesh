@@ -1,6 +1,28 @@
+<script lang="ts" module>
+	import type { Locale } from '#lib/i18n/index.ts';
+
+	const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+		['year', 31536000],
+		['month', 2592000],
+		['week', 604800],
+		['day', 86400],
+		['hour', 3600],
+		['minute', 60],
+		['second', 1]
+	];
+	export function ago(iso: string, locale: Locale): string {
+		const seconds = (Date.parse(iso) - Date.now()) / 1000;
+		const [unit, size] = UNITS.find(([, size]) => Math.abs(seconds) >= size) ?? UNITS[6];
+		return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
+			Math.round(seconds / size),
+			unit
+		);
+	}
+</script>
+
 <script lang="ts">
 	import type { HistoryEntry } from '#lib/core/documents.ts';
-	import { t, type Locale } from '#lib/i18n/index.ts';
+	import { t } from '#lib/i18n/index.ts';
 
 	let {
 		entries,
@@ -24,23 +46,6 @@
 		return () => opener?.focus();
 	});
 
-	const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-		['year', 31536000],
-		['month', 2592000],
-		['week', 604800],
-		['day', 86400],
-		['hour', 3600],
-		['minute', 60],
-		['second', 1]
-	];
-	function ago(iso: string): string {
-		const seconds = (Date.parse(iso) - Date.now()) / 1000;
-		const [unit, size] = UNITS.find(([, size]) => Math.abs(seconds) >= size) ?? UNITS[6];
-		return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
-			Math.round(seconds / size),
-			unit
-		);
-	}
 </script>
 
 <svelte:window
@@ -71,7 +76,7 @@
 				<li>
 					<span>{entry.name}</span>
 					{#if entry.agent}<span class="mono">{t('rail.via', locale)} {entry.agent}</span>{/if}
-					<time class="mono" datetime={entry.date} title={entry.date}>{ago(entry.date)}</time>
+					<time class="mono" datetime={entry.date} title={entry.date}>{ago(entry.date, locale)}</time>
 					<p>{entry.message}</p>
 				</li>
 			{/each}

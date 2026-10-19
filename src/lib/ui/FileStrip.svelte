@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { t, type Locale } from '#lib/i18n/index.ts';
 
 	let {
@@ -12,7 +13,8 @@
 		readonly = false,
 		raw = $bindable(),
 		details = $bindable(),
-		opener = $bindable()
+		opener = $bindable(),
+		children
 	}: {
 		path: string;
 		locale: Locale;
@@ -21,6 +23,8 @@
 		raw: boolean;
 		details: boolean;
 		opener?: HTMLButtonElement;
+		/** The file actions menu, before the strip buttons. */
+		children?: Snippet;
 	} = $props();
 </script>
 
@@ -34,6 +38,7 @@
 				: t(`save.${saveState}`, locale)}</span
 	>
 	<span class="actions">
+		{@render children?.()}
 		<button
 			bind:this={opener}
 			class="details"
@@ -77,6 +82,7 @@
 	}
 	.actions {
 		display: flex;
+		align-items: center;
 		gap: 8px;
 		justify-self: end;
 	}
