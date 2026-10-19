@@ -55,7 +55,9 @@ function redirectUriValid(uri: unknown): boolean {
 
 export function registerClient(meta: unknown): OAuthClient {
 	if (!meta || typeof meta !== 'object') throw new OAuthError('invalid_client_metadata', 'metadata must be an object');
-	const { redirect_uris: uris, client_name: name = 'MCP client' } = meta as Record<string, unknown>;
+	const { redirect_uris: uris, client_name } = meta as Record<string, unknown>;
+	// The name prefills the agent name at consent, so one agentName() would refuse falls back to the default.
+	const name = client_name == null || /[<>\x00-\x1f\x7f]/.test(String(client_name)) ? 'MCP client' : client_name;
 	if (!Array.isArray(uris) || uris.length < 1 || uris.length > MAX_URIS || !uris.every(redirectUriValid))
 		throw new OAuthError('invalid_redirect_uri', 'redirect_uris must be 1 to 5 https or loopback http URIs');
 	if (typeof name !== 'string' || !name.trim() || name.length > MAX_CLIENT_NAME)
@@ -84,6 +86,7 @@ export function oauthClient(clientId: string): OAuthClient | null {
 
 // RFC 8252 §7.3: native clients pick a loopback port per session.
 export function redirectAllowed(client: OAuthClient, uri: string): boolean {
+	if (uri.includes('#')) return false;
 	if (client.redirectUris.includes(uri)) return true;
 	const asked = loopback(uri);
 	return (
@@ -165,6 +168,10 @@ export function exchangeCode(input: {
 	codeVerifier: string;
 	resource?: string;
 }): TokenResponse {
+	const { codeVerifier } = input;
+	// RFC 7636 §4.1; a malformed verifier still burns the code below.
+	const valid = typeof codeVerifier === 'string' && /^[A-Za-z0-9._~-]{43,128}$/.test(codeVerifier);
+	const challenge = valid ? createHash('sha256').update(codeVerifier).digest('base64url') : null;
 	// Returning instead of throwing keeps the delete committed: a failed attempt burns the code too.
 	const tokens = transaction(() => {
 		const row = db()
@@ -176,7 +183,7 @@ export function exchangeCode(input: {
 			row.client_id !== input.clientId ||
 			row.redirect_uri !== input.redirectUri ||
 			(input.resource !== undefined && input.resource !== row.resource) ||
-			createHash('sha256').update(input.codeVerifier).digest('base64url') !== row.code_challenge
+			challenge !== row.code_challenge
 		)
 			return null;
 		return issuePair(row.agent_id, row.resource);
@@ -185,6 +192,7 @@ export function exchangeCode(input: {
 	return tokens;
 }
 
+// shortcut: no reuse detection of rotated-out refresh tokens (RFC 9700 §4.14.2), upgrade when tombstones are worth it.
 export function refreshTokens(input: { refreshToken: string; clientId: string; resource?: string }): TokenResponse {
 	return transaction(() => {
 		const tokenHash = hashToken(input.refreshToken);

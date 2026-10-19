@@ -74,6 +74,9 @@ describe('oauth', () => {
 				oauthCode(() => registerClient({ redirect_uris }))
 			);
 		expect(oauthCode(() => registerClient(null))).toBe('invalid_client_metadata');
+		expect(registerClient({ redirect_uris: [CALLBACK], client_name: null }).name).toBe('MCP client');
+		expect(registerClient({ redirect_uris: [CALLBACK], client_name: '<b>Evil</b>' }).name).toBe('MCP client');
+		expect(registerClient({ redirect_uris: [CALLBACK], client_name: 'a\nb' }).name).toBe('MCP client');
 		expect(oauthCode(() => registerClient({ redirect_uris: [CALLBACK], client_name: 'x'.repeat(101) }))).toBe('invalid_client_metadata');
 	});
 
@@ -87,6 +90,8 @@ describe('oauth', () => {
 		expect(redirectAllowed(client, 'https://localhost:3118/callback')).toBe(false);
 		expect(redirectAllowed(client, 'https://claude.ai:8443/api/mcp/auth_callback')).toBe(false);
 		expect(redirectAllowed(client, 'not a url')).toBe(false);
+		expect(redirectAllowed(client, 'http://localhost:4000/callback#x')).toBe(false);
+		expect(redirectAllowed(client, CALLBACK + '#x')).toBe(false);
 	});
 
 	it('prunes stale unused clients', () => {
@@ -118,6 +123,11 @@ describe('oauth', () => {
 		const wrong = consent(clientId);
 		expect(oauthCode(() => exchange(wrong, { codeVerifier: 'wrong' }))).toBe('invalid_grant');
 		expect(oauthCode(() => exchange(wrong))).toBe('invalid_grant');
+		for (const codeVerifier of [42 as unknown as string, 'short', VERIFIER + '!']) {
+			const malformed = consent(clientId);
+			expect(oauthCode(() => exchange(malformed, { codeVerifier }))).toBe('invalid_grant');
+			expect(oauthCode(() => exchange(malformed))).toBe('invalid_grant');
+		}
 
 		expect(oauthCode(() => exchange(consent(clientId), { redirectUri: 'https://claude.ai/other' }))).toBe('invalid_grant');
 		const other = registerClient({ redirect_uris: [CALLBACK] });
