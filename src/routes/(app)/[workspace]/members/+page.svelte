@@ -6,20 +6,31 @@
 	const locale = $derived(data.locale);
 	const owner = $derived(data.role === 'owner');
 	const lastOwner = $derived(data.members.filter((m) => m.role === 'owner').length === 1);
-	let copied = $state(false);
-	let linkInput = $state<HTMLInputElement>();
+	let copied = $state('');
+	let revokeDialog = $state<HTMLDialogElement>()!;
+	let linksHeading = $state<HTMLHeadingElement>();
+	let opener: HTMLElement | undefined;
+	let revoking = $state<number>();
 
-	async function copy(link: string) {
+	async function copy(id: string, link: string) {
 		try {
 			await navigator.clipboard.writeText(link);
 		} catch {
 			// No clipboard outside a secure context: leave the link selected for a manual copy.
-			linkInput?.focus();
-			linkInput?.select();
+			const input = document.getElementById(id) as HTMLInputElement;
+			input.focus();
+			input.select();
 			return;
 		}
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
+		copied = id;
+		setTimeout(() => (copied = ''), 2000);
+	}
+
+	// Without JavaScript the row's form revokes at once; with it, the dialog asks first.
+	function confirmRevoke(e: MouseEvent, id: number) {
+		e.preventDefault();
+		[revoking, opener] = [id, e.currentTarget as HTMLElement];
+		revokeDialog.showModal();
 	}
 </script>
 
@@ -118,26 +129,130 @@
 		<button>{t('members.create', locale)}</button>
 	</form>
 	{#if form?.link}
-		{@const link = form.link}
-		<div class="link">
-			<label for="invite-link">{t('members.link', locale)}</label>
-			<span class="row">
-				<input
-					id="invite-link"
-					class="mono"
-					readonly
-					value={link}
-					bind:this={linkInput}
-					onfocus={(e) => e.currentTarget.select()}
-				/>
-				<button type="button" aria-live="polite" onclick={() => copy(link)}
-					>{t(copied ? 'members.copied' : 'members.copy', locale)}</button
-				>
-			</span>
-			<p>{t('members.once', locale)}</p>
-		</div>
+		{@render oneTime('invite-link', form.link, 'members.once')}
+	{/if}
+
+	{#if data.publicLinks}
+		<h2 id="public-links" tabindex="-1" bind:this={linksHeading}>{t('share.title', locale)}</h2>
+		<p>{t('share.intro', locale)}</p>
+		{#if data.publicLinks.length}
+			<table aria-labelledby="public-links">
+				<thead>
+					<tr>
+						<th>{t('share.scope', locale)}</th>
+						<th>{t('share.signup', locale)}</th>
+						<th class="created">{t('members.by', locale)}</th>
+						<td></td>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.publicLinks as l (l.id)}
+						{@const scope = l.path ?? t('share.workspace', locale)}
+						<tr>
+							<td>
+								{#if l.path}<span class="mono path">{l.path}</span>{:else}{scope}{/if}
+							</td>
+							<td>
+								<form class="row" method="POST" action="?/shareSignup#public-links">
+									<input type="hidden" name="id" value={l.id} />
+									<select name="signup" aria-label="{t('share.signup', locale)}, {scope}">
+										{@render signups(l.signupRole ?? '')}
+									</select>
+									<button>{t('members.save', locale)}</button>
+								</form>
+							</td>
+							<td class="created">
+								{l.createdBy ?? ''}
+								<time class="mono email" datetime={l.createdAt}
+									>{new Date(l.createdAt).toLocaleDateString(locale)}</time
+								>
+							</td>
+							<td class="end">
+								<form method="POST" action="?/shareRevoke#public-links">
+									<input type="hidden" name="id" value={l.id} />
+									<button aria-label="{t('share.revoke', locale)}, {scope}" onclick={(e) => confirmRevoke(e, l.id)}
+										>{t('share.revoke', locale)}</button
+									>
+								</form>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else}
+			<p>{t('share.empty', locale)}</p>
+		{/if}
+
+		<form class="invite share" method="POST" action="?/shareCreate#public-links">
+			<label class="scope">
+				{t('share.scope', locale)}
+				<select name="scope" class="mono">
+					<option value="">{t('share.workspace', locale)}</option>
+					{#each data.documents as d (d)}
+						<option value={d} selected={d === data.share}>{d}</option>
+					{/each}
+				</select>
+			</label>
+			<label>
+				{t('share.signup', locale)}
+				<select name="signup">{@render signups('')}</select>
+			</label>
+			<button>{t('share.create', locale)}</button>
+		</form>
+		{#if form?.shareError}
+			<p class="error" role="alert">{t('error.notFound', locale)}</p>
+		{/if}
+		{#if form?.shareUrl}
+			{@render oneTime('share-link', form.shareUrl, 'share.once')}
+		{/if}
 	{/if}
 </div>
+
+{#snippet signups(current: string)}
+	<option value="" selected={current === ''}>{t('share.off', locale)}</option>
+	<option value="reader" selected={current === 'reader'}>{t('share.asReader', locale)}</option>
+	<option value="editor" selected={current === 'editor'}>{t('share.asEditor', locale)}</option>
+{/snippet}
+
+{#snippet oneTime(id: string, link: string, once: 'members.once' | 'share.once')}
+	<div class="link">
+		<!-- The invitation link has its own label; the public link is named by its section. -->
+		{#if id === 'invite-link'}<label for={id}>{t('members.link', locale)}</label>{/if}
+		<span class="row">
+			<input
+				{id}
+				class="mono"
+				readonly
+				value={link}
+				aria-labelledby={id === 'share-link' ? 'public-links' : undefined}
+				aria-describedby="{id}-once"
+				onfocus={(e) => e.currentTarget.select()}
+			/>
+			<button type="button" aria-live="polite" onclick={() => copy(id, link)}
+				>{t(copied === id ? 'members.copied' : 'members.copy', locale)}</button
+			>
+		</span>
+		<p id="{id}-once">{t(once, locale)}</p>
+	</div>
+{/snippet}
+
+<dialog
+	bind:this={revokeDialog}
+	aria-labelledby="revoke-title"
+	onclose={() => (opener?.isConnected ? opener : linksHeading)?.focus()}
+>
+	<form method="POST" action="?/shareRevoke#public-links">
+		<h2 id="revoke-title">{t('share.revoke', locale)}</h2>
+		<input type="hidden" name="id" value={revoking} />
+		<p>{t('share.revokeConfirm', locale)}</p>
+		<div class="buttons">
+			<button>{t('share.revoke', locale)}</button>
+			<!-- Keeping is the safe answer, so it takes the focus. -->
+			<!-- svelte-ignore a11y_autofocus -->
+			<button type="button" autofocus onclick={() => revokeDialog.close()}>{t('files.cancel', locale)}</button>
+		</div>
+	</form>
+</dialog>
 
 <style>
 	.page {
@@ -250,6 +365,53 @@
 	.error {
 		color: var(--error);
 	}
+	h2:focus {
+		outline: none;
+	}
+	.path {
+		overflow-wrap: anywhere;
+	}
+	.share {
+		flex-wrap: wrap;
+	}
+	.scope {
+		flex: 1 1 240px;
+		min-width: 0;
+	}
+	select.mono {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+		text-overflow: ellipsis;
+	}
+	dialog {
+		box-sizing: border-box;
+		width: min(360px, calc(100vw - 32px));
+		padding: 24px 16px;
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius);
+		background: var(--ground);
+		color: var(--ink);
+		font-size: 13px;
+	}
+	dialog::backdrop {
+		background: rgb(28 28 26 / 0.3);
+	}
+	dialog form {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	dialog h2 {
+		margin: 0;
+		font-size: 16px;
+	}
+	dialog p {
+		color: var(--ink);
+	}
+	.buttons {
+		display: flex;
+		gap: 8px;
+	}
 	:is(button, input, select):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
@@ -257,6 +419,10 @@
 	@media (max-width: 767px) {
 		.page {
 			padding: 24px 16px;
+		}
+		/* Phones keep what a link covers, its sign-up and Revoke; who created it is the one to go. */
+		.created {
+			display: none;
 		}
 	}
 </style>
