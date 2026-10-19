@@ -6,13 +6,14 @@ import { commitAuthor, type Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { gitCommit, gitInit, gitLog } from './git.ts';
 import { patchMarkdown, splitFrontmatter } from './markdown.ts';
-import { Conflict, InvalidPath, resolveInside } from './paths.ts';
+import { assertFolderName, Conflict, InvalidPath, resolveInside } from './paths.ts';
 
 export type TreeNode = {
 	name: string;
 	path: string;
 	kind: 'folder' | 'doc';
 	title?: string;
+	modified?: string;
 	children?: TreeNode[];
 };
 export type HistoryEntry = {
@@ -75,12 +76,12 @@ export async function listTree(slug: string, actor: Actor): Promise<TreeNode[]> 
 			const p = rel ? `${rel}/${entry.name}` : entry.name;
 			// Dirent types come from lstat, so symlinks are neither and are skipped.
 			if (entry.isDirectory()) {
-				const children = await walk(p);
-				if (children.length) folders.push({ name: entry.name, path: p, kind: 'folder', children });
+				folders.push({ name: entry.name, path: p, kind: 'folder', children: await walk(p) });
 			} else if (entry.isFile() && entry.name.endsWith('.md')) {
 				const { body } = splitFrontmatter(await fs.readFile(join(root, p), 'utf8'));
 				const title = /^# +(.+?)\s*$/m.exec(body)?.[1] ?? entry.name.slice(0, -3);
-				docs.push({ name: entry.name, path: p, kind: 'doc', title });
+				const modified = (await fs.stat(join(root, p))).mtime.toISOString();
+				docs.push({ name: entry.name, path: p, kind: 'doc', title, modified });
 			}
 		}
 		const byName = (a: TreeNode, b: TreeNode) =>
@@ -169,6 +170,26 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 			});
 		} catch (err) {
 			await fs.unlink(file); // or the document exists without a commit and cannot be created again
+			throw err;
+		}
+		return rel;
+	});
+}
+
+/** Creates the folder (and missing parents) and returns its normalised path; not committed, git does not track empty folders. */
+export async function createFolder(slug: string, path: string, actor: Actor): Promise<string> {
+	assertRole(slug, actor, 'editor');
+	assertFolderName(path);
+	const root = workspaceDir(slug);
+	const dir = resolveInside(root, path);
+	const rel = relative(root, dir);
+	return serialised(slug, async () => {
+		await fs.mkdir(dirname(dir), { recursive: true });
+		try {
+			await fs.mkdir(dir);
+		} catch (err) {
+			if ((err as { code?: unknown }).code === 'EEXIST')
+				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
 		return rel;

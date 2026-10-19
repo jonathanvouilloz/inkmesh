@@ -37,3 +37,9 @@ export function resolveInside(root: string, rel: string): string {
 		throw new InvalidPath(rel);
 	return abs;
 }
+
+/** A folder name never ends in .md and no segment starts with a dot, so a path ending in .md is always a document. */
+export function assertFolderName(rel: string): void {
+	if (/\.md[/\\]*$/i.test(rel) || rel.split(/[/\\]/).some((s) => s.startsWith('.')))
+		throw new InvalidPath(rel);
+}

@@ -10,6 +10,7 @@ import { workspaceDir } from './data.ts';
 import { closeDb, db } from './db.ts';
 import {
 	createDocument,
+	createFolder,
 	history,
 	listTree,
 	readDocument,
@@ -49,22 +50,53 @@ describe('documents', () => {
 						name: 'réunion été.md',
 						path: doc,
 						kind: 'doc',
-						title: 'réunion été'
+						title: 'réunion été',
+						modified: expect.any(String)
 					}
 				]
 			}
 		]);
 	});
 
-	it('sorts folders first, numeric order, skips dotfiles, non-md and empty folders', async () => {
+	it('sorts folders first, numeric order, skips dotfiles and non-md files', async () => {
 		const root = workspaceDir('demo');
 		for (const f of ['b10.md', 'b2.md', '.hidden.md', 'notes.txt', 'a/.x/y.md', 'empty/z.txt']) {
 			fs.mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
 			fs.writeFileSync(path.join(root, f), 'no heading\n');
 		}
 		const tree = await listTree('demo', actor);
-		expect(tree.map((n) => n.path)).toEqual(['rapports', 'b2.md', 'b10.md']);
-		expect(tree[1].title).toBe('b2');
+		expect(tree.map((n) => n.path)).toEqual(['a', 'empty', 'rapports', 'b2.md', 'b10.md']);
+		expect(tree[3].title).toBe('b2');
+	});
+
+	it('lists empty folders', async () => {
+		expect(await createFolder('demo', 'a/b', actor)).toBe('a/b');
+		expect(await listTree('demo', actor)).toContainEqual({
+			name: 'a',
+			path: 'a',
+			kind: 'folder',
+			children: [{ name: 'b', path: 'a/b', kind: 'folder', children: [] }]
+		});
+	});
+
+	it('gives documents a modification time', async () => {
+		const [rapports] = await listTree('demo', actor);
+		expect(rapports.children?.[0].modified).toMatch(/^\d{4}-\d\d-\d\dT/);
+	});
+
+	it('refuses bad folder names', async () => {
+		for (const p of ['x.md', 'X.MD', 'x.md/', 'a/.hidden', '../out'])
+			await expect(createFolder('demo', p, actor)).rejects.toThrow(InvalidPath);
+		await expect(createFolder('demo', 'rapports', actor)).rejects.toThrow(Conflict);
+		await expect(createFolder('demo', doc, actor)).rejects.toThrow(InvalidPath);
+	});
+
+	it('readers cannot create folders', async () => {
+		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
+		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
+		await expect(createFolder('demo', 'a', { id: reader.id, name: 'R' })).rejects.toThrow(
+			Forbidden
+		);
 	});
 
 	it('reads a document with its hash', async () => {
