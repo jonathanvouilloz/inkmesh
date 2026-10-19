@@ -117,6 +117,6 @@ export const en = {
 	'drop.invalid': '{name}: only .md files can be imported',
 	'drop.tooLarge': '{name}: larger than 3 MB',
 	'drop.notUtf8': '{name}: not a UTF-8 text file',
-	'drop.failed': 'Import failed. Nothing was imported.',
+	'drop.failed': 'Import failed.',
 	'files.failed': 'This could not be done. Try again.',
 };

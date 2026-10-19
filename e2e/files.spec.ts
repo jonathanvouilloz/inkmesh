@@ -232,7 +232,7 @@ test('a failed import says so', async ({ page }) => {
 		(route) => route.abort()
 	);
 	await dropFiles(page, folderInTree(page, 'e2e-files'), [['lost.md', '# Lost\n']]);
-	await expect(page.getByText('Import failed. Nothing was imported.')).toBeVisible();
+	await expect(page.getByText('Import failed.')).toBeVisible();
 });
 
 test('a file dropped on the editor does not open in the tab', async ({ page }) => {

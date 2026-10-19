@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import Header from '#lib/ui/Header.svelte';
@@ -59,6 +59,8 @@
 		try {
 			results = await importFiles(data.workspace, folder, files, overwrite);
 		} catch {
+			// A fault on one file leaves the files before it imported: the refresh shows them.
+			void invalidateAll();
 			return say([t('drop.failed', data.locale)]);
 		}
 		if (replacesOpen && results.some((r) => r.outcome === 'replaced' && r.path === current))
