@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { gitCommit, gitInit, gitLog } from './git.ts';
+import { gitCommit, gitDeletions, gitInit, gitLog, gitShow } from './git.ts';
 
 let dir: string;
 beforeEach(() => {
@@ -82,5 +82,35 @@ describe('git helpers', () => {
 	it('returns an empty log on a repository with no commits', async () => {
 		await gitInit(dir);
 		expect(await gitLog(dir, 'a.md', 5)).toEqual([]);
+	});
+
+	it('shows a file at a revision as bytes', async () => {
+		await gitInit(dir);
+		const bytes = Buffer.from([0x23, 0x20, 0xff, 0x0d, 0x0a]);
+		fs.writeFileSync(path.join(dir, 'a.md'), bytes);
+		const hash = await gitCommit(dir, { paths: ['a.md'], message: 'add a', author });
+		fs.writeFileSync(path.join(dir, 'a.md'), 'new\n');
+		await gitCommit(dir, { paths: ['a.md'], message: 'edit a', author });
+		expect(await gitShow(dir, hash, 'a.md')).toEqual(bytes);
+		expect(await gitShow(dir, hash, 'b.md')).toBeNull();
+		expect(await gitShow(dir, 'f'.repeat(40), 'a.md')).toBeNull();
+	});
+
+	it('lists deletions without renames', async () => {
+		await gitInit(dir);
+		expect(await gitDeletions(dir, 10)).toEqual([]);
+		for (const f of ['a b.md', 'été.md', 'c.md']) fs.writeFileSync(path.join(dir, f), `# ${f}\n`);
+		await gitCommit(dir, { paths: ['a b.md', 'été.md', 'c.md'], message: 'add', author });
+		fs.rmSync(path.join(dir, 'a b.md'));
+		const first = await gitCommit(dir, { paths: ['a b.md'], message: 'del', author });
+		fs.rmSync(path.join(dir, 'été.md'));
+		fs.renameSync(path.join(dir, 'c.md'), path.join(dir, 'd.md'));
+		const second = await gitCommit(dir, { paths: ['été.md', 'c.md', 'd.md'], message: 'del move', author });
+		const list = await gitDeletions(dir, 10);
+		expect(list).toEqual([
+			{ commit: second, name: 'Jon via test', date: expect.any(String), paths: ['été.md'] },
+			{ commit: first, name: 'Jon via test', date: expect.any(String), paths: ['a b.md'] }
+		]);
+		expect(list.flatMap((e) => e.paths)).toEqual(['été.md', 'a b.md']);
 	});
 });

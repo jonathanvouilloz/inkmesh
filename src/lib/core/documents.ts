@@ -7,7 +7,7 @@ import { commentPath } from './comments.ts';
 import { workspaceDir } from './data.ts';
 import { db } from './db.ts';
 import { appendEvent } from './events.ts';
-import { gitCommit, gitInit, gitLog } from './git.ts';
+import { gitCommit, gitDeletions, gitInit, gitLog, gitShow } from './git.ts';
 import { serialised } from './lock.ts';
 import { patchMarkdown, rewriteUrls, splitFrontmatter } from './markdown.ts';
 import {
@@ -35,11 +35,14 @@ export type HistoryEntry = {
 	date: string;
 	message: string;
 };
+export type DeletedDocument = { path: string; commit: string; name: string; agent?: string; date: string };
 
 export const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
 
 const sha256 = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
+const notFound = (what: string) => Object.assign(new Error(`${what} not found`), { code: 'ENOENT' });
+const COMMIT = /^[0-9a-f]{7,40}$/;
 
 /** A document is a .md file whose name is not a dot-file, inside valid folders: listTree shows nothing else. */
 export function documentFile(root: string, path: string): string {
@@ -486,14 +489,131 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 	});
 }
 
+/** A commit author as `name`, plus `agent` when an agent acted (`<name> via <agent>`, see commitAuthor). */
+function splitAuthor(author: string): { name: string; agent?: string } {
+	const at = author.indexOf(' via ');
+	return at < 0 ? { name: author } : { name: author.slice(0, at), agent: author.slice(at + 5) };
+}
+
 export async function history(slug: string, path: string, actor: Actor): Promise<HistoryEntry[]> {
 	assertRole(slug, actor, 'reader');
 	const root = workspaceDir(slug);
 	resolveInside(root, path);
-	return (await gitLog(root, path, 20)).map(({ name, ...entry }) => {
-		const at = name.indexOf(' via ');
-		return at < 0
-			? { ...entry, name }
-			: { ...entry, name: name.slice(0, at), agent: name.slice(at + 5) };
+	return (await gitLog(root, path, 20)).map(({ name, ...entry }) => ({ ...entry, ...splitAuthor(name) }));
+}
+
+/** The document's bytes at `commit`, a hex id (abbreviated or full); anything else is InvalidPath. */
+async function versionBytes(root: string, rel: string, commit: string): Promise<Buffer> {
+	if (!COMMIT.test(commit)) throw new InvalidPath(commit);
+	const bytes = await gitShow(root, commit, rel);
+	if (!bytes) throw notFound(`${rel} at ${commit}`);
+	return bytes;
+}
+
+export async function readVersion(
+	slug: string,
+	path: string,
+	commit: string,
+	actor: Actor
+): Promise<{ path: string; source: string; commit: string }> {
+	assertRole(slug, actor, 'reader');
+	const root = workspaceDir(slug);
+	const rel = relative(root, documentFile(root, path));
+	const source = (await versionBytes(root, rel, commit)).toString('utf8');
+	return { path: rel, source, commit };
+}
+
+/** Writes the document as it was at `commit`, as a new commit; `commit: ''` when that is the current text. */
+export async function restoreVersion(
+	slug: string,
+	path: string,
+	commit: string,
+	actor: Actor
+): Promise<{ commit: string }> {
+	assertRole(slug, actor, 'editor');
+	if (!COMMIT.test(commit)) throw new InvalidPath(commit);
+	const root = workspaceDir(slug);
+	const file = documentFile(root, path);
+	const rel = relative(root, file);
+	return serialised(slug, async () => {
+		// The restore overwrites the file, so every open session, the restorer's too, is committed first.
+		await flushSessions(slug, (p) => p === rel);
+		const bytes = await versionBytes(root, rel, commit);
+		const current = await fs.readFile(file);
+		if (current.equals(bytes)) return { commit: '' };
+		await writeAtomic(file, bytes);
+		let restored: string;
+		try {
+			restored = await gitCommit(root, {
+				paths: [rel],
+				message: `Restore ${rel} to ${commit.slice(0, 7)}`,
+				author: commitAuthor(actor)
+			});
+		} catch (err) {
+			await writeAtomic(file, current);
+			throw err;
+		}
+		if (restored) appendEvent(slug, actor, { type: 'update', path: rel, commit: restored });
+		await syncIndex(slug, [rel]);
+		return { commit: restored };
+	});
+}
+
+/** Documents deleted in the latest 200 delete commits that do not exist now, newest first. */
+export async function deletedDocuments(slug: string, actor: Actor): Promise<DeletedDocument[]> {
+	assertRole(slug, actor, 'reader');
+	const root = workspaceDir(slug);
+	const seen = new Set<string>();
+	const list: DeletedDocument[] = [];
+	for (const { commit, name, date, paths } of await gitDeletions(root, 200)) {
+		for (const path of paths) {
+			if (!path.endsWith('.md') || path.startsWith('.inkmesh/') || seen.has(path)) continue;
+			seen.add(path);
+			if (await fs.lstat(join(root, path)).catch(() => null)) continue;
+			list.push({ path, commit, ...splitAuthor(name), date });
+		}
+	}
+	return list;
+}
+
+/** Brings a deleted document back, with its comment thread, from the commit before its deletion. */
+export async function restoreDeleted(slug: string, path: string, actor: Actor): Promise<{ commit: string }> {
+	assertRole(slug, actor, 'editor');
+	const root = workspaceDir(slug);
+	const file = documentFile(root, path);
+	const rel = relative(root, file);
+	const notesRel = commentPath(rel);
+	const notesFile = resolveInside(root, notesRel, { inkmesh: true });
+	return serialised(slug, async () => {
+		if (await fs.lstat(file).catch(() => null)) throw new Conflict(`${rel} already exists`);
+		const deletion = (await gitDeletions(root, 200)).find((d) => d.paths.includes(rel));
+		if (!deletion) throw notFound(`deleted ${rel}`);
+		const bytes = await gitShow(root, `${deletion.commit}^`, rel);
+		if (!bytes) throw notFound(`deleted ${rel}`);
+		const notes = await gitShow(root, `${deletion.commit}^`, notesRel);
+		// A thread already there (written outside core) is kept rather than overwritten.
+		const writeNotes = notes && !(await fs.lstat(notesFile).catch(() => null));
+		let commit: string;
+		try {
+			await fs.mkdir(dirname(file), { recursive: true });
+			await writeAtomic(file, bytes, true);
+			if (writeNotes) {
+				await fs.mkdir(dirname(notesFile), { recursive: true });
+				await writeAtomic(notesFile, notes);
+			}
+			commit = await gitCommit(root, {
+				paths: [rel, notesRel],
+				message: `Restore ${rel}`,
+				author: commitAuthor(actor)
+			});
+		} catch (err) {
+			const report = (what: string) => (e: unknown) => console.error(`restore rollback: ${what}`, e);
+			await fs.rm(file, { force: true }).catch(report(`remove ${rel}`));
+			if (writeNotes) await fs.rm(notesFile, { force: true }).catch(report(`remove comments of ${rel}`));
+			throw err;
+		}
+		appendEvent(slug, actor, { type: 'create', path: rel, commit });
+		await syncIndex(slug, [rel]);
+		return { commit };
 	});
 }

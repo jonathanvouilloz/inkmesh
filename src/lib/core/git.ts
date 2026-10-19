@@ -5,20 +5,32 @@ import { promisify } from 'node:util';
 
 const run = promisify(execFile);
 
+const gitEnv = (env: Record<string, string> = {}) => ({
+	...process.env,
+	GIT_CONFIG_NOSYSTEM: '1',
+	GIT_CONFIG_GLOBAL: '/dev/null',
+	// Document names are paths, never patterns: `*.md` or `:x.md` must match only themselves.
+	GIT_LITERAL_PATHSPECS: '1',
+	LC_ALL: 'C',
+	...env
+});
+
 async function git(dir: string, args: string[], env: Record<string, string> = {}): Promise<string> {
 	const { stdout } = await run('git', ['-c', 'commit.gpgsign=false', ...args], {
 		cwd: dir,
-		env: {
-			...process.env,
-			GIT_CONFIG_NOSYSTEM: '1',
-			GIT_CONFIG_GLOBAL: '/dev/null',
-			// Document names are paths, never patterns: `*.md` or `:x.md` must match only themselves.
-			GIT_LITERAL_PATHSPECS: '1',
-			LC_ALL: 'C',
-			...env
-		}
+		env: gitEnv(env)
 	});
 	return stdout;
+}
+
+/** `git log` output, or '' on a repository with no commits yet. */
+async function gitLogOutput(dir: string, args: string[]): Promise<string> {
+	try {
+		return await git(dir, ['log', ...args]);
+	} catch (err) {
+		if (String((err as { stderr?: unknown }).stderr).includes('does not have any commits yet')) return '';
+		throw err;
+	}
 }
 
 /** Fails fast at startup when the git binary is missing. */
@@ -78,26 +90,54 @@ export async function gitLog(
 	limit: number
 ): Promise<Array<{ hash: string; name: string; date: string; message: string }>> {
 	// %x1f separates fields; %s is a single line, so newlines separate records.
-	let out: string;
-	try {
-		out = await git(dir, [
-			'log',
-			'-n',
-			String(limit),
-			'--format=%H%x1f%an%x1f%aI%x1f%s',
-			'--',
-			path
-		]);
-	} catch (err) {
-		if (String((err as { stderr?: unknown }).stderr).includes('does not have any commits yet'))
-			return [];
-		throw err;
-	}
+	const out = await gitLogOutput(dir, ['-n', String(limit), '--format=%H%x1f%an%x1f%aI%x1f%s', '--', path]);
 	return out
 		.split('\n')
 		.filter(Boolean)
 		.map((line) => {
 			const [hash, name, date, message] = line.split('\x1f');
 			return { hash, name, date, message };
+		});
+}
+
+/** A file's bytes at a revision, or null when the revision or the path does not exist there. */
+export async function gitShow(dir: string, rev: string, path: string): Promise<Buffer | null> {
+	try {
+		const { stdout } = await run('git', ['cat-file', 'blob', `${rev}:${path}`], {
+			cwd: dir,
+			env: gitEnv(),
+			encoding: 'buffer',
+			maxBuffer: 64 * 1024 * 1024
+		});
+		return stdout;
+	} catch (err) {
+		if ((err as { code?: unknown }).code === 128) return null; // git's "fatal": no such object
+		throw err;
+	}
+}
+
+/** The newest commits that deleted files, renames excluded, with the deleted paths. */
+export async function gitDeletions(
+	dir: string,
+	limit: number
+): Promise<Array<{ commit: string; name: string; date: string; paths: string[] }>> {
+	const out = await gitLogOutput(dir, [
+		'-M',
+		'--diff-filter=D',
+		'--name-only',
+		'-z',
+		'-n',
+		String(limit),
+		'--format=%x1e%H%x1f%an%x1f%aI'
+	]);
+	// Each record: \x1e header \0 \n path \0 path \0 ...
+	return out
+		.split('\x1e')
+		.filter(Boolean)
+		.map((record) => {
+			const [header, ...paths] = record.split('\0');
+			const [commit, name, date] = header.split('\x1f');
+			if (paths[0]?.startsWith('\n')) paths[0] = paths[0].slice(1);
+			return { commit, name, date, paths: paths.filter(Boolean) };
 		});
 }
