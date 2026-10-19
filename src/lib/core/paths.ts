@@ -43,8 +43,8 @@ export function resolveInside(root: string, rel: string, opts?: { inkmesh?: bool
 	return abs;
 }
 
-/** No folder segment ends in .md or starts with a dot, so a path ending in .md is always a document. */
+/** No folder segment ends in .md or an image extension or starts with a dot, so such a path is never a folder. */
 export function assertFolderName(rel: string): void {
-	if (rel.split(/[/\\]/).some((s) => s.startsWith('.') || /\.md$/i.test(s)))
+	if (rel.split(/[/\\]/).some((s) => s.startsWith('.') || /\.(md|png|jpe?g|gif|webp)$/i.test(s)))
 		throw new InvalidPath(rel);
 }

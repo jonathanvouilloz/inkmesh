@@ -100,6 +100,11 @@ describe('documents', () => {
 		await expect(createFolder('demo', doc, actor)).rejects.toThrow(InvalidPath);
 	});
 
+	it('refuses image-like folder names', async () => {
+		await expect(createFolder('demo', 'shots.PNG', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'rapports', 'a.webp', actor)).rejects.toThrow(InvalidPath);
+	});
+
 	it('readers cannot create folders', async () => {
 		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
 		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
