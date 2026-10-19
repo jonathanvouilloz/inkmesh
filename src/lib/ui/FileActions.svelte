@@ -58,7 +58,8 @@
 	// A document keeps its extension: the URL tells documents (.md) from folders.
 	const renamed = $derived.by(() => {
 		const typed = name.trim();
-		return join(parent, kind === 'doc' && !/\.md$/i.test(typed) ? `${typed}.md` : typed);
+		// Core accepts only a lowercase extension: b.MD and b both become b.md.
+		return join(parent, kind === 'doc' ? `${typed.replace(/\.md$/i, '')}.md` : typed);
 	});
 
 	function open(dialog: HTMLDialogElement) {

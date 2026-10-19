@@ -52,7 +52,7 @@ test('rename and move with the keyboard', async ({ page }) => {
 	await expect(name).toBeFocused();
 	await expect(name).toHaveValue('a.md');
 	await page.keyboard.press('ControlOrMeta+a');
-	await page.keyboard.type('b');
+	await page.keyboard.type('b.MD');
 	await page.keyboard.press('Enter');
 	await expect(page).toHaveURL(/\/demo\/e2e-files\/b\.md$/);
 	await expect(strip(page).getByText('e2e-files/b.md', { exact: true })).toBeVisible();
