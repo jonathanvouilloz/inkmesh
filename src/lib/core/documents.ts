@@ -567,8 +567,14 @@ export async function deletedDocuments(slug: string, actor: Actor): Promise<Dele
 	const list: DeletedDocument[] = [];
 	for (const { commit, name, date, paths } of await gitDeletions(root, 200)) {
 		for (const path of paths) {
-			if (!path.endsWith('.md') || path.startsWith('.inkmesh/') || seen.has(path)) continue;
+			if (seen.has(path)) continue;
 			seen.add(path);
+			// Only what restoreDeleted accepts: no dot-files, .inkmesh/ or invalid folder names.
+			try {
+				documentFile(root, path);
+			} catch {
+				continue;
+			}
 			if (await fs.lstat(join(root, path)).catch(() => null)) continue;
 			list.push({ path, commit, ...splitAuthor(name), date });
 		}

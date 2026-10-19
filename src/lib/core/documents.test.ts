@@ -885,6 +885,21 @@ describe('documents', () => {
 			expect((await deletedDocuments('demo', ann)).map((d) => d.path)).toEqual(['f/b.md']);
 		});
 
+		it('lists only deleted documents that can be restored', async () => {
+			const root = workspaceDir('demo');
+			fs.mkdirSync(path.join(root, 'x.md'));
+			for (const p of ['.hidden.md', 'x.md/b.md', '.dot/c.md']) {
+				fs.mkdirSync(path.dirname(path.join(root, p)), { recursive: true });
+				fs.writeFileSync(path.join(root, p), '# x\n');
+			}
+			git('add', '-A');
+			git('-c', 'user.name=X', '-c', 'user.email=x@y', 'commit', '-qm', 'outside');
+			git('rm', '-rq', '.hidden.md', 'x.md', '.dot');
+			git('-c', 'user.name=X', '-c', 'user.email=x@y', 'commit', '-qm', 'gone');
+			await deletePath('demo', 'a.md', actor);
+			expect((await deletedDocuments('demo', ann)).map((d) => d.path)).toEqual(['a.md']);
+		});
+
 		it('restores a deleted document with its comments', async () => {
 			await addComment('demo', 'a.md', 'Looks good', actor);
 			const token = await createPublicLink('demo', 'a.md', null, actor);
