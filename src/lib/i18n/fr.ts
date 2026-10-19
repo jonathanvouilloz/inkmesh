@@ -195,4 +195,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'version.restore': 'Restaurer cette version',
 	'version.confirm': 'Restaurer cette version ? Le texte actuel reste dans l’historique.',
 	'version.label': 'Version {hash}',
+	'image.failed': 'Image non ajoutée : {reason}',
+	'image.tooLarge': 'plus de 5 Mo',
+	'image.notImage': 'seulement des images PNG, JPEG, GIF et WebP',
+	'image.network': 'la connexion a échoué',
 };

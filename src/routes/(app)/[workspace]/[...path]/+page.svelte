@@ -21,6 +21,24 @@
 	let details = $state(false);
 	let opener = $state<HTMLButtonElement>();
 	let confirm = $state<HTMLDialogElement>();
+	// A refused image, announced in the strip until the next edit or upload.
+	let imageMessage = $state('');
+
+	async function upload(file: File) {
+		imageMessage = '';
+		const body = new FormData();
+		body.set('doc', data.path);
+		body.set('file', file);
+		let reason: 'image.tooLarge' | 'image.notImage' | 'image.network' = 'image.network';
+		try {
+			const res = await fetch(`/${data.workspace}/-/images`, { method: 'POST', body });
+			if (res.status === 201) return (await res.json()) as { src: string; alt: string };
+			if (res.status === 413) reason = 'image.tooLarge';
+			else if (res.status === 400) reason = 'image.notImage';
+		} catch {}
+		imageMessage = t('image.failed', data.locale, { reason: t(reason, data.locale) });
+		return null;
+	}
 
 	// One autosave per opened document: debounced, never overlapping, stopped by a conflict.
 	class Autosave {
@@ -234,6 +252,7 @@
 					locale={data.locale}
 					saveState={autosave?.state ?? 'idle'}
 					{readonly}
+					message={imageMessage}
 					bind:raw
 					bind:details
 					bind:opener
@@ -256,7 +275,11 @@
 							{raw}
 							{readonly}
 							locale={data.locale}
-							onchange={(markdown) => autosave?.change(markdown)}
+							onchange={(markdown) => {
+								imageMessage = '';
+								autosave?.change(markdown);
+							}}
+							onupload={readonly ? undefined : upload}
 						/>
 					{/key}
 					<Comments comments={data.comments} locale={data.locale} />

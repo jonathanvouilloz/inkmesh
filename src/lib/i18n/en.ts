@@ -192,4 +192,8 @@ export const en = {
 	'version.restore': 'Restore this version',
 	'version.confirm': 'Restore this version? The current text stays in the history.',
 	'version.label': 'Version {hash}',
+	'image.failed': 'Image not added: {reason}',
+	'image.tooLarge': 'larger than 5 MB',
+	'image.notImage': 'only PNG, JPEG, GIF and WebP images',
+	'image.network': 'the connection failed',
 };
