@@ -87,7 +87,7 @@ describe('documents', () => {
 	});
 
 	it('refuses bad folder names', async () => {
-		for (const p of ['x.md', 'X.MD', 'x.md/', 'a/.hidden', '../out'])
+		for (const p of ['x.md', 'X.MD', 'x.md/', 'a.md/b', 'a/.hidden', '../out'])
 			await expect(createFolder('demo', p, actor)).rejects.toThrow(InvalidPath);
 		await expect(createFolder('demo', 'rapports', actor)).rejects.toThrow(Conflict);
 		await expect(createFolder('demo', doc, actor)).rejects.toThrow(InvalidPath);
@@ -281,7 +281,7 @@ describe('documents', () => {
 
 	it('refuses document paths under a .md or dot folder', async () => {
 		const bytes = Uint8Array.of(0x61);
-		for (const p of ['a.md/x.md', '.x/y.md']) {
+		for (const p of ['a.md/x.md', 'a.md/b/x.md', '.x/y.md']) {
 			await expect(createDocument('demo', p, actor)).rejects.toThrow(InvalidPath);
 			await expect(importDocument('demo', p, bytes, { actor })).rejects.toThrow(InvalidPath);
 		}
