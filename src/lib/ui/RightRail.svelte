@@ -55,7 +55,7 @@
 					<span>{entry.name}</span>
 					{#if entry.agent}<span class="mono">{t('rail.via', locale)} {entry.agent}</span>{/if}
 					<time class="mono" datetime={entry.date} title={entry.date}>{ago(entry.date, locale)}</time>
-					<p>{entry.message}</p>
+					<p><a href="?v={entry.hash}">{entry.message}</a></p>
 				</li>
 			{/each}
 		</ol>
@@ -128,7 +128,19 @@
 	p {
 		flex-basis: 100%;
 		margin: 0;
+	}
+	a {
 		color: var(--muted);
+		text-decoration-color: var(--hairline);
+		text-underline-offset: 2px;
+	}
+	a:hover {
+		color: var(--accent);
+		text-decoration-color: currentColor;
+	}
+	a:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	@media (max-width: 1023px) {
 		aside {

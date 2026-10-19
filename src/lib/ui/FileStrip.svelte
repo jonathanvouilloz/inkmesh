@@ -14,6 +14,7 @@
 		raw = $bindable(),
 		details = $bindable(),
 		opener = $bindable(),
+		version,
 		children
 	}: {
 		path: string;
@@ -23,6 +24,8 @@
 		raw: boolean;
 		details: boolean;
 		opener?: HTMLButtonElement;
+		/** The short hash of the version shown instead of the editor. */
+		version?: string;
 		/** The file actions menu, before the strip buttons. */
 		children?: Snippet;
 	} = $props();
@@ -31,7 +34,9 @@
 <div class="strip" data-testid="file-strip">
 	<span class="path"><bdi>{path}</bdi></span>
 	<span class="state {saveState}" class:readonly role="status" aria-live="polite"
-		>{readonly
+		>{version
+			? t('version.label', locale, { hash: version })
+			: readonly
 			? t('editor.readonly', locale)
 			: saveState === 'idle'
 				? ''
@@ -46,7 +51,9 @@
 			aria-controls="details"
 			onclick={() => (details = !details)}>{t('rail.open', locale)}</button
 		>
-		<button aria-pressed={raw} onclick={() => (raw = !raw)}>{t('strip.raw', locale)}</button>
+		{#if !version}
+			<button aria-pressed={raw} onclick={() => (raw = !raw)}>{t('strip.raw', locale)}</button>
+		{/if}
 	</span>
 </div>
 
