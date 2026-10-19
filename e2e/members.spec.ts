@@ -132,7 +132,7 @@ test('a reader reads without editing', async () => {
 	await expect(page.getByText('You can read this document; editing needs the editor role')).toBeVisible();
 	await expect(page.locator('.milkdown .ProseMirror')).toHaveAttribute('contenteditable', 'false');
 	await page.getByRole('button', { name: 'Raw' }).click();
-	await expect(page.locator('textarea')).toHaveAttribute('readonly', '');
+	await expect(page.getByRole('textbox', { name: 'Raw Markdown' })).toHaveAttribute('readonly', '');
 	await expect(page.locator('#rail').getByText('New document', { exact: true })).toHaveCount(0);
 });
 

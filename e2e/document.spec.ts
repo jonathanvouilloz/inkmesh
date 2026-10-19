@@ -29,7 +29,7 @@ test.describe('English', () => {
 		await expect(toggle).toHaveAttribute('aria-pressed', 'false');
 		await toggle.click();
 		await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-		const raw = page.locator('textarea');
+		const raw = page.getByRole('textbox', { name: 'Raw Markdown' });
 		await expect(raw).toBeVisible();
 		// The body keeps the blank line that follows the frontmatter on disk.
 		expect(await raw.inputValue()).toMatch(/^\n?# /);
