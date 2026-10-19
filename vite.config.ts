@@ -10,7 +10,9 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			// The origin check runs in hooks.server.ts (src/lib/server/csrf.ts), minus the agent endpoints.
+			csrf: { trustedOrigins: ['*'] }
 		})
 	],
 	test: { include: ['src/**/*.test.ts'] }

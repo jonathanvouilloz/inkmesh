@@ -13,7 +13,7 @@ export type Invitation = { workspace: Workspace; role: Role; createdBy: string; 
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,39}$/;
 // Workspaces live at /<slug>, so a slug must not shadow a top-level route.
-const RESERVED = new Set(['login', 'logout', 'account', 'invite', 'api', 'mcp', 'assets', 'static', 'favicon.ico']);
+const RESERVED = new Set(['login', 'logout', 'account', 'invite', 'api', 'mcp', 'oauth', 'assets', 'static', 'favicon.ico']);
 const INVITATION_DAYS = 7;
 const rank = (role: Role) => ROLES.indexOf(role);
 const now = () => new Date().toISOString();

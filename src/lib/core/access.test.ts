@@ -61,6 +61,7 @@ describe('access', () => {
 		const jon = await user('jon');
 		await expect(createWorkspace('login', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
 		await expect(createWorkspace('invite', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
+		await expect(createWorkspace('oauth', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
 	});
 
 	it('drops the workspace row when its folder cannot be created', async () => {
