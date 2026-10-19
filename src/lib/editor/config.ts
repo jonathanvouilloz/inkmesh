@@ -1,5 +1,5 @@
 import { Crepe, type CrepeConfig } from '@milkdown/crepe';
-import { imageSchema, linkSchema } from '@milkdown/kit/preset/commonmark';
+import { headingIdGenerator, imageSchema, linkSchema } from '@milkdown/kit/preset/commonmark';
 
 // ImageBlock writes the image ratio into the alt text, so it stays off (see alt-text.test.ts).
 export const crepeFeatures: CrepeConfig['features'] = { [Crepe.Feature.ImageBlock]: false };
@@ -47,4 +47,12 @@ export function inertUnsafeUrls(crepe: Crepe) {
 				};
 			})
 		);
+}
+
+// Heading ids take rehype-sanitize's clobber prefix, so a heading never reuses an id of the page
+// (#comments) and anchors work the same in the editor and in rendered HTML.
+export function prefixHeadingIds(crepe: Crepe) {
+	crepe.editor.config((ctx) =>
+		ctx.update(headingIdGenerator.key, (prev) => (node) => `user-content-${prev(node)}`)
+	);
 }

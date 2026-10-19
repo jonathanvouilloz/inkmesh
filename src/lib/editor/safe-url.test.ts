@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { Crepe } from '@milkdown/crepe';
 import { expect, it } from 'vitest';
-import { crepeFeatures, inertUnsafeUrls, safeUrl } from './config.ts';
+import { crepeFeatures, inertUnsafeUrls, prefixHeadingIds, safeUrl } from './config.ts';
 
 it.each([
 	['javascript:alert(1)', false],
@@ -29,6 +29,20 @@ it('renders unsafe links and images inert and leaves the Markdown alone', async 
 		expect([...links].map((a) => a.getAttribute('href'))).toEqual([null, 'https://a']);
 		const images = root.querySelectorAll('.ProseMirror img:not(.ProseMirror-separator)');
 		expect([...images].map((img) => img.getAttribute('src'))).toEqual([null, '/x.png']);
+		expect(crepe.getMarkdown()).toBe(source);
+	} finally {
+		crepe.destroy();
+	}
+});
+
+it('prefixes heading ids so a heading never takes an id of the page', async () => {
+	const source = '# Comments\n';
+	const root = document.createElement('div');
+	const crepe = new Crepe({ root, defaultValue: source, features: crepeFeatures });
+	prefixHeadingIds(crepe);
+	await crepe.create();
+	try {
+		expect(root.querySelector('.ProseMirror h1')!.id).toBe('user-content-comments');
 		expect(crepe.getMarkdown()).toBe(source);
 	} finally {
 		crepe.destroy();

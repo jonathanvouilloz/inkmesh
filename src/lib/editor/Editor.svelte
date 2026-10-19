@@ -30,7 +30,7 @@
 
 	onMount(() => {
 		load = async () => {
-			const [{ Crepe }, { crepeFeatures, inertUnsafeUrls }, { uploadConfig }] = await Promise.all([
+			const [{ Crepe }, { crepeFeatures, inertUnsafeUrls, prefixHeadingIds }, { uploadConfig }] = await Promise.all([
 				import('@milkdown/crepe'),
 				import('./config.ts'),
 				import('@milkdown/kit/plugin/upload')
@@ -44,6 +44,7 @@
 				featureConfigs: { [Crepe.Feature.Placeholder]: { text: t('editor.placeholder', locale) } }
 			});
 			inertUnsafeUrls(crepe);
+			prefixHeadingIds(crepe);
 			const upload = untrack(() => onupload);
 			if (upload)
 				crepe.editor.config((ctx) =>
