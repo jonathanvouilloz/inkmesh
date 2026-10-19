@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import type { Workspace } from '#lib/core/access.ts';
 	import type { User } from '#lib/core/accounts.ts';
 	import { t, type Locale } from '#lib/i18n/index.ts';
@@ -56,9 +57,20 @@
 				{/each}
 			</ul>
 		</details>
+		{#if current}
+			<a
+				class="connect"
+				href="/{current}/-/connect"
+				aria-current={page.route.id === '/(app)/[workspace]/-/connect' ? 'page' : undefined}
+				>{t('nav.connect', locale)}</a
+			>
+		{/if}
 		<details class="user" bind:this={menus[1]}>
 			<summary><span class="current">{user.name}</span></summary>
 			<ul>
+				{#if current}
+					<li class="phone"><a href="/{current}/-/connect">{t('nav.connect', locale)}</a></li>
+				{/if}
 				<li><a href="/account">{t('nav.account', locale)}</a></li>
 				<li>
 					<form method="POST" action="/logout">
@@ -104,8 +116,20 @@
 		position: relative;
 		min-width: 0;
 	}
-	.user {
+	.user,
+	.connect {
 		margin-left: auto;
+	}
+	.connect + .user {
+		margin-left: 0;
+	}
+	.connect {
+		padding: 3px 6px;
+		border-radius: var(--radius);
+	}
+	.connect[aria-current='page'] {
+		color: var(--accent);
+		font-weight: 500;
 	}
 	summary {
 		display: flex;
@@ -202,9 +226,15 @@
 			top: 0;
 			z-index: 2;
 		}
+		.phone {
+			display: none;
+		}
 	}
-	/* Phones: one row; long workspace and user names shrink to an ellipsis. */
+	/* Phones: one row; long workspace and user names shrink to an ellipsis, the connect link moves into the user menu. */
 	@media (max-width: 767px) {
+		.connect {
+			display: none;
+		}
 		header {
 			gap: 8px;
 			padding: 0 12px;
