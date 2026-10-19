@@ -37,6 +37,8 @@ test('comment, resolve and reopen', async ({ page }) => {
 
 	await open.getByRole('button', { name: 'Resolve' }).click();
 	await expect(comments.getByText('No comments yet.')).toBeVisible();
+	// The clicked button left the list; focus is not lost to the page.
+	await expect(comments.getByRole('heading', { name: 'Comments' })).toBeFocused();
 	await comments.getByText('1 resolved').click();
 	const resolved = comments.locator('details').getByRole('listitem');
 	await expect(resolved).toContainText('The second table needs a total.');
@@ -45,6 +47,20 @@ test('comment, resolve and reopen', async ({ page }) => {
 	await expect(comments.getByText('1 resolved')).toHaveCount(0);
 	await expect(comments.getByRole('listitem')).toContainText('The second table needs a total.');
 	await expect(comments.getByRole('button', { name: 'Resolve' })).toBeVisible();
+});
+
+test.describe('without JavaScript', () => {
+	test.use({ javaScriptEnabled: false });
+
+	test('a refused comment shows why and keeps its text', async ({ page }) => {
+		await page.goto('/demo/e2e-collab/comments.md');
+		const comments = page.getByRole('region', { name: 'Comments' });
+		const long = 'x'.repeat(10_001);
+		await comments.getByLabel('Add a comment').fill(long);
+		await comments.getByRole('button', { name: 'Comment' }).click();
+		await expect(comments.getByRole('alert')).toHaveText('Use at most 10,000 characters.');
+		await expect(comments.getByLabel('Add a comment')).toHaveValue(long);
+	});
 });
 
 test('restore an earlier version', async ({ page }) => {

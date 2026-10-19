@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import type { Comment } from '#lib/core/comments.ts';
 	import { t, type Locale } from '#lib/i18n/index.ts';
 	import Rendered from './Rendered.svelte';
@@ -10,7 +11,9 @@
 
 	const open = $derived(comments.filter((c) => !c.resolved));
 	const resolved = $derived(comments.filter((c) => c.resolved));
-	let commentError = $state<'empty' | 'too-large'>();
+	// From the action's result, so a refused comment shows its error and keeps its text without JavaScript too.
+	const commentError = $derived(page.form?.commentError as 'empty' | 'too-large' | undefined);
+	let heading: HTMLElement;
 </script>
 
 {#snippet item(c: Item, resolve: boolean)}
@@ -21,7 +24,16 @@
 			<time class="mono" datetime={c.at} title={c.at}>{ago(c.at, locale)}</time>
 		</p>
 		<Rendered html={c.html} />
-		<form method="POST" action="?/resolve" use:enhance>
+		<!-- The clicked button leaves the list: focus goes back to the section heading. -->
+		<form
+			method="POST"
+			action="?/resolve"
+			use:enhance={() =>
+				async ({ update }) => {
+					await update();
+					heading.focus();
+				}}
+		>
 			<input type="hidden" name="id" value={c.id} />
 			<input type="hidden" name="resolved" value={resolve ? '1' : '0'} />
 			<button>{t(resolve ? 'comments.resolve' : 'comments.reopen', locale)}</button>
@@ -30,7 +42,7 @@
 {/snippet}
 
 <section id="comments" aria-labelledby="comments-title">
-	<h2 id="comments-title">{t('comments.title', locale)}</h2>
+	<h2 id="comments-title" tabindex="-1" bind:this={heading}>{t('comments.title', locale)}</h2>
 	{#if open.length}
 		<ol>
 			{#each open as c (c.id)}{@render item(c, true)}{/each}
@@ -46,23 +58,13 @@
 			</ol>
 		</details>
 	{/if}
-	<form
-		class="add"
-		method="POST"
-		action="?/comment"
-		use:enhance={() =>
-			async ({ result, update }) => {
-				commentError =
-					result.type === 'failure' ? (result.data?.commentError as typeof commentError) : undefined;
-				// A refused comment keeps its text in the field.
-				await update({ reset: result.type === 'success' });
-			}}
-	>
+	<form class="add" method="POST" action="?/comment" use:enhance>
 		<label for="comment-body">{t('comments.add', locale)}</label>
 		<textarea
 			id="comment-body"
 			name="body"
 			rows="3"
+			value={commentError ? (page.form?.body as string) : ''}
 			aria-invalid={commentError ? 'true' : undefined}
 			aria-describedby={commentError ? 'comment-error' : undefined}
 		></textarea>
@@ -85,6 +87,13 @@
 		border-top: 1px solid var(--hairline);
 		font-size: 13px;
 		line-height: 1.5;
+	}
+	h2:focus {
+		outline: none;
+	}
+	h2:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	h2 {
 		margin: 0;
