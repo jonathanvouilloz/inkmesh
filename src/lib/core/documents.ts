@@ -15,6 +15,7 @@ import {
 	InvalidPath,
 	resolveInside
 } from './paths.ts';
+import { flushSessions, openSession } from './sessions.ts';
 
 export type TreeNode = {
 	name: string;
@@ -187,17 +188,19 @@ export async function readDocument(
 	return { path, source, ...splitFrontmatter(source), hash: sha256(source) };
 }
 
-// shortcut: one commit per autosave; commit-per-editing-session (PRD item 5) lands with sessions in milestone 2
+/** The editor's autosave: writes without committing; the editing session commits later. */
 export async function writeDocument(
 	slug: string,
 	path: string,
 	body: string,
 	opts: { expectedHash: string; actor: Actor }
-): Promise<{ hash: string; commit: string }> {
+): Promise<{ hash: string }> {
 	assertRole(slug, opts.actor, 'editor');
 	const root = workspaceDir(slug);
 	const file = documentFile(root, path);
+	const rel = relative(root, file);
 	return serialised(slug, async () => {
+		await flushSessions(slug, (p) => p === rel, opts.actor);
 		let source: string;
 		try {
 			source = await fs.readFile(file, 'utf8');
@@ -209,20 +212,10 @@ export async function writeDocument(
 			throw new Conflict(`${path} changed since it was read`);
 		const old = splitFrontmatter(source);
 		const next = old.frontmatter + patchMarkdown(old.body, body);
-		if (next === source) return { hash: opts.expectedHash, commit: '' };
+		if (next === source) return { hash: opts.expectedHash };
 		await writeAtomic(file, next);
-		let commit: string;
-		try {
-			commit = await gitCommit(root, {
-				paths: [path],
-				message: `Update ${path}`,
-				author: commitAuthor(opts.actor)
-			});
-		} catch (err) {
-			await writeAtomic(file, source); // or the next save sees a changed hash: a false conflict
-			throw err;
-		}
-		return { hash: sha256(next), commit };
+		openSession(slug, rel, opts.actor);
+		return { hash: sha256(next) };
 	});
 }
 
@@ -279,6 +272,7 @@ export async function importDocument(
 		throw new InvalidContent('not-utf8');
 	}
 	return serialised(slug, async () => {
+		await flushSessions(slug, (p) => p === rel, opts.actor);
 		let old: Buffer | undefined;
 		try {
 			old = await fs.readFile(file);
@@ -341,6 +335,8 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 	assertRole(slug, actor, 'editor');
 	const root = workspaceDir(slug);
 	return serialised(slug, async () => {
+		// Every session: the move may rewrite links in any document, and a session must not keep an old path.
+		await flushSessions(slug, () => true);
 		const isDoc = (await fs.stat(resolveInside(root, from))).isFile();
 		let src: string, dest: string;
 		if (isDoc) {
@@ -405,6 +401,7 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 			assertFolderName(relative(root, target));
 		}
 		const rel = relative(root, target);
+		await flushSessions(slug, (p) => under(p, rel));
 		// Renamed aside rather than removed, so a failed commit can put it back intact.
 		const trash = join(root, '.inkmesh', `trash-${randomBytes(6).toString('hex')}`);
 		await fs.mkdir(dirname(trash), { recursive: true });

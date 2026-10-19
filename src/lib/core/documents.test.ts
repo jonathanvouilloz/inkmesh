@@ -24,6 +24,7 @@ import {
 } from './documents.ts';
 import { changes } from './events.ts';
 import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
+import { commitAllSessions } from './sessions.ts';
 
 let actor: Actor;
 let agent: Actor;
@@ -117,19 +118,26 @@ describe('documents', () => {
 		const { hash } = await readDocument('demo', doc, actor);
 		const res = await writeDocument('demo', doc, '# réunion été\n\nHello\n', {
 			expectedHash: hash,
-			actor: agent
+			actor
 		});
 		expect(res.hash).not.toBe(hash);
-		expect(res.commit).toMatch(/^[0-9a-f]{40}$/);
+		expect(await commitAllSessions()).toBe(1);
+		// The editor is human only; an agent writes through importDocument.
+		await importDocument('demo', doc, new TextEncoder().encode('# réunion été\n\nBye\n'), {
+			actor: agent,
+			expectedHash: res.hash
+		});
 		const log = await history('demo', doc, actor);
-		expect(log).toHaveLength(2);
+		expect(log).toHaveLength(3);
 		expect(log[0]).toMatchObject({
 			name: 'Jon',
 			agent: 'claude-code',
 			message: `Update ${doc}`
 		});
-		expect(log[1]).toMatchObject({ name: 'Jon', message: `Create ${doc}` });
+		expect(log[1]).toMatchObject({ name: 'Jon', message: `Update ${doc}` });
 		expect(log[1].agent).toBeUndefined();
+		expect(log[2]).toMatchObject({ name: 'Jon', message: `Create ${doc}` });
+		expect(log[2].agent).toBeUndefined();
 	});
 
 	it('keeps frontmatter and CRLF on write', async () => {
@@ -204,7 +212,8 @@ describe('documents', () => {
 			expectedHash: hash,
 			actor
 		});
-		expect(res).toEqual({ hash, commit: '' });
+		expect(res).toEqual({ hash });
+		expect(await commitAllSessions()).toBe(0);
 		expect(await history('demo', doc, actor)).toHaveLength(1);
 	});
 
@@ -227,6 +236,7 @@ describe('documents', () => {
 			expect(show()).toBe(`${name}\n`);
 			const { hash } = await readDocument('demo', name, actor);
 			await writeDocument('demo', name, '# changed\n', { expectedHash: hash, actor });
+			await commitAllSessions();
 			expect(show()).toBe(`${name}\n`);
 			expect((await history('demo', name, actor)).map((e) => e.message)).toEqual([
 				`Update ${name}`,
@@ -314,10 +324,6 @@ describe('documents', () => {
 		const before = fs.readFileSync(file, 'utf8');
 		const { hash } = await readDocument('demo', doc, actor);
 		fs.writeFileSync(lock, '');
-		await expect(
-			writeDocument('demo', doc, '# changed\n', { expectedHash: hash, actor })
-		).rejects.toThrow();
-		expect(fs.readFileSync(file, 'utf8')).toBe(before);
 		await expect(createDocument('demo', 'new.md', actor)).rejects.toThrow();
 		expect(fs.existsSync(path.join(workspaceDir('demo'), 'new.md'))).toBe(false);
 		const bytes = new TextEncoder().encode('# imported\n');
