@@ -145,6 +145,17 @@
 		.details {
 			display: block;
 		}
+		/* A 44px touch target, without changing the button's look. */
+		button {
+			position: relative;
+		}
+		button::before {
+			content: '';
+			position: absolute;
+			inset: 50% 0 auto;
+			height: 44px;
+			transform: translateY(-50%);
+		}
 	}
 	@media (prefers-reduced-motion: no-preference) {
 		button {

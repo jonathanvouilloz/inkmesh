@@ -55,6 +55,9 @@
 	let error = $state<'exists' | 'invalid' | 'unsaved'>();
 	// Other documents a move would rewrite, asked when a dialog opens: a whole-workspace scan.
 	let links = $state(0);
+	const folderKey = $derived(
+		count === 0 ? 'files.deleteFolderEmpty' : count === 1 ? 'files.deleteFolderOne' : 'files.deleteFolder'
+	);
 	// A document keeps its extension: the URL tells documents (.md) from folders.
 	const renamed = $derived.by(() => {
 		const typed = name.trim();
@@ -209,10 +212,7 @@
 			<p>
 				{kind === 'doc'
 					? t('files.deleteDoc', locale, { name: base })
-					: t(count === 1 ? 'files.deleteFolderOne' : 'files.deleteFolder', locale, {
-								name: base,
-								count: String(count)
-							})}
+					: t(folderKey, locale, { name: base, count: String(count) })}
 			</p>
 			{#if error}
 				<p class="error" role="alert">{t(`files.${error}`, locale)}</p>
@@ -259,6 +259,19 @@
 	}
 	summary:hover {
 		background: var(--hairline);
+	}
+	/* A 44px touch target on phones, without changing the trigger's look. */
+	@media (max-width: 767px) {
+		summary {
+			position: relative;
+		}
+		summary::before {
+			content: '';
+			position: absolute;
+			inset: 50% 0 auto;
+			height: 44px;
+			transform: translateY(-50%);
+		}
 	}
 	ul {
 		position: absolute;
