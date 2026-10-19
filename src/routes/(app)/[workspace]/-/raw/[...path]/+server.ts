@@ -16,11 +16,15 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			error(404);
 		throw err;
 	}
-	const name = params.path.split('/').pop()!;
+	// RFC 5987 also reserves ' ( ) *, which encodeURIComponent leaves alone.
+	const name = encodeURIComponent(params.path.split('/').pop()!).replace(
+		/['()*]/g,
+		(c) => '%' + c.charCodeAt(0).toString(16).toUpperCase()
+	);
 	return new Response(source, {
 		headers: {
 			'content-type': 'text/markdown; charset=utf-8',
-			'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}`
+			'content-disposition': `attachment; filename*=UTF-8''${name}`
 		}
 	});
 };

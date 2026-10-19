@@ -6,7 +6,7 @@ import { acceptInvitation, createInvitation, createWorkspace } from '#lib/core/a
 import { createUser, type User } from '#lib/core/accounts.ts';
 import { workspaceDir } from '#lib/core/data.ts';
 import { closeDb } from '#lib/core/db.ts';
-import { createDocument } from '#lib/core/documents.ts';
+import { createDocument, MAX_DOCUMENT_BYTES } from '#lib/core/documents.ts';
 import { actions } from './+page.server.ts';
 import { GET } from './-/raw/[...path]/+server.ts';
 
@@ -176,4 +176,69 @@ it('download by a non-member is 404', async () => {
 	const stranger = await createUser({ email: 'stranger@example.com', name: 'Stranger', password: 'long-enough-1' });
 	await createDocument('demo', 'a.md', owner);
 	await expect(download('a.md', stranger)).rejects.toMatchObject({ status: 404 });
+});
+
+it('refuses an anonymous caller with 401', async () => {
+	await createDocument('demo', 'a.md', owner);
+	await expect(download('a.md', null)).rejects.toMatchObject({ status: 401 });
+	await expect(act('delete', [['path', 'a.md']], null)).rejects.toMatchObject({ status: 401 });
+	expect(fs.existsSync(path.join(workspaceDir('demo'), 'a.md'))).toBe(true);
+});
+
+it('download refuses paths outside the documents with 404', async () => {
+	for (const p of ['../x.md', '.git/config'])
+		await expect(download(p)).rejects.toMatchObject({ status: 404 });
+});
+
+it('move maps a taken target to 409 and an invalid one to 400', async () => {
+	await createDocument('demo', 'a.md', owner);
+	await createDocument('demo', 'b.md', owner);
+	expect(await act('move', [['from', 'a.md'], ['to', 'b.md']])).toMatchObject({
+		status: 409,
+		data: { moveError: 'exists', from: 'a.md' }
+	});
+	expect(await act('move', [['from', 'a.md'], ['to', '../a.md']])).toMatchObject({
+		status: 400,
+		data: { moveError: 'invalid', from: 'a.md' }
+	});
+});
+
+it('reports too-large and separator names in an import', async () => {
+	const result = await act('import', [
+		['folder', ''],
+		['files', new File([new Uint8Array(MAX_DOCUMENT_BYTES + 1)], 'big.md')],
+		['files', file('a/b.md', '# B\n')],
+		['files', file('a\\b.md', '# B\n')]
+	]);
+	expect(result).toEqual({
+		results: [
+			{ name: 'big.md', path: 'big.md', outcome: 'too-large' },
+			{ name: 'a/b.md', outcome: 'invalid' },
+			{ name: 'a\\b.md', outcome: 'invalid' }
+		]
+	});
+	expect(fs.readdirSync(workspaceDir('demo')).filter((f) => !f.startsWith('.'))).toEqual([]);
+});
+
+it('refuses a folder name with a separator', async () => {
+	expect(await act('folder', [['parent', ''], ['name', 'a/b']])).toMatchObject({
+		status: 400,
+		data: { folderError: 'invalid', name: 'a/b' }
+	});
+	expect(fs.existsSync(path.join(workspaceDir('demo'), 'a'))).toBe(false);
+});
+
+it('delete of an invalid path is 400', async () => {
+	expect(await act('delete', [['path', '../x.md']])).toMatchObject({
+		status: 400,
+		data: { deleteError: 'invalid' }
+	});
+});
+
+it("download escapes RFC 5987's reserved characters", async () => {
+	await act('import', [['folder', ''], ['files', file("it's (1)*.md", '# X\n')]]);
+	const res = await download("it's (1)*.md");
+	expect(res.headers.get('content-disposition')).toBe(
+		"attachment; filename*=UTF-8''it%27s%20%281%29%2A.md"
+	);
 });

@@ -5,7 +5,6 @@
 
 	let { nodes, workspace, current }: { nodes: TreeNode[]; workspace: string; current?: string } =
 		$props();
-	const href = (path: string) => docHref(workspace, path);
 </script>
 
 <ul>
@@ -21,7 +20,7 @@
 					<Tree nodes={node.children ?? []} {workspace} {current} />
 				</details>
 			{:else}
-				<a href={href(node.path)} aria-current={node.path === current ? 'page' : undefined}
+				<a href={docHref(workspace, node.path)} aria-current={node.path === current ? 'page' : undefined}
 					>{node.title}</a
 				>
 			{/if}

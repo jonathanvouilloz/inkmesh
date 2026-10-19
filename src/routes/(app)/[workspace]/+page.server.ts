@@ -36,8 +36,8 @@ export const actions: Actions = {
 		const name = String(form.get('name') ?? '').trim();
 		let created: string;
 		try {
-			// An empty name would resolve to the parent itself.
-			if (!name) throw new InvalidPath(name);
+			// An empty name would resolve to the parent itself; a separator would nest folders.
+			if (!name || /[/\\]/.test(name)) throw new InvalidPath(name);
 			created = await createFolder(params.workspace, parent ? `${parent}/${name}` : name, locals.actor!);
 		} catch (err) {
 			if (err instanceof Conflict) return fail(409, { folderError: 'exists' as const, name });
@@ -56,7 +56,7 @@ export const actions: Actions = {
 		for (const file of form.getAll('files')) {
 			if (!(file instanceof File)) continue;
 			const { name } = file;
-			if (!/\.(md|markdown)$/i.test(name)) {
+			if (!/\.(md|markdown)$/i.test(name) || /[/\\]/.test(name)) {
 				results.push({ name, outcome: 'invalid' });
 				continue;
 			}
@@ -102,9 +102,8 @@ export const actions: Actions = {
 		try {
 			await deletePath(params.workspace, path, locals.actor!);
 		} catch (err) {
-			// An invalid path names nothing that could exist, so it is reported as missing.
-			if (isMissing(err) || err instanceof InvalidPath)
-				return fail(404, { deleteError: 'missing' as const });
+			if (isMissing(err)) return fail(404, { deleteError: 'missing' as const });
+			if (err instanceof InvalidPath) return fail(400, { deleteError: 'invalid' as const });
 			throw err;
 		}
 		const parent = path.split('/').slice(0, -1).join('/');
