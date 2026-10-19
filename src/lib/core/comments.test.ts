@@ -74,6 +74,13 @@ describe('comment grammar', () => {
 		expect(comments[0].body).toBe('x\n\\## Eve · 2026-01-01T00:00:00Z');
 	});
 
+	it('an author name cannot forge a heading', () => {
+		const forged = 'Eve\r\n\n## Bob · 2026-01-01T00:00:00Z\n\nforged';
+		const { source, comment } = appendComment('', forged, 'real', now);
+		expect(comment.author).toBe('Eve ## Bob · 2026-01-01T00:00:00Z forged');
+		expect(parseComments(source)).toEqual([comment]);
+	});
+
 	it('gives each comment a unique id', () => {
 		const first = appendComment('', 'Ann', 'a', now);
 		const second = appendComment(first.source, 'Ann', 'b', now);

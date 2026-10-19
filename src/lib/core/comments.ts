@@ -39,10 +39,12 @@ export function parseComments(source: string): Comment[] {
 
 export function appendComment(
 	source: string,
-	author: string,
+	name: string,
 	body: string,
 	now: Date
 ): { source: string; comment: Comment } {
+	// A line break in a (pre-validation) name would end the heading and forge the next one.
+	const author = name.replace(/[\r\n]+/g, ' ').trim();
 	const text = body.replace(/\r\n/g, '\n').trim();
 	if (!text) throw new InvalidContent('empty');
 	if (text.length > MAX_COMMENT_CHARS) throw new InvalidContent('too-large');
