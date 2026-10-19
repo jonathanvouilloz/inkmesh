@@ -23,13 +23,17 @@
 		if (tool === 'claude-code')
 			return [{ label: t('connect.terminal', locale), value: `claude mcp add --transport http --scope user inkmesh ${url}` }];
 		if (tool === 'cursor')
-			return [{ label: t('connect.config', locale), value: `{ "mcpServers": { "inkmesh": { "url": "${url}" } } }` }];
+			return [{ label: t('connect.config', locale), value: JSON.stringify({ mcpServers: { inkmesh: { url } } }, null, 2) }];
 		if (!token) return [];
 		if (tool === 'mcp')
 			return [
 				{
 					label: t('connect.config', locale),
-					value: `{ "mcpServers": { "inkmesh": { "type": "http", "url": "${url}", "headers": { "Authorization": "Bearer ${token}" } } } }`
+					value: JSON.stringify(
+						{ mcpServers: { inkmesh: { type: 'http', url, headers: { Authorization: `Bearer ${token}` } } } },
+						null,
+						2
+					)
 				},
 				{
 					label: t('connect.tools.claude-code', locale),
@@ -104,7 +108,7 @@
 	<div class="field">
 		<label for={id}>{label}</label>
 		<span class="row">
-			{#if value.length > 60}
+			{#if value.length > 60 || id === 'token'}
 				<textarea {id} class="mono" readonly rows="3" {value} onfocus={(e) => e.currentTarget.select()}></textarea>
 			{:else}
 				<input {id} class="mono" readonly {value} onfocus={(e) => e.currentTarget.select()} />
@@ -407,7 +411,7 @@
 		resize: none;
 		field-sizing: content;
 		line-height: 1.5;
-		word-break: break-all;
+		overflow-wrap: anywhere;
 	}
 	input,
 	textarea,
@@ -465,6 +469,11 @@
 	.buttons {
 		display: flex;
 		gap: 8px;
+	}
+	@media (min-width: 768px) {
+		td > .mono {
+			white-space: nowrap;
+		}
 	}
 	/* Phones keep the name, the last use and the actions; the creation date is the one to go. */
 	@media (max-width: 767px) {

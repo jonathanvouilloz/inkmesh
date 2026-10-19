@@ -43,6 +43,10 @@ test('the Claude Code recipe holds the server URL', async ({ page }) => {
 	await expect(page.getByLabel('Terminal')).toHaveValue(
 		'claude mcp add --transport http --scope user inkmesh http://localhost:4173/mcp'
 	);
+	await page.getByRole('radio', { name: 'Cursor' }).check();
+	await expect(page.getByLabel('MCP configuration')).toHaveValue(
+		JSON.stringify({ mcpServers: { inkmesh: { url: 'http://localhost:4173/mcp' } } }, null, 2)
+	);
 });
 
 test('on a phone the connect link sits in the user menu', async ({ page }) => {

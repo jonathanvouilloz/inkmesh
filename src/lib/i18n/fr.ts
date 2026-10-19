@@ -122,7 +122,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'drop.failed': 'L’import a échoué.',
 	'files.failed': 'L’opération a échoué. Réessayez.',
 	'consent.title': '« {client} » veut agir en votre nom',
-	'consent.redirect': 'Après votre réponse, vous revenez sur {host}',
+	'consent.redirect': 'Après votre réponse, vous revenez sur {host}.',
 	'consent.loopback':
 		'Cette application tourne sur un ordinateur. Continuez seulement si vous venez de lancer cette connexion vous-même.',
 	'consent.name': 'Nom de cet agent',
@@ -137,7 +137,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'nav.connect': 'Connecter un agent',
 	'connect.title': 'Connecter un agent',
 	'connect.intro':
-		'Un agent agit en votre nom, avec votre rôle dans chacun de vos espaces. Chaque modification qu’il fait est signée « {user} via son nom ».',
+		'Un agent agit en votre nom, avec votre rôle dans chacun de vos espaces. Chaque modification qu’il fait est signée de votre nom et de celui de l’agent, par exemple « {user} via Claude ».',
 	'connect.agents': 'Vos agents',
 	'connect.empty': 'Vous n’avez encore aucun agent.',
 	'connect.oauth': 'OAuth',

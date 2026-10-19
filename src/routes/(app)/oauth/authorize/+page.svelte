@@ -34,6 +34,7 @@
 			{t('consent.name', data.locale)}
 			<input
 				name="name"
+				class="mono"
 				required
 				maxlength="40"
 				bind:value={name}
@@ -68,7 +69,7 @@
 		font-size: 13px;
 	}
 	h1 {
-		margin: 0;
+		margin: 0 0 8px;
 		font-size: 16px;
 		font-weight: 600;
 		overflow-wrap: anywhere;
@@ -91,7 +92,7 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 12px;
 		margin-top: 8px;
 	}
 	label {
@@ -110,10 +111,12 @@
 		font-weight: 400;
 	}
 	.hint {
+		margin-top: -8px;
 		color: var(--muted);
 		overflow-wrap: anywhere;
 	}
 	.error {
+		margin-top: -8px;
 		color: var(--error);
 	}
 	.actions {

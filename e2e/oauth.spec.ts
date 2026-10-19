@@ -36,7 +36,7 @@ test('a logged-out visitor signs in and lands on the consent screen', async ({ b
 	// A refused name keeps the visitor on the consent screen, not on the invalid-request page.
 	await page.getByLabel('Name of this agent').fill('<b>');
 	await page.getByRole('button', { name: 'Allow' }).click();
-	await expect(page.getByRole('alert')).toHaveText('Use 1 to 40 characters, without < or >');
+	await expect(page.getByRole('alert')).toHaveText('1 to 40 characters, without < or >');
 	await expect(page.getByLabel('Name of this agent')).toHaveValue('<b>');
 	await expect(page.getByRole('heading', { name: 'Claude wants to act as you' })).toBeVisible();
 	const consent = await context.request.get('/oauth/authorize?' + query);
