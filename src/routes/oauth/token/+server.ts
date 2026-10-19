@@ -2,12 +2,15 @@ import { loginAllowed, loginFailed } from '#lib/core/accounts.ts';
 import { exchangeCode, OAuthError, refreshTokens } from '#lib/core/oauth.ts';
 import type { RequestHandler } from './$types';
 
+// Anthropic's connector egress IPs are shared by every Claude user of the instance.
+const MAX_FAILURES = 50;
+
 const answer = (body: object, status = 200) =>
 	Response.json(body, { status, headers: { 'cache-control': 'no-store' } });
 
 export const POST: RequestHandler = async ({ request, url, getClientAddress }) => {
 	const key = 'token|' + getClientAddress();
-	if (!loginAllowed(key)) return answer({ error: 'too_many_requests' }, 429);
+	if (!loginAllowed(key, MAX_FAILURES)) return answer({ error: 'too_many_requests' }, 429);
 	try {
 		const type = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
 		if (type !== 'application/x-www-form-urlencoded')

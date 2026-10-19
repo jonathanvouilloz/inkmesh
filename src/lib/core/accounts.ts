@@ -157,8 +157,8 @@ function entry(key: string) {
 	return e;
 }
 
-export function loginAllowed(key: string): boolean {
-	return (entry(key)?.failures ?? 0) < MAX_FAILURES;
+export function loginAllowed(key: string, max = MAX_FAILURES): boolean {
+	return (entry(key)?.failures ?? 0) < max;
 }
 
 export function loginFailed(key: string): void {

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { crossSiteForbidden } from './csrf.ts';
+import { crossSiteForbidden, isAgentPath } from './csrf.ts';
 
 const site = 'http://localhost:4174';
 const forbidden = (method: string, path: string, type: string | null, origin: string | null) => {
@@ -31,6 +31,9 @@ it('lets agents through', () => {
 	expect(forbidden('DELETE', '/api/v1/workspaces/demo/documents/a.md', null, null)).toBe(false);
 	expect(forbidden('POST', '/mcp', 'text/plain', evil)).toBe(false);
 	expect(forbidden('POST', '/mcp/x', form, evil)).toBe(false);
+	expect(isAgentPath('/.well-known/oauth-authorization-server')).toBe(true);
+	expect(isAgentPath('/.well-known/oauth-protected-resource/mcp')).toBe(true);
+	expect(isAgentPath('/.well-known/security.txt')).toBe(false);
 	for (const path of ['/apix', '/api', '/mcpx', '/oauth/authorize', '/oauth/token/x', '/api/../login'])
 		expect(forbidden('POST', path, form, evil)).toBe(true);
 });

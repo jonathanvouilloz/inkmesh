@@ -2,7 +2,7 @@
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // The form types SvelteKit 3.1 guards, its own binary form type included.
 const FORM_TYPES = ['application/x-www-form-urlencoded', 'multipart/form-data', 'text/plain', 'application/x-sveltekit-formdata'];
-const AGENT_PATH = /^\/(api\/|mcp(\/|$)|oauth\/(token|register)$)/;
+const AGENT_PATH = /^\/(api\/|mcp(\/|$)|oauth\/(token|register)$|\.well-known\/oauth-)/;
 
 /** The cookie-free agent endpoints: bearer or OAuth only, the session cookie is never read there. */
 export const isAgentPath = (pathname: string): boolean => AGENT_PATH.test(pathname);

@@ -62,11 +62,13 @@ it('serves both protected-resource documents and the server metadata', async () 
 	const res = await call(serverGET, '/.well-known/oauth-authorization-server');
 	expect(res.headers.get('access-control-allow-origin')).toBe('*');
 	expect(res.headers.get('content-type')).toBe('application/json');
-	expect(await res.json()).toMatchObject({
+	expect(await res.json()).toEqual({
 		issuer: 'http://localhost',
 		authorization_endpoint: 'http://localhost/oauth/authorize',
 		token_endpoint: 'http://localhost/oauth/token',
 		registration_endpoint: 'http://localhost/oauth/register',
+		response_types_supported: ['code'],
+		grant_types_supported: ['authorization_code', 'refresh_token'],
 		code_challenge_methods_supported: ['S256'],
 		token_endpoint_auth_methods_supported: ['none'],
 		authorization_response_iss_parameter_supported: true
@@ -98,14 +100,14 @@ it('refuses bad registrations', async () => {
 	expect((await bad.json()).error).toBe('invalid_redirect_uri');
 	expect((await register('not json')).status).toBe(400);
 	expect((await register({ redirect_uris: [CALLBACK], pad: 'x'.repeat(17 * 1024) })).status).toBe(413);
-	for (let i = 3; i < 10; i++) expect((await register({ redirect_uris: [CALLBACK] })).status).toBe(201);
+	for (let i = 3; i < 100; i++) expect((await register({ redirect_uris: [CALLBACK] })).status).toBe(201);
 	const res = await register({ redirect_uris: [CALLBACK] });
 	expect(res.status).toBe(429);
 	expect(await res.json()).toEqual({ error: 'too_many_requests' });
 });
 
-it('exchanges a code and refreshes', async () => {
-	const clientId = (await (await register({ redirect_uris: [CALLBACK] })).json()).client_id;
+async function authorise() {
+	const clientId: string = (await (await register({ redirect_uris: [CALLBACK] })).json()).client_id;
 	const code = issueCode({
 		clientId,
 		redirectUri: CALLBACK,
@@ -114,7 +116,10 @@ it('exchanges a code and refreshes', async () => {
 		userId: jon.id,
 		agentName: 'Claude'
 	});
-	const res = await token({
+	return { clientId, code };
+}
+const exchange = ({ clientId, code }: { clientId: string; code: string }) =>
+	token({
 		grant_type: 'authorization_code',
 		code,
 		redirect_uri: CALLBACK,
@@ -122,6 +127,10 @@ it('exchanges a code and refreshes', async () => {
 		code_verifier: VERIFIER,
 		resource: 'http://localhost/mcp'
 	});
+
+it('exchanges a code and refreshes', async () => {
+	const { clientId, code } = await authorise();
+	const res = await exchange({ clientId, code });
 	expect(res.status).toBe(200);
 	expect(res.headers.get('cache-control')).toBe('no-store');
 	const first = await res.json();
@@ -161,7 +170,12 @@ it('unknown grant type', async () => {
 });
 
 it('throttles failed token requests only', async () => {
-	for (let i = 0; i < 10; i++) expect((await token({ grant_type: 'password' })).status).toBe(400);
+	const { clientId, code } = await authorise();
+	const { refresh_token } = await (await exchange({ clientId, code })).json();
+	for (let i = 0; i < 49; i++) expect((await token({ grant_type: 'password' })).status).toBe(400);
+	// Two successes so far: had they counted, this refresh would already be refused.
+	expect((await token({ grant_type: 'refresh_token', refresh_token, client_id: clientId })).status).toBe(200);
+	expect((await token({ grant_type: 'password' })).status).toBe(400);
 	const res = await token({ grant_type: 'password' });
 	expect(res.status).toBe(429);
 	expect(res.headers.get('cache-control')).toBe('no-store');

@@ -197,6 +197,8 @@ it('never reads the session cookie on the agent paths', async () => {
 		['/mcp', false],
 		['/oauth/token', false],
 		['/oauth/register', false],
+		['/.well-known/oauth-authorization-server', false],
+		['/.well-known/oauth-protected-resource/mcp', false],
 		['/demo', true]
 	] as const) {
 		const url = new URL(p, 'http://localhost');
