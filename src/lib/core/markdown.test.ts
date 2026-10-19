@@ -169,6 +169,13 @@ describe('rewriteUrls', () => {
 		);
 	});
 
+	it('keeps CRLF and frontmatter', () => {
+		const source = '---\r\ntitle: "[f](f.md)"\r\n---\r\n# H\r\n\r\nSee [a](b.md "t")\r\n\r\n[r]: <c d.md>\r\n';
+		expect(rewriteUrls(source, up)).toBe(
+			source.replace('(b.md', '(new/b.md').replace('<c d', '<new/c d')
+		);
+	});
+
 	it('returns the identical string when nothing changes', () => {
 		const source = 'A [ref][r] and [b](b.md).\n\n[r]: r.md\n';
 		expect(rewriteUrls(source, () => null)).toBe(source);

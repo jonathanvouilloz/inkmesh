@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createWorkspace, Forbidden } from './access.ts';
 import { createUser } from './accounts.ts';
 import type { Actor } from './actor.ts';
@@ -430,6 +430,9 @@ describe('documents', () => {
 			'z/a%20b.md#h'
 		);
 		expect(relocate('d/a.md?v=1', 'y.md', 'y.md', { from: 'd', to: 'e/f' })).toBe('e/f/a.md?v=1');
+		expect(relocate('a.md', 'y.md', 'y.md', { from: 'a.md', to: 'z (1)/a#?.md' })).toBe(
+			'z%20%281%29/a%23%3F.md'
+		);
 		expect(relocate('b.md', 'y.md', 'y.md', a)).toBe(null);
 		for (const url of ['https://x/a.md', '/a.md', '#top', 'mailto:a@b.c'])
 			expect(relocate(url, 'y.md', 'y.md', a)).toBe(null);
@@ -461,6 +464,13 @@ describe('documents', () => {
 			'notes/b.md'
 		]);
 		expect(git('status', '--porcelain')).toBe('');
+	});
+
+	it('keeps a leading BOM when a link is rewritten', async () => {
+		write('a.md', '# a\n');
+		write('b.md', '\uFEFF# B\n\n[a](a.md)\n');
+		await movePath('demo', 'a.md', 'z/a.md', actor);
+		expect(read('b.md')).toBe('\uFEFF# B\n\n[a](z/a.md)\n');
 	});
 
 	it('a moved document keeps its own links', async () => {
@@ -507,11 +517,30 @@ describe('documents', () => {
 		write('out.md', '[d](rapports/x.md)\n');
 		write('notes/o.md', '[d](../rapports)\n');
 		write('notes/n.md', '[d](rapports/x.md) [e](https://x/rapports)\n');
+		write('escaped.md', '[d](rapports/x\\_y.md)\n'); // movePath cannot rewrite it, so not announced
 		expect((await linksTo('demo', 'rapports', actor)).sort()).toEqual(['notes/o.md', 'out.md']);
 		expect((await linksTo('demo', 'rapports/x.md', actor)).sort()).toEqual([
 			'out.md',
 			'rapports/in.md'
 		]);
+	});
+
+	it('restores what it can and reports the commit error when a rollback step fails', async () => {
+		write('b.md', '[d](rapports/x.md)\n');
+		write('c.md', '[d](rapports/y.md)\n');
+		fs.writeFileSync(path.join(workspaceDir('demo'), '.git/index.lock'), '');
+		const rename = fs.promises.rename;
+		let renames = 0;
+		// The first rename is the move itself; fail the first restore (a writeAtomic rename).
+		vi.spyOn(fs.promises, 'rename').mockImplementation(async (a, b) => {
+			if (++renames === 4) throw new Error('disk gone');
+			return rename(a, b);
+		});
+		await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow(/index\.lock/);
+		vi.restoreAllMocks();
+		const texts = [read('b.md'), read('c.md')];
+		expect(texts.filter((t) => t.includes('(rapports/'))).toHaveLength(1); // the other restore failed
+		expect(fs.existsSync(path.join(workspaceDir('demo'), 'rapports'))).toBe(true);
 	});
 
 	it('readers cannot move', async () => {

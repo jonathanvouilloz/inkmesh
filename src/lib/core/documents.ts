@@ -84,7 +84,7 @@ async function documentPaths(root: string, rel = ''): Promise<string[]> {
 async function readText(file: string): Promise<{ bytes: Buffer; text: string } | null> {
 	const bytes = await fs.readFile(file);
 	try {
-		return { bytes, text: new TextDecoder('utf-8', { fatal: true }).decode(bytes) };
+		return { bytes, text: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes) };
 	} catch {
 		return null;
 	}
@@ -123,7 +123,9 @@ export function relocate(
 	if (posix.join(posix.dirname(newDoc), t.path) === resolved) return null;
 	let rel = posix.relative(posix.dirname(newDoc), resolved) || '.';
 	if (resolved.endsWith('/')) rel += '/';
-	const next = encodeURI(rel).replace(/[?#]/g, encodeURIComponent) + t.suffix;
+	// `(` `)` too: a bare Markdown destination with an unbalanced one would end early.
+	const hex = (c: string) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
+	const next = encodeURI(rel).replace(/[?#()]/g, hex) + t.suffix;
 	return next === url ? null : next;
 }
 
@@ -136,14 +138,12 @@ export async function linksTo(slug: string, path: string, actor: Actor): Promise
 	for (const doc of await documentPaths(root)) {
 		if (under(doc, rel)) continue;
 		const text = (await readText(join(root, doc)))?.text;
-		let hit = false;
-		if (text)
-			rewriteUrls(text, (url) => {
-				const t = target(url, doc);
-				hit ||= !!t && under(t.resolved.replace(/\/$/, ''), rel);
-				return null;
-			});
-		if (hit) found.push(doc);
+		// Counted through rewriteUrls, so a link it cannot rewrite (escapes, entities) is not announced.
+		const marked = (url: string) => {
+			const t = target(url, doc);
+			return t && under(t.resolved.replace(/\/$/, ''), rel) ? `${url}#` : null;
+		};
+		if (text && rewriteUrls(text, marked) !== text) found.push(doc);
 	}
 	return found;
 }
@@ -377,8 +377,10 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 				author: commitAuthor(actor)
 			});
 		} catch (err) {
-			for (const { rel, bytes } of rewritten) await writeAtomic(join(root, rel), bytes);
-			await fs.rename(dest, src);
+			// Best effort per step: the commit error is what the caller must see.
+			for (const { rel, bytes } of rewritten)
+				await writeAtomic(join(root, rel), bytes).catch(() => {});
+			await fs.rename(dest, src).catch(() => {});
 			throw err;
 		}
 		return relTo;
