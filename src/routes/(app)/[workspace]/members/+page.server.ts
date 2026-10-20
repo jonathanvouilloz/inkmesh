@@ -11,7 +11,7 @@ import {
 	type Role,
 	workspace
 } from '#lib/core/access.ts';
-import { loginAllowed, loginFailed } from '#lib/core/accounts.ts';
+import { loginAllowed, loginFailed, validEmail } from '#lib/core/accounts.ts';
 import type { TreeNode } from '#lib/core/documents.ts';
 import { appUrl, invitationMail, mailEnabled, sendMail } from '#lib/core/mail.ts';
 import { Conflict } from '#lib/core/paths.ts';
@@ -75,6 +75,13 @@ export const actions: Actions = {
 		requireRole(params.workspace, locals, 'editor');
 		const form = await request.formData();
 		const wanted = role(form.get('role'));
+		// The address only goes into the email: nothing stores it.
+		const field = form.get('email');
+		const email = mailEnabled() && typeof field === 'string' ? field.trim() : '';
+		const key = 'invite-mail|' + locals.actor!.id;
+		// Checked before the invitation exists, so a refusal leaves no pending link behind.
+		if (email && !validEmail(email)) return fail(400, { mailError: 'email' as const, email });
+		if (email && !loginAllowed(key, 20)) return fail(429, { mailError: 'throttled' as const, email });
 		let token: string;
 		try {
 			token = createInvitation(params.workspace, wanted, locals.actor!);
@@ -83,26 +90,19 @@ export const actions: Actions = {
 			throw err;
 		}
 		const link = url.origin + '/invite/' + token;
-		// The address only goes into the email: nothing stores it.
-		const email = form.get('email') ?? '';
-		if (!mailEnabled() || (typeof email === 'string' && !email.trim())) return { link };
-		if (typeof email !== 'string' || email.length > 254 || !email.includes('@'))
-			return { link, mailError: 'email' as const };
-		const key = 'invite-mail|' + locals.actor!.id;
-		if (!loginAllowed(key, 20)) return { link, mailError: 'throttled' as const };
+		if (!email) return { link };
 		loginFailed(key);
-		const to = email.trim();
 		const name = workspace(params.workspace)!.name;
 		try {
 			// The emailed link starts with INKMESH_URL, never the request's host.
-			await sendMail(invitationMail(to, locals.actor!.name, name, wanted, appUrl() + '/invite/' + token, locals.locale));
+			await sendMail(invitationMail(email, locals.actor!.name, name, wanted, appUrl() + '/invite/' + token, locals.locale));
 		} catch (err) {
 			// The error's message can quote the address (SMTP replies): log its codes only.
 			const e = err as { code?: string; responseCode?: number } | undefined;
 			console.error('invitation: send failed for user', locals.actor!.id, e?.code, e?.responseCode);
-			return { link, mailError: 'failed' as const };
+			return { link, mailError: 'failed' as const, email };
 		}
-		return { link, mailed: to };
+		return { link, mailed: email };
 	},
 	revoke: async ({ params, locals, request }) => {
 		requireRole(params.workspace, locals, 'editor');

@@ -135,19 +135,29 @@
 		{#if data.mail}
 			<label class="to">
 				{t('members.sendTo', locale)}
-				<input type="email" name="email" class="mono" autocomplete="off" spellcheck="false" />
+				<!-- Kept after a refusal, so the address can be corrected rather than typed again. -->
+				<input
+					type="email"
+					name="email"
+					class="mono"
+					autocomplete="off"
+					spellcheck="false"
+					defaultValue={form?.email ?? ''}
+					aria-invalid={form?.mailError === 'email'}
+					aria-describedby={form?.mailError ? 'invite-mail' : undefined}
+				/>
 			</label>
 		{/if}
 		<button>{t('members.create', locale)}</button>
 	</form>
 	{#if form?.link}
 		{@render oneTime('invite-link', form.link, 'members.once')}
-		{#if form.mailed}
-			{@const [before, after] = t('members.mailed', locale).split('{email}')}
-			<p role="status">{before}<span class="mono">{form.mailed}</span>{after}</p>
-		{:else if form.mailError}
-			<p class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
-		{/if}
+	{/if}
+	{#if form?.mailed}
+		{@const [before, after] = t('members.mailed', locale).split('{email}')}
+		<p role="status">{before}<span class="mono">{form.mailed}</span>{after}</p>
+	{:else if form?.mailError}
+		<p id="invite-mail" class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
 	{/if}
 
 	{#if data.publicLinks}

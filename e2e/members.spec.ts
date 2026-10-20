@@ -180,3 +180,20 @@ test('an owner emails an invitation link', async ({ page }) => {
 		.find((raw) => raw.includes(`To: ${emailed}`));
 	expect(mail).toContain('http://localhost:4173/invite/' + token);
 });
+
+test('a refused address keeps the field and creates no link', async ({ page }) => {
+	emailed = 'ann@example.ch, bob@example.ch';
+	await page.goto('/demo/members', { waitUntil: 'networkidle' });
+	const pending = page.getByRole('table', { name: 'Pending invitations' }).getByRole('row');
+	const before = await pending.count();
+	const field = page.getByLabel('Email the link to (optional)');
+	await field.fill(emailed);
+	// The server's check, past the browser's own.
+	await field.evaluate((input: HTMLInputElement) => (input.form!.noValidate = true));
+	await page.getByRole('button', { name: 'Create link' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Enter a single valid email address, or leave the field empty.');
+	await expect(field).toHaveValue(emailed);
+	await expect(field).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Invitation link')).toHaveCount(0);
+	await expect(pending).toHaveCount(before);
+});
