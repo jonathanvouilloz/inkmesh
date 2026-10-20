@@ -1,4 +1,4 @@
-# Phase B template: copy to ~/.cloudflared/config.yml and fill in the tunnel id.
+# Phase B template: copy to ~/.cloudflared/inkmesh.yml and fill in the tunnel id (not config.yml, which every cloudflared command would read).
 tunnel: inkmesh
 credentials-file: /home/hermes/.cloudflared/<tunnel-id>.json
 

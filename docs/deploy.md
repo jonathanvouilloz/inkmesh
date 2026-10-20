@@ -42,7 +42,7 @@ Logs: `journalctl --user -u inkmesh -f`, `journalctl --user -u inkmesh-tunnel -f
 1. **Jon, in his browser:** register `inkmesh.ch` (Cloudflare Registrar if it offers `.ch`, otherwise Infomaniak or Hostpoint), add the zone to his Cloudflare account (free plan) and set the registrar's nameservers to Cloudflare's.
 2. **Jon, in his browser:** `~/.local/bin/cloudflared tunnel login` prints a URL; he opens it and authorises the `inkmesh.ch` zone. This writes `~/.cloudflared/cert.pem`.
 3. Create the tunnel: `~/.local/bin/cloudflared tunnel create inkmesh` (prints the tunnel id and writes `~/.cloudflared/<tunnel-id>.json`).
-4. Config: `cp deploy/cloudflared.yml ~/.cloudflared/config.yml` and replace `<tunnel-id>`.
+4. Config: `cp deploy/cloudflared.yml ~/.cloudflared/inkmesh.yml` and replace `<tunnel-id>`.
 5. DNS: `~/.local/bin/cloudflared tunnel route dns inkmesh inkmesh.ch`.
 6. Env: nothing to change. The origin keeps coming from the proxy headers (`PROTOCOL_HEADER`, `HOST_HEADER`); adapter-node 6 does not read an `ORIGIN` variable (a fixed origin would be the build-time `paths.origin` option, not needed here).
 7. Tunnel switch: in `deploy/inkmesh-tunnel.service`, comment the quick tunnel `ExecStart` and uncomment the `tunnel run` one; commit on `main` and run `scripts/deploy.sh` so the prod clone carries it.
