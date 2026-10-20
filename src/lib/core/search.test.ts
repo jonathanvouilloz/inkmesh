@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createWorkspace, Forbidden } from './access.ts';
 import { createUser } from './accounts.ts';
 import type { Actor } from './actor.ts';
@@ -119,6 +119,14 @@ describe('search', () => {
 			expect.objectContaining({ path: 'sub/b.md', title: 'Banana' })
 		]);
 		expect(paths('one')).toEqual(['a.md']);
+	});
+
+	it('a broken index never stops boot', async () => {
+		db().exec('DROP TABLE search_index');
+		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		await expect(rebuildIndex()).resolves.toBe(0);
+		expect(log).toHaveBeenCalled();
+		log.mockRestore();
 	});
 
 	it('skips non-UTF-8 files', async () => {

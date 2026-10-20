@@ -68,7 +68,12 @@ export async function syncIndex(slug: string, paths: string[]): Promise<void> {
 
 /** Indexes every document of every workspace from disk, for files changed outside core; returns the count. */
 export async function rebuildIndex(): Promise<number> {
-	db().exec('DELETE FROM search_index');
+	try {
+		db().exec('DELETE FROM search_index');
+	} catch (err) {
+		console.error('search index: not rebuilt', err); // a cache fault must not stop the server from starting
+		return 0;
+	}
 	let count = 0;
 	const slugs = db().prepare('SELECT slug FROM workspaces').all() as Array<{ slug: string }>;
 	for (const { slug } of slugs) {
