@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import type { Workspace } from '#lib/core/access.ts';
+	import type { Role, Workspace } from '#lib/core/access.ts';
 	import type { User } from '#lib/core/accounts.ts';
 	import { t, tn, type Locale } from '#lib/i18n/index.ts';
 	import SearchForm from './SearchForm.svelte';
@@ -16,7 +16,7 @@
 		search,
 		children
 	}: {
-		workspaces: Workspace[];
+		workspaces: (Workspace & { role: Role })[];
 		current?: string;
 		user: User;
 		locale: Locale;
@@ -32,6 +32,8 @@
 	const menus: HTMLDetailsElement[] = [];
 	const count = $derived(unread > 99 ? '99+' : String(unread));
 	const name = $derived(workspaces.find((w) => w.slug === current)?.name ?? t('nav.workspaces', locale));
+	const mine = $derived(workspaces.filter((w) => w.role === 'owner'));
+	const joined = $derived(workspaces.filter((w) => w.role !== 'owner'));
 
 	afterNavigate(() => menus.forEach((m) => (m.open = false)));
 </script>
@@ -46,6 +48,16 @@
 			? `${t('nav.inbox', locale)}, ${tn('inbox.unread', unread, locale, count)}`
 			: undefined}>{t('nav.inbox', locale)}{#if unread}&nbsp;{count}{/if}</a
 	>
+{/snippet}
+
+{#snippet items(list: Workspace[])}
+	{#each list as w (w.slug)}
+		<li>
+			<a href="/{w.slug}" aria-current={w.slug === current ? 'page' : undefined}
+				>{w.name} <span class="slug">{w.slug}</span></a
+			>
+		</li>
+	{/each}
 {/snippet}
 
 <svelte:window
@@ -68,13 +80,17 @@
 		<details bind:this={menus[0]}>
 			<summary><span class="current">{name}</span></summary>
 			<ul>
-				{#each workspaces as w (w.slug)}
-					<li>
-						<a href="/{w.slug}" aria-current={w.slug === current ? 'page' : undefined}
-							>{w.name} <span class="slug">{w.slug}</span></a
-						>
-					</li>
-				{/each}
+				<!-- Two groups only when there are two kinds: a single list needs no heading. -->
+				{#if mine.length && joined.length}
+					{#each [['mine', mine] as const, ['joined', joined] as const] as [key, list] (key)}
+						<li class="group">
+							<span class="label" id="switcher-{key}">{t(`home.${key}`, locale)}</span>
+							<ul aria-labelledby="switcher-{key}">{@render items(list)}</ul>
+						</li>
+					{/each}
+				{:else}
+					{@render items(workspaces)}
+				{/if}
 				{#if user.admin}
 					<li class="new"><a href="/?new"><span aria-hidden="true">+</span> {t('home.create', locale)}</a></li>
 				{/if}
@@ -204,7 +220,7 @@
 	summary:hover {
 		background: var(--hairline);
 	}
-	ul {
+	details > ul {
 		position: absolute;
 		top: calc(100% + 4px);
 		left: 0;
@@ -218,6 +234,22 @@
 		background: var(--ground);
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);
+	}
+	ul ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.group + .group {
+		margin-top: 4px;
+		padding-top: 4px;
+		border-top: 1px solid var(--hairline);
+	}
+	.label {
+		display: block;
+		padding: 4px 6px 2px;
+		color: var(--muted);
+		font-weight: 600;
 	}
 	.user ul {
 		right: 0;
@@ -314,7 +346,7 @@
 		details:not(.user) {
 			position: static;
 		}
-		details:not(.user) ul {
+		details:not(.user) > ul {
 			left: 12px;
 			right: 12px;
 			min-width: 0;

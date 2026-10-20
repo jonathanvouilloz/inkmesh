@@ -60,6 +60,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'home.title': 'Vos espaces de travail',
 	'home.empty': 'Vous n’êtes membre d’aucun espace de travail pour l’instant. Demandez un lien d’invitation.',
 	'home.create': 'Nouvel espace de travail',
+	'home.mine': 'Mes espaces',
+	'home.joined': 'Partagés avec moi',
 	'home.name': 'Nom',
 	'home.slug': 'Identifiant',
 	'home.slugBad': 'Lettres minuscules, chiffres et tirets uniquement, de 2 à 40 caractères',
