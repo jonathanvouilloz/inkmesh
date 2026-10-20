@@ -146,10 +146,20 @@
 		font-weight: 500;
 		cursor: pointer;
 	}
-	summary {
-		list-style: none;
+	summary,
+	form button {
+		border: 1px solid var(--accent);
 		background: var(--accent);
 		color: #fff;
+	}
+	summary {
+		list-style: none;
+	}
+	/* Open, the form's own submit is the one primary; the summary steps back. */
+	details[open] summary {
+		border-color: var(--hairline);
+		background: var(--ground);
+		color: var(--ink);
 	}
 	summary::-webkit-details-marker {
 		display: none;
@@ -178,9 +188,6 @@
 	}
 	form button {
 		align-self: flex-start;
-		border: 1px solid var(--hairline);
-		background: var(--ground);
-		color: var(--ink);
 	}
 	.error {
 		margin: 0;
