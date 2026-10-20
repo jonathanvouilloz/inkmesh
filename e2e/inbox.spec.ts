@@ -24,6 +24,12 @@ test("the inbox counts an agent's drop", async ({ page }) => {
 	await page.reload();
 	await expect(link).toHaveText('Inbox 1');
 	await expect(link).toHaveAccessibleName('Inbox, 1 unread');
+	// On a phone the link is in the user menu; its trigger carries the count, read out in words.
+	await page.setViewportSize({ width: 390, height: 844 });
+	const trigger = page.getByRole('banner').locator('details.user > summary');
+	await expect(trigger.locator('[aria-hidden="true"]')).toHaveText('·\u00a01');
+	await expect(trigger).toHaveAccessibleName(/^Owner ?, 1 unread$/);
+	await page.setViewportSize({ width: 1280, height: 720 });
 	await link.click();
 	await expect(page).toHaveURL('/inbox');
 	const line = page.getByRole('listitem').filter({ hasText: 'e2e-inbox/report.md' });
