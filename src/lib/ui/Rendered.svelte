@@ -11,7 +11,7 @@
 		font-family: var(--font-text);
 		font-size: var(--rendered-size, 16.5px);
 		line-height: 1.6;
-		color: var(--ink);
+		color: var(--prose);
 		overflow-wrap: break-word;
 	}
 	.rendered :global(:is(p, ul, ol, pre, blockquote, table, hr)) {
@@ -24,7 +24,8 @@
 	.rendered :global(:is(h1, h2, h3, h4, h5, h6)) {
 		margin: 0;
 		padding: 2px 0;
-		font-weight: 400;
+		color: var(--ink);
+		font-weight: var(--heading-weight);
 		letter-spacing: var(--tracking-heading);
 	}
 	.rendered :global(h1) {

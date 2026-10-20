@@ -6,6 +6,7 @@ colors:
   panel: "#F3F3F0"
   hairline: "#E4E4E0"
   ink: "#1C1C1A"
+  prose: "#3A3A36"
   muted: "#6E6E68"
   accent: "#2A47D1"
   ok: "#1B7F3B"
@@ -186,7 +187,8 @@ Warm-grey neutrals carry the whole interface; one cool ink blue and three state 
 - **Paper Ground** (`ground`): the page, the file strip, inputs, selects, secondary buttons and the open header menus.
 - **Panel** (`panel`): the top bar, both rails, the hover fill of a header menu item, the mobile bottom sheet, code blocks and inline raw-HTML spans.
 - **Hairline** (`hairline`): every 1px border (rail edges, strip bottom, inputs, secondary buttons, toolbar, slash menu, header menus, top bar bottom, table rows, the home list rows, the rule between account sections), the hover background of tree items, the Members link and menu triggers, blockquote rule, inline-code background.
-- **Ink** (`ink`): all primary text, icons, and the 30%-opacity drawer backdrop (`rgb(28 28 26 / 0.3)`).
+- **Ink** (`ink`): all primary text, document headings, icons, and the 30%-opacity drawer backdrop (`rgb(28 28 26 / 0.3)`).
+- **Prose** (`prose`): the body text of a document (editor, version view, public page, comments): a softened ink, so the headings in full ink stand apart.
 - **Muted Grey** (`muted`): secondary text: folder names, frontmatter keys, agent and timestamp in History, commit messages, the save state while saving, the empty-workspace prompt, list markers, role labels, slugs, the email under a member's name, table headers, notes and hints under a field, the menu chevron.
 
 ### State
@@ -210,7 +212,7 @@ Warm-grey neutrals carry the whole interface; one cool ink blue and three state 
 
 ### Hierarchy
 - **Body** (400, 16.5px, 1.6): the document, rich and raw alike, in the document column (see Layout).
-- **Document headings**: Crepe's default scale on top of the 16.5px base; the project sets weight and size only through `--crepe-base-font-size`, and tightens the tracking to `--tracking-heading` (-0.02em), in the editor and the rendered views alike. Keep it so; do not invent a heading ramp.
+- **Document headings**: Crepe's default scale on top of the 16.5px base; the project sets the size through `--crepe-base-font-size`, the weight of h1–h5 to `--heading-weight` (500; h6 stays 700) and the tracking to `--tracking-heading` (-0.02em), in ink, in the editor and the rendered views alike. Keep it so; do not invent a heading ramp.
 - **Title** (600, 16px): the page title of every standalone page (home, members, account, sign-in, invite) and the error page. One per page.
 - **Label** (600, 13px): rail section headings ("File", "History"), section headings on the members and account pages, the "My workspaces" and "Shared with me" group headings on the home list and in the switcher (muted there), form field labels and table headers (muted). Sentence case, no tracking, no uppercase.
 - **Chrome** (400, 13px): everything else in the rails, the top bar and its menus (wordmark at 600), every standalone page, the empty prompt and the error page.

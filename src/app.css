@@ -13,8 +13,11 @@
 	--error: #B3261E;
 	--font-text: 'Inter Variable', system-ui, sans-serif;
 	--font-mono: 'Fragment Mono', ui-monospace, monospace;
+	/* Document text is a softened ink so the headings, in full ink, stand out from it. */
+	--prose: #3A3A36;
 	/* Inter is spaced for text sizes; document headings tighten it. */
 	--tracking-heading: -0.02em;
+	--heading-weight: 500;
 	--radius: 6px;
 	--ease: 150ms ease-out;
 	/* Column of management, folder and list pages; padding sits outside it. */

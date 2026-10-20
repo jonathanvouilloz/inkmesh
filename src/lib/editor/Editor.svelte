@@ -133,7 +133,7 @@
 	}
 	.rich :global(.milkdown) {
 		--crepe-color-background: var(--ground);
-		--crepe-color-on-background: var(--ink);
+		--crepe-color-on-background: var(--prose);
 		--crepe-color-surface: var(--ground);
 		--crepe-color-surface-low: var(--panel);
 		--crepe-color-on-surface: var(--ink);
@@ -157,7 +157,11 @@
 		padding-bottom: 0;
 	}
 	.rich :global(.milkdown .ProseMirror :is(h1, h2, h3, h4, h5, h6)) {
+		color: var(--ink);
 		letter-spacing: var(--tracking-heading);
+	}
+	.rich :global(.milkdown .ProseMirror :is(h1, h2, h3, h4, h5)) {
+		font-weight: var(--heading-weight);
 	}
 	.rich :global(.milkdown .ProseMirror p),
 	.rich :global(.milkdown .ProseMirror li) {
