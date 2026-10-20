@@ -2,30 +2,23 @@
 Updated: 2026-10-20
 
 ## Where we are
-Milestones 3 (managing files), 4 (agents) and 5 (collaboration) are merged into `main` locally; production still runs M2. 404 unit tests, 80 Playwright e2e, svelte-check clean.
+Milestones 3 (managing files), 4 (agents) and 5 (collaboration) are merged into `main` and deployed (2026-10-20). 404 unit tests, 80 Playwright e2e, svelte-check clean.
 - M3: folder view, import, new folder, rename, move (links follow), delete, download.
 - M4: events, one commit per editing session, agents and bearer tokens, OAuth 2.1, HTTP API `/api/v1`, remote MCP `/mcp`, the Connect page.
 - M5: comments (UI, API, MCP), full-text search (header box, API, MCP), image paste and drop, version view and restore, deleted documents and restore, public links (document or workspace, optional sign-up at `/join/`), inbox with unread count. Migrations `003-collaboration` and `004-link-hint`.
 - Plans: `docs/plans/2026-10-19-m*.md`. Order of the rest: `docs/plans/roadmap.md`.
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 
-## In production (phase A, still milestone 2)
-- Checkout `~/inkmesh-app` on `main` at the M2 deploy, data `/home/hermes/inkmesh-data`, env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel`. URL: `scripts/tunnel-url.sh`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` (after pushing or pulling `main` into that checkout). Guide: `docs/deploy.md`.
+## In production (phase A, milestone 5)
+- Checkout `~/inkmesh-app` on `main` (`cccdf1d`), data `/home/hermes/inkmesh-data` (migrations 001–004 applied), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel`. URL: `scripts/tunnel-url.sh`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
+- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Pre-M5 backup: `~/inkmesh-backups/20261020T024132Z-pre-m5`.
 
 ## Next action
-1. Deploy M3+M4+M5 after the owner's approval and the checks below.
-2. Then milestone 6 (frontmatter filters, email and magic links, Dockerfile, README, licence): write its plan.
+1. Milestone 6 (frontmatter filters, email and magic links, Dockerfile, README, licence): write its spec and plan.
 
 ## Owner actions (Jon)
-- Before deploying (all clean when checked on 2026-10-20):
-  - No workspace uses a reserved slug: `sqlite3 ~/inkmesh-data/inkmesh.db "select slug from workspaces where slug in ('oauth','inbox','join')"` returns nothing.
-  - No folder ends in an image extension: `find ~/inkmesh-data/workspaces -type d -iregex '.*\.\(png\|jpe?g\|gif\|webp\)'` returns nothing.
-  - `BODY_SIZE_LIMIT` in `~/.config/inkmesh/env` is at least `6M` (image uploads; `deploy/env.example` has `20M`).
-  - Run the migrations (`002-agents`, `003-collaboration` rebuilds `events`, `004-link-hint`) on a copy of the prod database first.
-- Approve the deploy; then:
-  - Create a public link and an invitation and check that their URLs carry the tunnel's host (they are built from the request origin).
-  - Test the real clients from the Connect page (Claude web connector, Claude Code `claude mcp add`, ChatGPT developer mode, Cursor `mcp.json`): connected, consent shows the right host, `list_workspaces`, `create_document`, `search` and `add_comment` work, commits read "Jon via <agent>". Fix any recipe wording that no longer matches the vendor menus.
-- Unchanged from before: rename the dev folder when no session runs in it; confirm MIT; register `inkmesh.ch` (phase B of `docs/deploy.md`).
+- Test the real clients from the Connect page (Claude web connector, Claude Code `claude mcp add`, ChatGPT developer mode, Cursor `mcp.json`): connected, consent shows the right host, `list_workspaces`, `create_document`, `search` and `add_comment` work, commits read "Jon via <agent>". Fix any recipe wording that no longer matches the vendor menus.
+- Rename the dev folder when no session runs in it; confirm MIT; register `inkmesh.ch` (phase B of `docs/deploy.md`).
 
 ## Known limits (deliberate, ledgered in reviews)
 - Rate limits and the write lock are in memory (one process). Connector egress IPs are shared: registration 100 and token failures 50 per 15 min per IP; a valid token is never throttled.
