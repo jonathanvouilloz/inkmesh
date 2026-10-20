@@ -409,6 +409,11 @@
 	.invite {
 		flex-wrap: wrap;
 	}
+	/* One height for a row's select, input and button, so their labels line up. */
+	.invite :is(input, select, button) {
+		box-sizing: border-box;
+		height: 32px;
+	}
 	.scope,
 	.to {
 		flex: 1 1 240px;
