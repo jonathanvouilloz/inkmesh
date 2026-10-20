@@ -37,6 +37,10 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 export const normalize = (email: string) => email.trim().toLowerCase();
 
+/** Exactly one bare address: a list, a display name or a CR/LF would make the mailer write to several people. */
+export const validEmail = (email: string) =>
+	email.length <= 254 && /^[^\s\x00-\x1f\x7f@,;<>"]+@[^\s\x00-\x1f\x7f@,;<>"]+$/.test(email);
+
 type Row = { id: number; email: string; name: string; admin: number };
 const toUser = (r: Row | undefined): User | null =>
 	r ? { id: r.id, email: r.email, name: r.name, admin: r.admin === 1 } : null;

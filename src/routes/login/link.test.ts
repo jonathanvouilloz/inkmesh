@@ -131,7 +131,8 @@ it('a bad address is refused', async () => {
 		status: 400,
 		data: { error: 'invite.email', method: 'link' }
 	});
-	expect(await ask('a@' + 'b'.repeat(253), '203.0.113.70')).toMatchObject({ status: 400 });
+	for (const email of ['a@' + 'b'.repeat(253), '@', 'jon@example.ch, a@x.ch', 'jon@example.ch\r\nBcc: a@x.ch'])
+		expect(await ask(email, '203.0.113.70')).toMatchObject({ status: 400 });
 });
 
 it('a failed send changes nothing for the visitor', async () => {

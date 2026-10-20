@@ -18,6 +18,7 @@ import {
 	loginUndo,
 	sessionUser,
 	setPassword,
+	validEmail,
 	validUserName,
 	verifyPassword
 } from './accounts.ts';
@@ -218,4 +219,26 @@ describe('accounts', () => {
 			expect(count()).toBe(0);
 		});
 	});
+});
+
+it('validEmail accepts exactly one address', () => {
+	for (const ok of ['ann@example.ch', 'owner@inkmesh.local', 'jon@localhost', 'a.b+c@x.co'])
+		expect(validEmail(ok), ok).toBe(true);
+	for (const bad of [
+		'',
+		'@',
+		'nope',
+		'a@',
+		'@x.ch',
+		'a@b@c.ch',
+		'a@x.ch, b@y.ch',
+		'a@x.ch;b@y.ch',
+		'a@x.ch\r\nBcc: v@evil.ch',
+		'Ann <a@x.ch>',
+		'"a b"@x.ch',
+		' a@x.ch',
+		'a\u0000@x.ch',
+		'a@' + 'b'.repeat(253)
+	])
+		expect(validEmail(bad), JSON.stringify(bad)).toBe(false);
 });

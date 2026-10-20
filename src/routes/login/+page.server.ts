@@ -7,7 +7,8 @@ import {
 	loginSucceeded,
 	loginUndo,
 	normalize,
-	userByEmail
+	userByEmail,
+	validEmail
 } from '#lib/core/accounts.ts';
 import { appUrl, loginLinkMail, mailEnabled, sendMail } from '#lib/core/mail.ts';
 import { safeNext } from '#lib/server/redirect.ts';
@@ -53,7 +54,7 @@ export const actions: Actions = {
 		if (!mailEnabled()) error(404);
 		const form = await request.formData();
 		const email = form.get('email');
-		if (typeof email !== 'string' || email.length > 254 || !email.includes('@'))
+		if (typeof email !== 'string' || !validEmail(email.trim()))
 			return fail(400, { error: 'invite.email' as const, method: 'link' as const });
 		const ipKey = 'link-ip|' + getClientAddress();
 		const emailKey = 'link-email|' + normalize(email);
