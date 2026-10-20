@@ -1,12 +1,19 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { loginAllowed, loginFailed, sessionUser } from '#lib/core/accounts.ts';
 import { db } from '#lib/core/db.ts';
+import { digestHour, startDigests } from '#lib/core/digest.ts';
 import { assertGit } from '#lib/core/git.ts';
+import { mailConfig } from '#lib/core/mail.ts';
 import { rebuildIndex } from '#lib/core/search.ts';
 import { commitAllSessions } from '#lib/core/sessions.ts';
 import { crossSiteForbidden, isAgentPath } from '#lib/server/csrf.ts';
 
 export const init: ServerInit = async () => {
+	// A partial or invalid email configuration throws here and stops the start.
+	const mail = mailConfig();
+	const hour = digestHour();
+	console.log(mail ? `email: on (${mail.smtp.protocol.slice(0, -1)})` : 'email: off');
+	if (mail) console.log(`digest: daily at ${String(hour).padStart(2, '0')}:00 UTC`);
 	db();
 	await assertGit();
 	// Sessions left by a crash are committed, with their author, before any request.
@@ -14,6 +21,8 @@ export const init: ServerInit = async () => {
 	if (recovered > 0) console.log(`committed ${recovered} editing session(s) left open`);
 	// Files changed outside core (an agent with shell access) are only seen here.
 	console.log(`search index: ${await rebuildIndex()} document(s)`);
+	// The catch-up run sends what a missed slot would have; the timer is unref'd and needs no stop.
+	startDigests();
 	process.once('sveltekit:shutdown', () =>
 		commitAllSessions()
 			.then((made) => {
@@ -30,7 +39,7 @@ const PUBLIC_HEADERS = {
 	'cache-control': 'no-store',
 	'x-frame-options': 'DENY',
 	'content-security-policy':
-		"default-src 'none'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		"default-src 'none'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -61,9 +70,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 	event.locals.actor = user && { id: user.id, name: user.name };
 	const response = await resolve(event, render);
-	// Join and invitation links carry their token in the URL too: never sent to another site, cached or indexed.
+	// Join, invitation, sign-in and unsubscribe links carry their token in the URL too: never sent to another site, cached or indexed.
 	// same-origin, not no-referrer: under no-referrer the sign-up POST would send `Origin: null` and fail the CSRF check.
-	if (/^\/(join|invite)\//.test(event.url.pathname)) {
+	if (/^\/(join|invite|login\/link|unsubscribe)\//.test(event.url.pathname)) {
 		response.headers.set('referrer-policy', 'same-origin');
 		response.headers.set('cache-control', 'no-store');
 		response.headers.set('x-robots-tag', PUBLIC_HEADERS['x-robots-tag']);

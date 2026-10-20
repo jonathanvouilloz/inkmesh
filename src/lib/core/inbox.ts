@@ -19,12 +19,28 @@ export function inbox(userId: number): InboxItem[] {
 	const rows = db()
 		.prepare(`SELECT e.*, w.name AS workspace_name, e.id > ${LAST_READ} AS unread ${MINE} ORDER BY e.id DESC LIMIT 50`)
 		.all(userId, userId, userId) as Record<string, unknown>[];
-	return rows.map((r) => ({
-		...eventFromRow(r),
-		workspace: r.workspace as string,
-		workspaceName: r.workspace_name as string,
-		unread: r.unread === 1
-	}));
+	return rows.map((r) => item(r, r.unread === 1));
+}
+
+function item(r: Record<string, unknown>, unread: boolean): InboxItem {
+	return { ...eventFromRow(r), workspace: r.workspace as string, workspaceName: r.workspace_name as string, unread };
+}
+
+/** Unread events after `afterId` up to `until` (an ISO time), newest first; `lastId` is 0 when there is none. */
+export function pendingDigest(
+	userId: number,
+	afterId: number,
+	until: string
+): { items: InboxItem[]; total: number; lastId: number } {
+	const where = `${MINE} AND e.id > max(?, coalesce(${LAST_READ}, 0)) AND e.at <= ?`;
+	const args = [userId, userId, afterId, userId, until];
+	const rows = db()
+		.prepare(`SELECT e.*, w.name AS workspace_name ${where} ORDER BY e.id DESC LIMIT 50`)
+		.all(...args) as Record<string, unknown>[];
+	const { total, lastId } = db()
+		.prepare(`SELECT count(*) AS total, coalesce(max(e.id), 0) AS lastId ${where}`)
+		.get(...args) as { total: number; lastId: number };
+	return { items: rows.map((r) => item(r, true)), total, lastId };
 }
 
 export function unreadCount(userId: number): number {

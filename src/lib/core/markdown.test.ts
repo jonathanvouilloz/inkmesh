@@ -3,6 +3,7 @@ import { structuredPatch } from 'diff';
 import { describe, expect, it } from 'vitest';
 import {
 	frontmatterEntries,
+	frontmatterFields,
 	imageUrls,
 	patchMarkdown,
 	processor,
@@ -49,6 +50,27 @@ describe('frontmatterEntries', () => {
 			['title', 'Q3'],
 			['tags', '[a, b]']
 		]);
+	});
+});
+
+describe('frontmatterFields', () => {
+	it('reads frontmatter fields', () => {
+		const source = '---\ndate: 2026-01-05\nstatus: "draft"\ntags: [q3, "big ops"]\nauthors:\n  - Ann\n  - \'Jon\'\nempty:\nstatus: done\n---\n';
+		const fields = { date: ['2026-01-05'], status: ['draft'], tags: ['q3', 'big ops'], authors: ['Ann', 'Jon'] };
+		expect(frontmatterFields(source)).toEqual(fields);
+		expect(frontmatterFields(source.replaceAll('\n', '\r\n'))).toEqual(fields);
+		expect(frontmatterFields('')).toEqual({});
+	});
+
+	it('reads column-0 lists through blank and comment lines', () => {
+		expect(frontmatterFields('---\ntags:\n- a\n\n# note\n  # indented note\n- "b"\nnext: x\n- c\n---\n')).toEqual({
+			tags: ['a', 'b'],
+			next: ['x']
+		});
+	});
+
+	it('gives no value to block scalars, anchors and aliases', () => {
+		expect(frontmatterFields('---\na: |\n  text\nb: >\n  text\nc: &x 1\nd: *x\ne: ok\n---\n')).toEqual({ e: ['ok'] });
 	});
 });
 

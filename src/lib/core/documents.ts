@@ -9,7 +9,7 @@ import { db } from './db.ts';
 import { appendEvent } from './events.ts';
 import { gitCommit, gitDeletions, gitInit, gitLog, gitShow } from './git.ts';
 import { serialised } from './lock.ts';
-import { patchMarkdown, rewriteUrls, splitFrontmatter } from './markdown.ts';
+import { frontmatterFields, patchMarkdown, rewriteUrls, splitFrontmatter, type Fields } from './markdown.ts';
 import {
 	assertFolderName,
 	Conflict,
@@ -196,6 +196,30 @@ export async function walkTree(slug: string): Promise<TreeNode[]> {
 		return [...folders.sort(byName), ...docs.sort(byName)];
 	}
 	return walk('');
+}
+
+export async function folderFields(slug: string, folder: string, actor: Actor): Promise<Record<string, Fields>> {
+	assertRole(slug, actor, 'reader');
+	return readFolderFields(slug, folder);
+}
+
+// Core-internal, no role check: callers check (folderFields) or hold a link's scope (publicLinks).
+export async function readFolderFields(slug: string, folder: string): Promise<Record<string, Fields>> {
+	const root = workspaceDir(slug);
+	const dir = folder ? resolveInside(root, folder) : root;
+	// Keys use the normalised path, so `f/` and `f` give the same document paths.
+	const rel = relative(root, dir);
+	if (rel) assertFolderName(rel);
+	const fields: Record<string, Fields> = {};
+	for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+		if (entry.name.startsWith('.') || !entry.isFile() || !entry.name.endsWith('.md')) continue;
+		const p = rel ? `${rel}/${entry.name}` : entry.name;
+		// A file removed or unreadable since readdir has no fields, like a non-UTF-8 one.
+		const read = await readText(join(dir, entry.name)).catch(() => null);
+		// readText keeps a BOM, which would hide the frontmatter from splitFrontmatter.
+		fields[p] = read ? frontmatterFields(splitFrontmatter(read.text.replace(/^\uFEFF/, '')).frontmatter) : {};
+	}
+	return fields;
 }
 
 export async function readDocument(

@@ -37,3 +37,19 @@ it('lets agents through', () => {
 	for (const path of ['/apix', '/api', '/mcpx', '/oauth/authorize', '/oauth/token/x', '/api/../login'])
 		expect(forbidden('POST', path, form, evil)).toBe(true);
 });
+
+it("the mail client's one-click POST passes the origin check", () => {
+	const oneClick = (path: string) => {
+		const url = new URL(path, 'https://x');
+		const request = new Request(url, {
+			method: 'POST',
+			headers: { 'content-type': 'application/x-www-form-urlencoded' },
+			body: 'List-Unsubscribe=One-Click'
+		});
+		return crossSiteForbidden(request, url);
+	};
+	expect(oneClick('/unsubscribe/1.abc')).toBe(false);
+	expect(oneClick('/account')).toBe(true);
+	expect(isAgentPath('/unsubscribe/1.abc')).toBe(true);
+	expect(isAgentPath('/unsubscribex/1.abc')).toBe(false);
+});

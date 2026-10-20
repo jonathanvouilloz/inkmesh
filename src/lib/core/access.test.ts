@@ -70,6 +70,10 @@ describe('access', () => {
 		await expect(createWorkspace('join', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
 	});
 
+	it('unsubscribe is a reserved slug', async () => {
+		await expect(createWorkspace('unsubscribe', 'x', await user('jon'))).rejects.toBeInstanceOf(InvalidPath);
+	});
+
 	it('drops the workspace row when its folder cannot be created', async () => {
 		const jon = await user('jon');
 		fs.mkdirSync(path.dirname(workspaceDir('team')), { recursive: true });

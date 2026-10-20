@@ -25,10 +25,11 @@ function login(email: string, password: string, address: string) {
 	form.set('password', password);
 	const event = {
 		request: new Request('http://localhost/login', { method: 'POST', body: form }),
+		url: new URL('http://localhost/login?/password'),
 		cookies: { set: () => {} },
 		getClientAddress: () => address
 	};
-	return actions.default(event as unknown as Parameters<typeof actions.default>[0]);
+	return actions.password(event as unknown as Parameters<typeof actions.password>[0]);
 }
 
 it('counts concurrent attempts before scrypt, so at most 10 reach it', async () => {

@@ -5,10 +5,10 @@ import { hashToken, insertUser, newToken, userById, type User } from './accounts
 import type { Actor } from './actor.ts';
 import { workspaceDir } from './data.ts';
 import { db, transaction } from './db.ts';
-import { documentFile, readSource, target, walkTree, type TreeNode } from './documents.ts';
+import { documentFile, readFolderFields, readSource, target, walkTree, type TreeNode } from './documents.ts';
 import { appendEvent } from './events.ts';
 import { extensionType, readImageFile, type ImageType } from './images.ts';
-import { imageUrls } from './markdown.ts';
+import { imageUrls, type Fields } from './markdown.ts';
 import { Conflict, notFound } from './paths.ts';
 
 export type SignupRole = 'reader' | 'editor';
@@ -92,6 +92,12 @@ export async function sharedTree(token: string): Promise<TreeNode[]> {
 	const s = scope(token);
 	if (s.path !== null) throw outOfScope();
 	return walkTree(s.workspace.slug);
+}
+
+export async function sharedFolderFields(token: string, folder: string): Promise<Record<string, Fields>> {
+	const s = scope(token);
+	if (s.path !== null) throw outOfScope();
+	return readFolderFields(s.workspace.slug, folder);
 }
 
 export async function sharedDocument(

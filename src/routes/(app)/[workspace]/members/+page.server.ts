@@ -8,9 +8,12 @@ import {
 	revokeInvitation,
 	ROLES,
 	setRole,
-	type Role
+	type Role,
+	workspace
 } from '#lib/core/access.ts';
+import { loginAllowed, loginFailed, validEmail } from '#lib/core/accounts.ts';
 import type { TreeNode } from '#lib/core/documents.ts';
+import { appUrl, invitationMail, mailEnabled, sendMail } from '#lib/core/mail.ts';
 import { Conflict } from '#lib/core/paths.ts';
 import {
 	createPublicLink,
@@ -35,6 +38,7 @@ export const load: PageServerLoad = async ({ params, locals, parent, url }) => {
 			share: url.searchParams.get('share')
 		}),
 		members: members(params.workspace),
+		mail: mailEnabled(),
 		// The creator's id stays on the server; the page only learns whether it may revoke.
 		pending: pendingInvitations(params.workspace).map(({ createdById, ...p }) => ({
 			...p,
@@ -69,13 +73,30 @@ function attempt(run: () => void, leaves = false) {
 export const actions: Actions = {
 	invite: async ({ params, locals, request, url }) => {
 		requireRole(params.workspace, locals, 'editor');
-		const wanted = role((await request.formData()).get('role'));
+		const form = await request.formData();
+		const wanted = role(form.get('role'));
+		// The address only goes into the email: nothing stores it.
+		const field = form.get('email');
+		const email = mailEnabled() && typeof field === 'string' ? field.trim() : '';
+		const key = 'invite-mail|' + locals.actor!.id;
+		// Checked before the invitation exists, so a refusal leaves no pending link behind.
+		if (email && !validEmail(email)) return fail(400, { mailError: 'email' as const, email });
+		if (email && !loginAllowed(key, 20)) return fail(429, { mailError: 'throttled' as const, email });
+		let token: string;
 		try {
-			return { link: url.origin + '/invite/' + createInvitation(params.workspace, wanted, locals.actor!) };
+			token = createInvitation(params.workspace, wanted, locals.actor!);
 		} catch (err) {
 			if (err instanceof Forbidden) error(403); // above the inviter's own role
 			throw err;
 		}
+		const link = url.origin + '/invite/' + token;
+		if (!email) return { link };
+		loginFailed(key);
+		const name = workspace(params.workspace)!.name;
+		// The emailed link starts with INKMESH_URL, never the request's host.
+		const mail = invitationMail(email, locals.actor!.name, name, wanted, appUrl() + '/invite/' + token, locals.locale);
+		if (!(await sendMail(mail, 'invitation', locals.actor!.id))) return { link, mailError: 'failed' as const, email };
+		return { link, mailed: email };
 	},
 	revoke: async ({ params, locals, request }) => {
 		requireRole(params.workspace, locals, 'editor');

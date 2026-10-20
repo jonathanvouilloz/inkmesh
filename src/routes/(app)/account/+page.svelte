@@ -71,6 +71,25 @@
 			{/if}
 		</form>
 	</section>
+
+	<section id="digest">
+		<h2>{t('account.digest', data.locale)}</h2>
+		<form method="POST" action="?/digest#digest">
+			<label class="check">
+				<input type="checkbox" name="digest" value="1" defaultChecked={data.mail && data.digest} disabled={!data.mail} />
+				{t('account.digestLabel', data.locale, { hour: data.hour })}
+			</label>
+			{#if data.mail}
+				<p class="note">{t('account.digestNote', data.locale)}</p>
+				<button>{t('account.save', data.locale)}</button>
+				{#if form?.ok === 'digest'}
+					<p class="ok" role="status">{t('account.digestSaved', data.locale)}</p>
+				{/if}
+			{:else}
+				<p class="note">{t('account.digestOff', data.locale)}</p>
+			{/if}
+		</form>
+	</section>
 </main>
 
 <style>
@@ -106,7 +125,28 @@
 		gap: 4px;
 		font-weight: 600;
 	}
-	input {
+	.check {
+		flex-direction: row;
+		align-items: baseline;
+		gap: 8px;
+		font-weight: 400;
+		text-wrap: pretty;
+	}
+	.check input {
+		flex: none;
+		margin: 0;
+		accent-color: var(--accent);
+	}
+	@media (pointer: coarse) {
+		.check input {
+			width: 18px;
+			height: 18px;
+		}
+	}
+	.check:has(input:disabled) {
+		color: var(--muted);
+	}
+	input:not([type='checkbox']) {
 		padding: 6px 8px;
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);

@@ -12,7 +12,9 @@ const TABLES = [
 	'editing_sessions',
 	'events',
 	'inbox_cursors',
+	'instance_keys',
 	'invitations',
+	'login_links',
 	'memberships',
 	'migrations',
 	'oauth_clients',
@@ -51,7 +53,14 @@ describe('db', () => {
 		expect(names()).toEqual(TABLES);
 		closeDb();
 		expect(names()).toEqual(TABLES); // second open: no error, no duplicate
-		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: MIGRATIONS.length });
+		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: 5 });
+		const columns = db().prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+		expect(columns).toEqual(expect.arrayContaining(['locale', 'digest', 'digest_last_id', 'digest_sent_at']));
+		const { key } = db().prepare("SELECT key FROM instance_keys WHERE name = 'unsubscribe'").get() as {
+			key: Uint8Array;
+		};
+		expect(key).toBeInstanceOf(Uint8Array);
+		expect(key).toHaveLength(32);
 	});
 
 	it('enforces foreign keys and roles', () => {

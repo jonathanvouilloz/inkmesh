@@ -12,6 +12,11 @@
 	let linksHeading = $state<HTMLHeadingElement>();
 	let opener: HTMLElement | undefined;
 	let revoking = $state<{ id: number; name: string }>();
+	const mailErrors = {
+		email: 'members.mailBad',
+		throttled: 'members.mailThrottled',
+		failed: 'members.mailFailed'
+	} as const;
 
 	async function copy(id: string, link: string) {
 		try {
@@ -117,8 +122,9 @@
 		</table>
 	{/if}
 
-	<h2>{t('members.invite', locale)}</h2>
-	<form class="invite" method="POST" action="?/invite">
+	<!-- The fragment brings the answer back into view, on a phone too. -->
+	<h2 id="invite">{t('members.invite', locale)}</h2>
+	<form class="invite" method="POST" action="?/invite#invite">
 		<label>
 			{t('members.newRole', locale)}
 			<select name="role">
@@ -127,10 +133,34 @@
 				{/each}
 			</select>
 		</label>
+		{#if data.mail}
+			<label class="to">
+				{t('members.sendTo', locale)}
+				<!-- Kept and focused after a refusal, so the address can be corrected rather than typed again. -->
+				<!-- svelte-ignore a11y_autofocus -->
+				<input
+					type="email"
+					name="email"
+					class="mono"
+					autocomplete="off"
+					spellcheck="false"
+					defaultValue={form?.email ?? ''}
+					autofocus={!!form?.mailError}
+					aria-invalid={form?.mailError === 'email'}
+					aria-describedby={form?.mailError ? 'invite-mail' : undefined}
+				/>
+			</label>
+		{/if}
 		<button>{t('members.create', locale)}</button>
 	</form>
 	{#if form?.link}
 		{@render oneTime('invite-link', form.link, 'members.once')}
+	{/if}
+	{#if form?.mailed}
+		{@const [before, after] = t('members.mailed', locale).split('{email}')}
+		<p class="ok" role="status">{before}<span class="mono">{form.mailed}</span>{after}</p>
+	{:else if form?.mailError}
+		<p id="invite-mail" class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
 	{/if}
 
 	{#if data.publicLinks}
@@ -187,7 +217,7 @@
 			<p>{t('share.empty', locale)}</p>
 		{/if}
 
-		<form class="invite share" method="POST" action="?/shareCreate#public-links">
+		<form class="invite" method="POST" action="?/shareCreate#public-links">
 			<label class="scope">
 				{t('share.scope', locale)}
 				<select name="scope" class="mono">
@@ -369,6 +399,9 @@
 	.error {
 		color: var(--error);
 	}
+	.ok {
+		color: var(--ok);
+	}
 	h2:focus {
 		outline: none;
 	}
@@ -389,10 +422,16 @@
 	.links td .row {
 		flex-wrap: nowrap;
 	}
-	.share {
+	.invite {
 		flex-wrap: wrap;
 	}
-	.scope {
+	/* One height for a row's select, input and button, so their labels line up. */
+	.invite :is(input, select, button) {
+		box-sizing: border-box;
+		height: 32px;
+	}
+	.scope,
+	.to {
 		flex: 1 1 240px;
 		min-width: 0;
 	}

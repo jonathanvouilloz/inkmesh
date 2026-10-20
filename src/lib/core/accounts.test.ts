@@ -5,15 +5,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	authenticate,
 	changePassword,
+	consumeLoginLink,
+	createLoginLink,
 	createSession,
 	createUser,
 	deleteSession,
 	hashPassword,
 	loginAllowed,
 	loginFailed,
+	loginLinkUser,
 	loginSucceeded,
 	loginUndo,
 	sessionUser,
+	setPassword,
+	validEmail,
 	validUserName,
 	verifyPassword
 } from './accounts.ts';
@@ -145,4 +150,95 @@ describe('accounts', () => {
 		expect(loginAllowed('u')).toBe(true);
 		loginSucceeded('u');
 	});
+
+	describe('login links', () => {
+		const ann = () => createUser({ email: 'ann@b.c', name: 'Ann', password: 'long enough 1' });
+		const count = () => (db().prepare('select count(*) as n from login_links').get() as { n: number }).n;
+
+		it('a login link works once', async () => {
+			const u = await ann();
+			const t = createLoginLink(u.id, '/demo');
+			expect(loginLinkUser(t)).toEqual(u);
+			expect(loginLinkUser(t)).toEqual(u); // peeking does not consume
+			expect(consumeLoginLink(t)).toEqual({ user: u, next: '/demo' });
+			expect(consumeLoginLink(t)).toBeNull();
+			expect(loginLinkUser(t)).toBeNull();
+			expect(consumeLoginLink('not-a-token')).toBeNull();
+		});
+		it('a login link expires after 15 minutes', async () => {
+			const u = await ann(); // scrypt before faking the clock
+			vi.useFakeTimers({ toFake: ['Date'] });
+			try {
+				vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+				const t = createLoginLink(u.id, '/');
+				vi.setSystemTime(new Date('2026-01-01T00:14:59Z'));
+				expect(loginLinkUser(t)?.id).toBe(u.id);
+				vi.setSystemTime(new Date('2026-01-01T00:15:01Z'));
+				expect(loginLinkUser(t)).toBeNull();
+				expect(consumeLoginLink(t)).toBeNull();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+		it('stores only the hash', async () => {
+			const u = await ann();
+			const t = createLoginLink(u.id, '/demo');
+			expect(t).toMatch(/^[A-Za-z0-9_-]{43}$/);
+			const rows = db().prepare('select * from login_links').all();
+			expect(rows).toHaveLength(1);
+			expect(JSON.stringify(rows)).not.toContain(t);
+		});
+		it('two concurrent consumes, one winner', async () => {
+			const u = await ann();
+			const t = createLoginLink(u.id, '/');
+			const results = await Promise.all([
+				Promise.resolve().then(() => consumeLoginLink(t)),
+				Promise.resolve().then(() => consumeLoginLink(t))
+			]);
+			expect(results.filter(Boolean)).toHaveLength(1);
+		});
+		it('a password reset removes login links', async () => {
+			const u = await ann();
+			const t = createLoginLink(u.id, '/');
+			await setPassword(u.id, 'new password 1');
+			expect(consumeLoginLink(t)).toBeNull();
+			expect(count()).toBe(0);
+		});
+		it('old links are pruned', async () => {
+			const u = await ann();
+			createLoginLink(u.id, '/');
+			db().prepare("update login_links set expires_at = '2000-01-01T00:00:00.000Z'").run();
+			const t = createLoginLink(u.id, '/');
+			expect(count()).toBe(1);
+			expect(loginLinkUser(t)?.id).toBe(u.id);
+		});
+		it('deleting the user removes the links', async () => {
+			const u = await ann();
+			createLoginLink(u.id, '/');
+			db().prepare('delete from users where id = ?').run(u.id);
+			expect(count()).toBe(0);
+		});
+	});
+});
+
+it('validEmail accepts exactly one address', () => {
+	for (const ok of ['ann@example.ch', 'owner@inkmesh.local', 'jon@localhost', 'a.b+c@x.co'])
+		expect(validEmail(ok), ok).toBe(true);
+	for (const bad of [
+		'',
+		'@',
+		'nope',
+		'a@',
+		'@x.ch',
+		'a@b@c.ch',
+		'a@x.ch, b@y.ch',
+		'a@x.ch;b@y.ch',
+		'a@x.ch\r\nBcc: v@evil.ch',
+		'Ann <a@x.ch>',
+		'"a b"@x.ch',
+		' a@x.ch',
+		'a\u0000@x.ch',
+		'a@' + 'b'.repeat(253)
+	])
+		expect(validEmail(bad), JSON.stringify(bad)).toBe(false);
 });

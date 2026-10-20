@@ -3,6 +3,10 @@ import { defineConfig } from '@playwright/test';
 // Own data directory, rebuilt on every run: e2e never touches the developer's .data and always starts from the seed.
 const data = './.data-e2e';
 process.env.INKMESH_DATA = data;
+// Email on, written as .eml files under the data directory: no real email leaves the machine.
+process.env.SMTP_URL = 'file:';
+process.env.MAIL_FROM = 'inkmesh <noreply@inkmesh.local>';
+process.env.INKMESH_URL = 'http://localhost:4173';
 
 export default defineConfig({
 	webServer: {
@@ -19,12 +23,12 @@ export default defineConfig({
 		{
 			name: 'chromium',
 			dependencies: ['setup'],
-			testIgnore: /login\.spec\.ts/,
+			testIgnore: /login.*\.spec\.ts/,
 			use: { storageState: `${data}/owner.json` }
 		},
 		{
 			name: 'anonymous',
-			testMatch: /login\.spec\.ts/,
+			testMatch: /login.*\.spec\.ts/,
 			use: { storageState: { cookies: [], origins: [] } }
 		}
 	]

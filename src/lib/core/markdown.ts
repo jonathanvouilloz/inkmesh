@@ -25,14 +25,56 @@ export function splitFrontmatter(source: string): { frontmatter: string; body: s
 	return { frontmatter, body: source.slice(frontmatter.length) };
 }
 
-// shortcut: no YAML parser, indented (nested) lines are skipped and their parent key gets its raw rest of line; upgrade when filtering by frontmatter lands (milestone 3)
+const KEY = /^([^\s#:-][^:]*):(.*)$/;
+
+// shortcut: no YAML parser, indented (nested) lines are skipped and their parent key gets its raw rest of line; frontmatterFields reads values for sorting and filtering, upgrade both if real YAML is needed
 export function frontmatterEntries(frontmatter: string): Array<[string, string]> {
 	const entries: Array<[string, string]> = [];
 	for (const line of frontmatter.split(/\r?\n/)) {
-		const match = /^([^\s#:-][^:]*):(.*)$/.exec(line);
+		const match = KEY.exec(line);
 		if (match) entries.push([match[1].trim(), match[2].trim()]);
 	}
 	return entries;
+}
+
+export type Fields = Record<string, string[]>;
+
+const unquote = (value: string) => /^(["'])(.*)\1$/s.exec(value)?.[2] ?? value;
+
+/**
+ * Each top-level key's values: `[a, "b c"]` and indented `- item` lines under an empty key are lists,
+ * matching quotes are dropped, empty values give no entry, the first occurrence of a key wins.
+ */
+// shortcut: anchors, multi-line strings, nested maps, commas inside quoted list items and inline `# note` comments (kept in the value) are not understood; upgrade to a YAML parser if users need them
+export function frontmatterFields(frontmatter: string): Fields {
+	const fields = new Map<string, string[]>();
+	let list: string[] | null = null;
+	for (const line of frontmatter.split(/\r?\n/)) {
+		if (list) {
+			// Block list items, indented or at column 0; blank and comment lines keep the list open.
+			const item = /^\s*-(?:\s+(.*))?$/.exec(line);
+			if (item) list.push(unquote((item[1] ?? '').trim()));
+			if (item || /^\s*(#.*)?$/.test(line)) continue;
+			list = null;
+		}
+		const match = KEY.exec(line);
+		const key = match?.[1].trim();
+		// `__proto__` would make SvelteKit's serializer (devalue) throw, and with it the folder page.
+		if (!match || !key || key === '__proto__' || fields.has(key)) continue;
+		const value = match[2].trim();
+		// Block scalars, anchors and aliases (`|`, `>`, `&`, `*`) are not understood: no value.
+		if (/^[|>&*]/.test(value)) continue;
+		const values = !value
+			? (list = [])
+			: /^\[.*\]$/.test(value)
+				? value.slice(1, -1).split(',').map((v) => unquote(v.trim()))
+				: [unquote(value)];
+		fields.set(key, values);
+	}
+	// A Map, then fromEntries: a key such as `constructor` stays a plain own property.
+	return Object.fromEntries(
+		[...fields].map(([key, values]) => [key, values.filter(Boolean)]).filter(([, values]) => values.length)
+	);
 }
 
 type Block = { start: number; end: number; key: string; definition: boolean };

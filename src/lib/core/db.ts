@@ -76,6 +76,19 @@ CREATE VIRTUAL TABLE search_index USING fts5(workspace UNINDEXED, path UNINDEXED
 		id: '004-link-hint',
 		// The token's last 4 characters, so an owner can tell which row a URL is; null for older links.
 		sql: 'ALTER TABLE public_links ADD COLUMN hint TEXT;'
+	},
+	{
+		id: '005-email',
+		sql: `
+ALTER TABLE users ADD COLUMN locale TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE users ADD COLUMN digest INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN digest_last_id INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN digest_sent_at TEXT;
+CREATE TABLE login_links (token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users ON DELETE CASCADE,
+  next TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE instance_keys (name TEXT PRIMARY KEY, key BLOB NOT NULL);
+INSERT INTO instance_keys (name, key) VALUES ('unsubscribe', randomblob(32));
+`
 	}
 ];
 

@@ -13,6 +13,7 @@ import {
 	createFolder,
 	deletedDocuments,
 	deletePath,
+	folderFields,
 	history,
 	importDocument,
 	linksTo,
@@ -738,6 +739,44 @@ describe('documents', () => {
 		await expect(createDocument('demo', 'x.md', r)).rejects.toBeInstanceOf(Forbidden);
 		await expect(writeDocument('demo', doc, 'x', { expectedHash: 'h', actor: r })).rejects.toBeInstanceOf(Forbidden);
 		await expect(readDocument('demo', doc, { id: 999, name: 'S' })).rejects.toThrow('not a member');
+	});
+
+	it('reads the fields of one folder', async () => {
+		const put = (rel: string, bytes: string | Buffer) => {
+			const file = path.join(workspaceDir('demo'), rel);
+			fs.mkdirSync(path.dirname(file), { recursive: true });
+			fs.writeFileSync(file, bytes);
+		};
+		put('f/a.md', '---\ndate: 2026-01-05\n---\n# A\n');
+		put('f/b.md', '# B\n');
+		put('f/sub/c.md', '---\ndate: 2026-02-01\n---\n');
+		put('top.md', '---\nstatus: draft\n---\n');
+		expect(await folderFields('demo', 'f', actor)).toEqual({ 'f/a.md': { date: ['2026-01-05'] }, 'f/b.md': {} });
+		expect(await folderFields('demo', '', actor)).toEqual({ 'top.md': { status: ['draft'] } });
+		await expect(folderFields('demo', 'f', { id: 999, name: 'S' })).rejects.toBeInstanceOf(Forbidden);
+		await expect(folderFields('demo', 'nope', actor)).rejects.toMatchObject({ code: 'ENOENT' });
+		for (const p of ['../x', '.git']) await expect(folderFields('demo', p, actor)).rejects.toBeInstanceOf(InvalidPath);
+	});
+
+	it('odd files have no fields and break nothing', async () => {
+		const dir = path.join(workspaceDir('demo'), 'g');
+		fs.mkdirSync(dir);
+		fs.writeFileSync(path.join(dir, 'x.md'), '---\nstatus: draft\n');
+		fs.writeFileSync(path.join(dir, 'y.md'), Buffer.from([0xff, 0xfe]));
+		fs.writeFileSync(path.join(dir, 'z.md'), '---\ntags: [a,\n---\n');
+		expect(await folderFields('demo', 'g', actor)).toEqual({
+			'g/x.md': {},
+			'g/y.md': {},
+			'g/z.md': { tags: ['[a,'] }
+		});
+		// A BOM before the frontmatter still gives its fields; an unreadable file gives none.
+		fs.writeFileSync(path.join(dir, 'z.md'), '\uFEFF---\nstatus: draft\n---\n');
+		fs.writeFileSync(path.join(dir, 'w.md'), '---\nstatus: draft\n---\n', { mode: 0 });
+		fs.writeFileSync(path.join(dir, 'v.md'), '---\n__proto__: x\nstatus: draft\n---\n');
+		const fields = await folderFields('demo', 'g', actor);
+		expect(fields['g/w.md']).toEqual({});
+		expect(Object.keys(fields['g/v.md'])).toEqual(['status']);
+		expect(fields['g/z.md']).toEqual({ status: ['draft'] });
 	});
 
 	describe('events', () => {

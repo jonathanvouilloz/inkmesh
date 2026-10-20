@@ -13,6 +13,7 @@
 	workspace="s/{data.token}"
 	path=""
 	nodes={data.nodes}
+	query={data.query}
 	role="reader"
 	locale={data.locale}
 	name={data.workspaceName}

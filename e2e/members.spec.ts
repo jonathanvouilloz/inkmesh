@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
 test.use({ locale: 'en-US' });
@@ -145,4 +147,54 @@ test('a non-admin cannot create a workspace', async () => {
 	});
 	expect(response.status()).toBe(403);
 	await reader.close();
+});
+
+const MAIL = './.data-e2e/mail';
+let emailed = '';
+
+test.afterEach(async ({ page }) => {
+	if (!emailed) return;
+	// Leaves no pending invitation and no email behind for the other specs.
+	for (const name of fs.readdirSync(MAIL))
+		if (fs.readFileSync(path.join(MAIL, name), 'utf8').includes(`To: ${emailed}`)) fs.rmSync(path.join(MAIL, name));
+	emailed = '';
+	await page.goto('/demo/members');
+	const revoke = page.getByRole('table', { name: 'Pending invitations' }).getByRole('button', { name: 'Revoke' });
+	while (await revoke.count()) {
+		await revoke.first().click();
+		await page.waitForLoadState('networkidle');
+	}
+});
+
+test('an owner emails an invitation link', async ({ page }) => {
+	emailed = 'ann@example.ch';
+	await page.goto('/demo/members', { waitUntil: 'networkidle' });
+	await page.getByLabel('Role of the new link').selectOption({ label: 'Reader' });
+	await page.getByLabel('Email the link to (optional)').fill(emailed);
+	await page.getByRole('button', { name: 'Create link' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Link sent to' })).toHaveText('Link sent to ann@example.ch.');
+	const token = (await page.getByLabel('Invitation link').inputValue()).split('/').pop()!;
+	const mail = fs
+		.readdirSync(MAIL)
+		.map((name) => fs.readFileSync(path.join(MAIL, name), 'utf8').replace(/=\r?\n/g, ''))
+		.find((raw) => raw.includes(`To: ${emailed}`));
+	expect(mail).toContain('http://localhost:4173/invite/' + token);
+});
+
+test('a refused address keeps the field and creates no link', async ({ page }) => {
+	emailed = 'ann@example.ch, bob@example.ch';
+	await page.goto('/demo/members', { waitUntil: 'networkidle' });
+	const pending = page.getByRole('table', { name: 'Pending invitations' }).getByRole('row');
+	const before = await pending.count();
+	const field = page.getByLabel('Email the link to (optional)');
+	await field.fill(emailed);
+	// The server's check, past the browser's own.
+	await field.evaluate((input: HTMLInputElement) => (input.form!.noValidate = true));
+	await page.getByRole('button', { name: 'Create link' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Enter a single valid email address, or leave the field empty.');
+	await expect(field).toHaveValue(emailed);
+	await expect(field).toBeFocused();
+	await expect(field).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Invitation link')).toHaveCount(0);
+	await expect(pending).toHaveCount(before);
 });
