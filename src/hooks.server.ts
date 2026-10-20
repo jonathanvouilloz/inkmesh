@@ -2,11 +2,15 @@ import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { loginAllowed, loginFailed, sessionUser } from '#lib/core/accounts.ts';
 import { db } from '#lib/core/db.ts';
 import { assertGit } from '#lib/core/git.ts';
+import { mailConfig } from '#lib/core/mail.ts';
 import { rebuildIndex } from '#lib/core/search.ts';
 import { commitAllSessions } from '#lib/core/sessions.ts';
 import { crossSiteForbidden, isAgentPath } from '#lib/server/csrf.ts';
 
 export const init: ServerInit = async () => {
+	// A partial or invalid email configuration throws here and stops the start.
+	const mail = mailConfig();
+	console.log(mail ? `email: on (${mail.smtp.protocol.slice(0, -1)})` : 'email: off');
 	db();
 	await assertGit();
 	// Sessions left by a crash are committed, with their author, before any request.
