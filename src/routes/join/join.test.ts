@@ -8,6 +8,7 @@ import type { Actor } from '#lib/core/actor.ts';
 import { closeDb } from '#lib/core/db.ts';
 import { createDocument } from '#lib/core/documents.ts';
 import { createPublicLink } from '#lib/core/publicLinks.ts';
+import { handle } from '../../hooks.server.ts';
 import { actions, load } from './[token]/+page.server.ts';
 
 const IP = '198.51.100.9';
@@ -68,4 +69,22 @@ it('sign-ups are throttled per IP', async () => {
 	for (let i = 0; i < 10; i++) expect((await signup(t, 'bad address')).status).toBe(400);
 	expect(await signup(t, 'nina@b.c')).toMatchObject({ status: 429 });
 	expect(userByEmail('nina@b.c')).toBeFalsy();
+});
+
+it('join and invitation pages are not referred elsewhere, cached or indexed', async () => {
+	for (const pathname of ['/join/abc', '/invite/abc']) {
+		const url = new URL(pathname, 'http://localhost');
+		const event = {
+			url,
+			request: new Request(url),
+			cookies: { get: () => undefined },
+			locals: {},
+			route: { id: null },
+			getClientAddress: () => IP
+		};
+		const res = await handle({ event: event as never, resolve: async () => new Response('ok') });
+		expect(res.headers.get('referrer-policy'), pathname).toBe('same-origin');
+		expect(res.headers.get('cache-control'), pathname).toBe('no-store');
+		expect(res.headers.get('x-robots-tag'), pathname).toBe('noindex, nofollow');
+	}
 });
