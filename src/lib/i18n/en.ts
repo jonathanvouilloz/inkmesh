@@ -57,6 +57,8 @@ export const en = {
 	'home.title': 'Your workspaces',
 	'home.empty': 'You are not a member of any workspace yet. Ask for an invitation link.',
 	'home.create': 'New workspace',
+	'home.mine': 'My workspaces',
+	'home.joined': 'Shared with me',
 	'home.name': 'Name',
 	'home.slug': 'Slug',
 	'home.slugBad': 'Lowercase letters, digits and dashes only, 2 to 40 characters',

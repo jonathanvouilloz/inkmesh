@@ -145,6 +145,37 @@ test('a reader reads without editing', async () => {
 	await expect(page.locator('#rail').getByText('New document', { exact: true })).toHaveCount(0);
 });
 
+test('a member who owns one workspace and joined another sees both groups', async ({ page }) => {
+	// The admin creates a workspace and hands Ruth, a reader of Demo, an owner link to it.
+	await page.goto('/');
+	await page.getByText('New workspace', { exact: true }).click();
+	await page.getByLabel('Name').fill('Ruth Team');
+	await page.getByRole('button', { name: 'Create' }).click();
+	await expect(page).toHaveURL(/\/ruth-team$/);
+	await page.goto('/ruth-team/members');
+	await page.getByLabel('Role of the new link').selectOption({ label: 'Owner' });
+	await page.getByRole('button', { name: 'Create link' }).click();
+	const link = await page.getByRole('region', { name: 'New invitation link' }).getByLabel('Invitation link').inputValue();
+	const ruth = await reader.newPage();
+	await ruth.goto(link);
+	await ruth.getByRole('button', { name: 'Join Ruth Team as owner' }).click();
+	await expect(ruth).toHaveURL(/\/ruth-team$/);
+	const header = ruth.getByRole('banner');
+	await header.getByText('Ruth Team', { exact: true }).click();
+	const mine = header.getByRole('list', { name: 'My workspaces' });
+	const shared = header.getByRole('list', { name: 'Shared with me' });
+	await expect(mine.getByRole('link', { name: /Ruth Team/ })).toHaveAttribute('aria-current', 'page');
+	await expect(shared.getByRole('link', { name: /Demo/ })).toBeVisible();
+	await expect(mine.getByRole('link', { name: /Demo/ })).toHaveCount(0);
+	// The home list groups the same way, with the role on each row.
+	await ruth.goto('/');
+	const main = ruth.getByRole('main');
+	await expect(main.getByRole('heading', { name: 'My workspaces' })).toBeVisible();
+	await expect(main.getByRole('list', { name: 'My workspaces' }).getByText('Owner', { exact: true })).toBeVisible();
+	await expect(main.getByRole('list', { name: 'Shared with me' }).getByText('Reader', { exact: true })).toBeVisible();
+	await ruth.close();
+});
+
 test('a non-admin cannot create a workspace', async () => {
 	const page = await reader.newPage();
 	await page.goto('/');

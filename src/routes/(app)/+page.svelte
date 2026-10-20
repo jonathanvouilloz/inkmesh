@@ -17,6 +17,8 @@
 	$effect(() => {
 		if (opened) nameInput?.focus();
 	});
+	const mine = $derived(data.workspaces.filter((w) => w.role === 'owner'));
+	const joined = $derived(data.workspaces.filter((w) => w.role !== 'owner'));
 	const suggest = (s: string) =>
 		s
 			.normalize('NFD')
@@ -26,22 +28,32 @@
 			.replace(/^-+|-+$/g, '');
 </script>
 
+{#snippet rows(list: typeof data.workspaces)}
+	{#each list as w (w.slug)}
+		<li>
+			<a href="/{w.slug}">{w.name}</a>
+			<span class="slug">{w.slug}</span>
+			<span class="role">{t(`role.${w.role}`, data.locale)}</span>
+		</li>
+	{/each}
+{/snippet}
+
 <svelte:head><title>{t('home.title', data.locale)}</title></svelte:head>
 
 <Header workspaces={data.workspaces} user={data.user} locale={data.locale} unread={data.unread} />
 
 <main>
 	<h1>{t('home.title', data.locale)}</h1>
-	{#if data.workspaces.length}
-		<ul>
-			{#each data.workspaces as w (w.slug)}
-				<li>
-					<a href="/{w.slug}">{w.name}</a>
-					<span class="slug">{w.slug}</span>
-					<span class="role">{t(`role.${w.role}`, data.locale)}</span>
-				</li>
-			{/each}
-		</ul>
+	{#if mine.length && joined.length}
+		<!-- Two kinds, two groups: what I own, then what I joined. -->
+		{#each [['mine', mine] as const, ['joined', joined] as const] as [key, list] (key)}
+			<section>
+				<h2 id="home-{key}">{t(`home.${key}`, data.locale)}</h2>
+				<ul aria-labelledby="home-{key}">{@render rows(list)}</ul>
+			</section>
+		{/each}
+	{:else if data.workspaces.length}
+		<ul>{@render rows(data.workspaces)}</ul>
 	{:else}
 		<p class="empty">{t('home.empty', data.locale)}</p>
 	{/if}
@@ -99,6 +111,11 @@
 	h1 {
 		margin: 0;
 		font-size: 16px;
+		font-weight: 600;
+	}
+	h2 {
+		margin: 0 0 8px;
+		font-size: 13px;
 		font-weight: 600;
 	}
 	ul {

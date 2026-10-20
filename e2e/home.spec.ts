@@ -24,6 +24,8 @@ test('an admin creates a workspace and lands in it', async ({ page }) => {
 	// The switcher now lists both workspaces, the new one current.
 	await page.getByRole('banner').getByText('Side Project', { exact: true }).click();
 	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeVisible();
+	// Owning both, one list: no group heading.
+	await expect(page.getByRole('banner').getByText('My workspaces', { exact: true })).toHaveCount(0);
 	await page.keyboard.press('Escape');
 	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeHidden();
 });
