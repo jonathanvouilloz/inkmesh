@@ -41,6 +41,7 @@
 		"@milkdown/kit": "7.22.3",
 		"@modelcontextprotocol/server": "^2.3.1",
 		"@sveltejs/adapter-node": "^6.0.0",
+		"nodemailer": "10.0.15",
 		"rehype-sanitize": "^6.0.0",
 		"rehype-stringify": "^10.0.1",
 		"remark-frontmatter": "^5.0.0",
