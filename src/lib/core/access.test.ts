@@ -181,6 +181,26 @@ describe('access', () => {
 		expect(invitation(createInvitation('team', 'reader', jon))?.email).toBeNull();
 	});
 
+	it('the address is dropped once the invitation is used or expired', async () => {
+		const jon = await user('jon');
+		const bob = await user('bob');
+		await createWorkspace('team', 'Team', jon);
+		const email = (token: string) =>
+			(db().prepare('SELECT email FROM invitations WHERE token_hash = ?').get(hashToken(token)) as { email: string | null }).email;
+		const used = createInvitation('team', 'reader', jon, 'bob@example.ch');
+		acceptInvitation(used, bob.id);
+		expect(email(used)).toBeNull();
+		const signedUp = createInvitation('team', 'reader', jon, 'nina@example.ch');
+		acceptInvitationAsNewUser(signedUp, { email: 'nina@example.ch', name: 'Nina', passwordHash: 'unused' });
+		expect(email(signedUp)).toBeNull();
+		const expired = createInvitation('team', 'reader', jon, 'ann@example.ch');
+		const live = createInvitation('team', 'reader', jon, 'eve@example.ch');
+		db().prepare('UPDATE invitations SET expires_at = ? WHERE token_hash = ?').run('2000-01-01T00:00:00.000Z', hashToken(expired));
+		createInvitation('team', 'reader', jon); // any new invitation clears expired addresses
+		expect(email(expired)).toBeNull();
+		expect(email(live)).toBe('eve@example.ch');
+	});
+
 	it('an invitation accepts once', async () => {
 		const owner = await user('jon');
 		const bob = await user('bob');

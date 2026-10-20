@@ -110,6 +110,10 @@ export function createInvitation(slug: string, role: Role, by: Actor, email?: st
 	const token = newToken();
 	const created = new Date();
 	const expires = new Date(created.getTime() + INVITATION_DAYS * 24 * 60 * 60 * 1000);
+	// nLPD: an address is kept only while its invitation can still be used.
+	db()
+		.prepare('UPDATE invitations SET email = NULL WHERE expires_at <= ? AND email IS NOT NULL')
+		.run(created.toISOString());
 	db()
 		.prepare(
 			'INSERT INTO invitations (token_hash, workspace, role, created_by, created_at, expires_at, email) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -145,7 +149,7 @@ function claim(token: string, userId: number): Workspace {
 	const at = now();
 	const { changes } = db()
 		.prepare(
-			'UPDATE invitations SET used_by = ?, used_at = ? WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?'
+			'UPDATE invitations SET used_by = ?, used_at = ?, email = NULL WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?'
 		)
 		.run(userId, at, tokenHash, at);
 	if (changes === 0) throw new Conflict('invalid invitation');
