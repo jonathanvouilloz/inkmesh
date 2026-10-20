@@ -1,10 +1,13 @@
-// SvelteKit's origin check (turned off in vite.config.ts) without the cookie-free agent endpoints.
+// SvelteKit's origin check (turned off in vite.config.ts) without the cookie-free paths.
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // The form types SvelteKit 3.1 guards, its own binary form type included.
 const FORM_TYPES = ['application/x-www-form-urlencoded', 'multipart/form-data', 'text/plain', 'application/x-sveltekit-formdata'];
-const AGENT_PATH = /^\/(api\/|mcp(\/|$)|oauth\/(token|register)$|\.well-known\/oauth-)/;
+const AGENT_PATH = /^\/(api\/|mcp(\/|$)|oauth\/(token|register)$|\.well-known\/oauth-|unsubscribe\/)/;
 
-/** The cookie-free agent endpoints: bearer or OAuth only, the session cookie is never read there. */
+/**
+ * The cookie-free paths: the agent endpoints (bearer or OAuth only) and the one-click unsubscribe
+ * (RFC 8058, mail clients POST without an Origin; only the token acts). The session cookie is never read there.
+ */
 export const isAgentPath = (pathname: string): boolean => AGENT_PATH.test(pathname);
 
 export function crossSiteForbidden(request: Request, url: URL): boolean {

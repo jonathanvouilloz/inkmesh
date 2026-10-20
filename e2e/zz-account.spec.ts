@@ -5,6 +5,8 @@ test.use({ locale: 'en-US' });
 test.describe.configure({ mode: 'serial' });
 
 const banner = (page: Page) => page.getByRole('banner');
+// The digest section has its own Save.
+const saveName = (page: Page) => page.locator('form[action="?/rename"]').getByRole('button', { name: 'Save' });
 
 async function changePassword(page: Page, current: string, next: string) {
 	await page.getByLabel('Current password').fill(current);
@@ -21,17 +23,17 @@ test('the owner renames themselves and the header follows', async ({ page }) => 
 	await expect(page.getByText('Changes already made keep your previous name.')).toBeVisible();
 
 	await page.getByLabel('Display name').fill('Owner 2');
-	await page.getByRole('button', { name: 'Save' }).click();
+	await saveName(page).click();
 	await expect(page.getByRole('status')).toHaveText('Name saved');
 	await expect(banner(page).getByText('Owner 2')).toBeVisible();
 
 	await page.getByLabel('Display name').fill('   ');
-	await page.getByRole('button', { name: 'Save' }).click();
+	await saveName(page).click();
 	await expect(page.getByRole('alert')).toHaveText('Enter a name of 1 to 80 characters.');
 
 	// Restore for anything that reads the owner's name later.
 	await page.getByLabel('Display name').fill('Owner');
-	await page.getByRole('button', { name: 'Save' }).click();
+	await saveName(page).click();
 	await expect(banner(page).getByText('Owner', { exact: true })).toBeVisible();
 });
 

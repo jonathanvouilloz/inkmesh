@@ -23,6 +23,9 @@
 
 <main>
 	<h1 id="inbox">{t('inbox.title', locale)}</h1>
+	{#if data.digestHint}
+		<p class="muted"><a href="/account#digest">{t('inbox.digestHint', locale)}</a></p>
+	{/if}
 	{#if !data.items.length}
 		<p class="muted">{t('inbox.empty', locale)}</p>
 	{:else}
