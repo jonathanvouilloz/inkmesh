@@ -75,6 +75,9 @@
 						>
 					</li>
 				{/each}
+				{#if user.admin}
+					<li class="new"><a href="/?new"><span aria-hidden="true">+</span> {t('home.create', locale)}</a></li>
+				{/if}
 			</ul>
 		</details>
 		{#if search}
@@ -236,6 +239,12 @@
 	ul a[aria-current='page'] {
 		color: var(--accent);
 		font-weight: 500;
+	}
+	/* Creating sits apart from the list it would add to. */
+	.new {
+		margin-top: 4px;
+		padding-top: 4px;
+		border-top: 1px solid var(--hairline);
 	}
 	.slug {
 		display: block;

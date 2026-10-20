@@ -28,6 +28,16 @@ test('an admin creates a workspace and lands in it', async ({ page }) => {
 	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeHidden();
 });
 
+test('the switcher leads an admin to the open create form', async ({ page }) => {
+	await page.goto('/demo');
+	const header = page.getByRole('banner');
+	await header.getByText('Demo', { exact: true }).click();
+	await header.getByRole('link', { name: 'New workspace' }).click();
+	await expect(page).toHaveURL(/\/\?new$/);
+	await expect(page.getByLabel('Name')).toBeFocused();
+	await expect(page.getByLabel('Slug')).toBeVisible();
+});
+
 test('a bad slug is refused inline', async ({ page }) => {
 	await page.goto('/');
 	await page.getByText('New workspace', { exact: true }).click();

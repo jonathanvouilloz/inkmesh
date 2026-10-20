@@ -141,6 +141,12 @@ test('a reader reads without editing', async () => {
 });
 
 test('a non-admin cannot create a workspace', async () => {
+	const page = await reader.newPage();
+	await page.goto('/');
+	await page.getByRole('banner').getByText('Workspaces', { exact: true }).click();
+	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeVisible();
+	await expect(page.getByRole('banner').getByRole('link', { name: 'New workspace' })).toHaveCount(0);
+	await expect(page.getByText('New workspace', { exact: true })).toHaveCount(0);
 	const response = await reader.request.post('/?/create', {
 		form: { name: 'X', slug: 'x' },
 		headers: { origin: 'http://localhost:4173' }
