@@ -276,8 +276,12 @@
 		box-sizing: border-box;
 		height: 30px;
 	}
+	/* Each select sizes to its longest option: capped, so the bar keeps Apply on the Value's row. */
+	.query select {
+		max-width: 16ch;
+	}
 	.query input {
-		width: 16ch;
+		width: 12ch;
 	}
 	.where {
 		margin: -16px 0 0;
@@ -361,11 +365,18 @@
 		section {
 			padding: 24px 16px;
 		}
-		.query > * {
-			flex: 1 1 100%;
+		/* Two controls per row: Sort beside Order, the filter beside its value, Apply on its own row. */
+		.query {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
-		.query input {
-			width: auto;
+		.query > button {
+			grid-column: 1 / -1;
+			justify-self: start;
+		}
+		.query :is(input, select) {
+			width: 100%;
+			max-width: none;
 		}
 	}
 </style>
