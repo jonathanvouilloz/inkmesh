@@ -3,7 +3,7 @@ Updated: 2026-10-20
 
 ## Where we are
 All six roadmap milestones and the UX polish after first real use are merged into `main` and deployed. 488 unit tests, 95 Playwright e2e, svelte-check clean. Jon validated this version on 2026-10-20.
-- Since M6: production on `https://inkmesh.ch` with email on (Resend); invited email prefilled at sign-up (migration `006-invitation-email`); "+ New workspace" in the switcher for admins; switcher and home split "My workspaces" / "Shared with me"; pages 1040px, documents 760px; members page reordered; hourly backup with an email alert on failure. Plan: `docs/plans/2026-10-20-ux-polish.md`.
+- Since M6: production on `https://inkmesh.ch` with email on (Resend); invited email prefilled at sign-up (migration `006-invitation-email`); "+ New workspace" in the switcher for admins; switcher and home split "My workspaces" / "Shared with me"; pages 1040px, documents 760px; members page reordered; document tables with a visible grid, header row and editor handles; document body text in a softened ink (`--prose`) under heavier headings (500); hourly backup with an email alert on failure. Plan: `docs/plans/2026-10-20-ux-polish.md`.
 - Only instance admins create workspaces (decision 2026-10-18, confirmed by Jon 2026-10-20). Admins: both of Jon's accounts (the second flag was set by hand in the database: the admin CLI has no promote command).
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 

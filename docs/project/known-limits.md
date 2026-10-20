@@ -29,3 +29,4 @@ Deliberate gaps ledgered in reviews; each is small and safe to leave until someo
 - Tests: the unreadable-file test fails when run as root; the "concurrent consumes" login-link test is sequential (node:sqlite is synchronous); one unit test failed once in the M6 fix wave and was not identified, and `search.spec` ("search from the header", "on a phone") fails about one run in three, passing on rerun: watch both.
 
 - Admin CLI: no command to make an existing account an instance admin (done by hand in the database on 2026-10-20); add `grant-admin <email>` if it is needed again.
+- Tables: column widths cannot be set by hand: GFM Markdown has no place to store them, so a width would be lost at save and unseen by agents; the browser sizes columns to their content.
