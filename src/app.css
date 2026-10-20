@@ -13,6 +13,8 @@
 	--error: #B3261E;
 	--font-text: 'Inter Variable', system-ui, sans-serif;
 	--font-mono: 'Fragment Mono', ui-monospace, monospace;
+	/* Inter is spaced for text sizes; document headings tighten it. */
+	--tracking-heading: -0.02em;
 	--radius: 6px;
 	--ease: 150ms ease-out;
 }

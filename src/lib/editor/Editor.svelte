@@ -156,6 +156,9 @@
 		padding-right: 0;
 		padding-bottom: 0;
 	}
+	.rich :global(.milkdown .ProseMirror :is(h1, h2, h3, h4, h5, h6)) {
+		letter-spacing: var(--tracking-heading);
+	}
 	.rich :global(.milkdown .ProseMirror p),
 	.rich :global(.milkdown .ProseMirror li) {
 		line-height: 1.6;

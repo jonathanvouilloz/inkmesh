@@ -25,6 +25,7 @@
 		margin: 0;
 		padding: 2px 0;
 		font-weight: 400;
+		letter-spacing: var(--tracking-heading);
 	}
 	.rendered :global(h1) {
 		font-size: 2.625em;

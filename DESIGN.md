@@ -205,7 +205,7 @@ Warm-grey neutrals carry the whole interface; one cool ink blue and three state 
 
 ### Hierarchy
 - **Body** (400, 16.5px, 1.6): the document, rich and raw alike. Column capped at 72ch.
-- **Document headings**: Crepe's default scale on top of the 16.5px base; the project sets weight and size only through `--crepe-base-font-size`. Keep it so; do not invent a heading ramp.
+- **Document headings**: Crepe's default scale on top of the 16.5px base; the project sets weight and size only through `--crepe-base-font-size`, and tightens the tracking to `--tracking-heading` (-0.02em), in the editor and the rendered views alike. Keep it so; do not invent a heading ramp.
 - **Title** (600, 16px): the page title of every standalone page (home, members, account, sign-in, invite) and the error page. One per page.
 - **Label** (600, 13px): rail section headings ("File", "History"), section headings on the members and account pages, form field labels and table headers (muted). Sentence case, no tracking, no uppercase.
 - **Chrome** (400, 13px): everything else in the rails, the top bar and its menus (wordmark at 600), every standalone page, the empty prompt and the error page.
