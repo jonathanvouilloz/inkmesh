@@ -216,15 +216,15 @@
 
 {#snippet oneTime(id: string, link: string, once: 'members.once' | 'share.once')}
 	<div class="link">
-		<!-- The invitation link has its own label; the public link is named by its section. -->
-		{#if id === 'invite-link'}<label for={id}>{t('members.link', locale)}</label>{/if}
+		<label for={id}>{t(id === 'invite-link' ? 'members.link' : 'share.link', locale)}</label>
 		<span class="row">
+			<!-- Shown once: focus goes to it (after the #public-links fragment took it), so it is copied first. -->
 			<input
 				{id}
 				class="mono"
 				readonly
 				value={link}
-				aria-labelledby={id === 'share-link' ? 'public-links' : undefined}
+				{@attach (input) => input.focus()}
 				aria-describedby="{id}-once"
 				onfocus={(e) => e.currentTarget.select()}
 			/>

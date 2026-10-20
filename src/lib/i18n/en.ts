@@ -218,6 +218,7 @@ export const en = {
 	'share.asReader': 'As reader',
 	'share.asEditor': 'As editor',
 	'share.create': 'Create public link',
+	'share.link': 'Public link',
 	'share.once': 'This link will not be shown again: copy it now.',
 	'share.revoke': 'Revoke',
 	'share.revokeConfirm': 'Revoke this link? Visitors lose access at once.',

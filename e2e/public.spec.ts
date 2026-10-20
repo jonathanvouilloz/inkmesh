@@ -23,7 +23,7 @@ async function newLink(page: Page, covers: string, signup: string) {
 	await page.getByLabel('Covers').selectOption({ label: covers });
 	await page.getByRole('combobox', { name: 'Sign-up', exact: true }).selectOption({ label: signup });
 	await page.getByRole('button', { name: 'Create public link' }).click();
-	const url = page.getByRole('textbox', { name: 'Public links' });
+	const url = page.getByRole('textbox', { name: 'Public link', exact: true });
 	await expect(url).toHaveValue(/^http:\/\/localhost:4173\/s\/[\w-]{43}$/);
 	return url.inputValue();
 }

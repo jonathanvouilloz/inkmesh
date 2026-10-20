@@ -221,6 +221,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'share.asReader': 'Comme lecteur',
 	'share.asEditor': 'Comme éditeur',
 	'share.create': 'Créer un lien public',
+	'share.link': 'Lien public',
 	'share.once': 'Ce lien ne sera plus affiché : copiez-le maintenant.',
 	'share.revoke': 'Révoquer',
 	'share.revokeConfirm': 'Révoquer ce lien ? Les visiteurs perdent l’accès immédiatement.',
