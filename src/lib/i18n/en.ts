@@ -195,7 +195,7 @@ export const en = {
 	'connect.steps.claude':
 		'In Claude, open Customize → Connectors → “Add custom connector”.\nName it `inkmesh` and paste the server URL. If Claude asks how it identifies itself, choose “Register automatically”.\nClick “Add”, then “Connect”: inkmesh opens, name the agent and click “Allow”.\nThe Free plan allows one custom connector. On Team and Enterprise, an organisation Owner first adds it under Organization settings → Connectors → Add → Custom → Web, then each member clicks “Connect”.',
 	'connect.steps.claude-code':
-		'Run the command below in a terminal.\nIn Claude Code, type `/mcp`, pick `inkmesh` and choose “Authenticate” (or run `claude mcp login inkmesh`).\nThe browser opens inkmesh: name the agent and click “Allow”.',
+		'Run the command below in a terminal.\nIn Claude Code, type `/mcp`, pick `inkmesh` and choose “Authenticate” (or run `claude mcp login inkmesh`).\nThe browser opens inkmesh: name the agent and click “Allow”.\nOn a server reached over SSH, the browser cannot reach Claude Code: choose “Other MCP client” instead, which gives a token and the matching command.',
 	'connect.steps.chatgpt':
 		'Paid plans only. In ChatGPT, open Settings → Apps → Advanced settings and turn on “Developer mode”.\nCreate an app: name it `inkmesh`, paste the server URL as “MCP server URL” and choose “OAuth” for authentication.\nConfirm, sign in to inkmesh and click “Allow”.',
 	'connect.steps.cursor':
