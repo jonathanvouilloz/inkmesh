@@ -26,5 +26,6 @@ Deliberate gaps ledgered in reviews; each is small and safe to leave until someo
 - Email config: `memory:` and `file:` are accepted in production; `MAIL_FROM` is not validated (a bad one shows on the first send's log line).
 - Digest: in dev, a hooks reload can start a second timer (the stop function is not kept), so a dev instance may send a digest twice; one SQL query per user per run; the run assumes event ids grow with time (one writer).
 - Docker: `XFF_DEPTH=1` trusts one proxy hop; two proxies (Cloudflare then nginx) need `2` or `ADDRESS_HEADER=cf-connecting-ip`.
-- Tests: the unreadable-file test fails when run as root; the "concurrent consumes" login-link test is sequential (node:sqlite is synchronous); one unit test failed once in the M6 fix wave and was not identified, and `search.spec` failed its URL check once: watch both.
+- Tests: the unreadable-file test fails when run as root; the "concurrent consumes" login-link test is sequential (node:sqlite is synchronous); one unit test failed once in the M6 fix wave and was not identified, and `search.spec` ("search from the header", "on a phone") fails about one run in three, passing on rerun: watch both.
 
+- Admin CLI: no command to make an existing account an instance admin (done by hand in the database on 2026-10-20); add `grant-admin <email>` if it is needed again.
