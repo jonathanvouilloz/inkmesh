@@ -100,6 +100,19 @@ it('builds the canonical URL', () => {
 	expect(c('sort=date&order=asc&tags=&field=status&value=draft')).toBe('?sort=date&status=draft');
 });
 
+it('drops empty and idle parameters without a form submission', () => {
+	const c = (s: string) => canonicalQuery(new URLSearchParams(s));
+	// A folder without fields submits only the sort and order selects.
+	expect(c('sort=&order=asc')).toBe('');
+	expect(c('sort=&order=desc')).toBe('');
+	expect(c('order=desc&status=draft')).toBe('?status=draft');
+	expect(c('sort=date&order=asc')).toBe('?sort=date');
+	expect(c('status=')).toBe('');
+	expect(c('sort=date&order=desc&status=draft')).toBeNull();
+	expect(c('')).toBeNull();
+	expect(c('/create')).toBeNull();
+});
+
 it('queryString round trips', () => {
 	const s = queryString({ sort: 'date', order: 'desc', filters: [['tags', 'q 3']] });
 	expect(s).toBe('?sort=date&order=desc&tags=q+3');

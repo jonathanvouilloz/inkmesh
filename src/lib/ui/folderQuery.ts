@@ -79,15 +79,19 @@ export function queryString(q: FolderQuery): string {
 	return s && `?${s}`;
 }
 
-/** The readable URL for a submitted `field`/`value` pair, or null when there is none to rewrite. */
+/** The readable URL for a submitted form or a URL with empty or idle parameters, or null when it is readable already. */
 export function canonicalQuery(params: URLSearchParams): string | null {
-	if (!params.has('field') && !params.has('value')) return null;
+	// `asc` is the default, and without `sort` the list keeps its name order whatever `order` says.
+	const sorted = !!params.get('sort');
+	// `?/create` is a SvelteKit action name, empty by design: the page's load runs with it after a form POST.
+	const idle = (k: string, v: string) => !k.startsWith('/') && (!v || (k === 'order' && (v === 'asc' || !sorted)));
+	if (!params.has('field') && !params.has('value') && ![...params].some(([k, v]) => idle(k, v))) return null;
 	const field = params.get('field')?.trim() ?? '';
 	const value = params.get('value')?.trim() ?? '';
 	const add = field && value && !RESERVED.includes(field);
 	const p = new URLSearchParams();
 	for (const [k, v] of params) {
-		if (k === 'field' || k === 'value' || !v || (k === 'order' && v === 'asc') || (add && k === field)) continue;
+		if (k === 'field' || k === 'value' || idle(k, v) || (add && k === field)) continue;
 		p.append(k, v);
 	}
 	if (add) p.append(field, value);
