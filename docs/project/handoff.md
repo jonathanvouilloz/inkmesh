@@ -4,13 +4,13 @@ Updated: 2026-10-20
 ## Where we are
 All six milestones of the roadmap are merged into `main` and deployed (M6 on 2026-10-20). 484 unit tests, 91 Playwright e2e, svelte-check clean.
 - M6: sort and filter the folder view by frontmatter from the URL (members and public links), email over SMTP (off unless configured), sign-in by email link, invitations by email, the opt-in daily digest with one-click unsubscribe, Dockerfile and compose example, README, MIT licence. Migration `005-email`.
-- UX polish after first real use (`docs/plans/2026-10-20-ux-polish.md`) deployed 2026-10-20: invited email prefilled (migration `006-invitation-email`), "+ New workspace" in the switcher, pages 1040px / documents 760px, members page reordered.
+- UX polish after first real use (`docs/plans/2026-10-20-ux-polish.md`) deployed 2026-10-20: invited email prefilled (migration `006-invitation-email`), "+ New workspace" in the switcher, pages 1040px / documents 760px, members page reordered; the switcher and home split "My workspaces" / "Shared with me". Admins: both of Jon's accounts (flag set by hand in the database on 2026-10-20: the admin CLI has no promote command).
 - M3–M5 (files, agents, collaboration) are deployed since 2026-10-20. Plans: `docs/plans/`; order of the rest: `docs/plans/roadmap.md`.
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 
 ## In production (phase B, https://inkmesh.ch)
-- Checkout `~/inkmesh-app` on `main` (`c0216dd`, UX polish deployed 2026-10-20), data `/home/hermes/inkmesh-data` (migrations 001–006 applied; the log says `email: on (smtps)`, Resend, from `noreply@inkmesh.ch`; previous env kept as `env.bak-pre-email`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel` (named tunnel `inkmesh`, config `~/.cloudflared/inkmesh.yml`; zone `inkmesh.ch` in Jon's Cloudflare account, registered at Infomaniak). Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
-- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Latest backup: `~/inkmesh-backups/20261020T110953Z-pre-ux-polish`.
+- Checkout `~/inkmesh-app` on `main` (`1ef267a`, UX polish and grouped workspace lists deployed 2026-10-20), data `/home/hermes/inkmesh-data` (migrations 001–006 applied; the log says `email: on (smtps)`, Resend, from `noreply@inkmesh.ch`; previous env kept as `env.bak-pre-email`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel` (named tunnel `inkmesh`, config `~/.cloudflared/inkmesh.yml`; zone `inkmesh.ch` in Jon's Cloudflare account, registered at Infomaniak). Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
+- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Latest backup: `~/inkmesh-backups/20261020T114823Z-pre-grouping`.
 
 ## Next action
 1. The owner actions below; nothing else is planned on the roadmap. New work starts with a spec and plan under `docs/plans/`.
