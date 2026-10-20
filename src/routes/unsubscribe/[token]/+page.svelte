@@ -43,6 +43,7 @@
 		margin: 0;
 		font-size: 16px;
 		font-weight: 600;
+		text-wrap: balance;
 	}
 	form {
 		display: flex;
