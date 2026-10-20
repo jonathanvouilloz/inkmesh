@@ -35,7 +35,7 @@ Scope and non-goals: `docs/project/prd.md`, sections "Scope" and "Out of scope".
 
 Terminology: workspace (a folder and git repository), document (a `.md` file), member (a human with a role: owner, editor, reader), agent (a token issued by a member, acting in that member's name), raw mode (the editor showing the Markdown source).
 
-Undecided: licence (MIT proposed), whether an existing git repository can be mounted as a workspace (v1: created by inkmesh).
+Undecided: whether an existing git repository can be mounted as a workspace (v1: created by inkmesh).
 
 ## Brand Commitments
 

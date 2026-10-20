@@ -3,7 +3,7 @@
 <!-- Append only. Never rewrite a decision: add one that replaces it. -->
 
 ## 2026-10-18 — Name, licence, languages
-- Choice: the project is called inkmesh. Licence MIT, to confirm before the public release. Code, commits and docs in English; interface in French and English from the first screen.
+- Choice: the project is called inkmesh. Licence MIT (confirmed by the owner on 2026-10-20). Code, commits and docs in English; interface in French and English from the first screen.
 - Rejected: working name "comd" (folder name only, to be renamed).
 - Why: open-source project meant to be read and installed by others.
 - Reopen if: a trademark conflict appears, or a copyleft licence is wanted to prevent closed forks.
@@ -267,7 +267,7 @@
 - Reopen if: the owner's Docker check fails, or the VPS moves to containers.
 
 ## 2026-10-20 — MIT licence, the inkmesh authors
-- Choice: `LICENSE` is MIT, "Copyright (c) 2026 the inkmesh authors"; `package.json` says `"license": "MIT"` and stays private. Replaces the 2026-10-18 "to confirm" once Jon confirms (pending).
+- Choice: `LICENSE` is MIT, "Copyright (c) 2026 the inkmesh authors"; `package.json` says `"license": "MIT"` and stays private. Replaces the 2026-10-18 "to confirm"; confirmed by Jon on 2026-10-20.
 - Rejected: a copyleft licence.
 - Why: the project is meant to be installed and adapted by others with the least friction.
 - Reopen if: Jon does not confirm, or closed forks become a concern.

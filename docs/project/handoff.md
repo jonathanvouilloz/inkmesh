@@ -15,7 +15,6 @@ All six milestones of the roadmap are merged into `main` and deployed (M6 on 202
 1. The owner actions below; nothing else is planned on the roadmap. New work starts with a spec and plan under `docs/plans/`.
 
 ## Owner actions (Jon)
-- Confirm the MIT licence (decision 2026-10-20).
 - Choose an SMTP provider and, once `inkmesh.ch` exists (phase B of `docs/deploy.md`), set `SMTP_URL`, `MAIL_FROM` and `INKMESH_URL` in `~/.config/inkmesh/env`. Email stays off in production until then. Sending a real email needs his approval.
 - Check the Docker image, which nobody has built yet (hermes is not in the `docker` group). Either run, from the repo root as a user in that group:
   ```sh

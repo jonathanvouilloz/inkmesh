@@ -62,7 +62,7 @@ The repository is publishable as open source at that point: English code and doc
 - Workspaces are plain git repositories on disk: anything the agent writes through the API, a human could also write with a text editor and a `git commit`, and vice versa.
 - Target: a clean first version in one to two months of part-time work, then open-source release.
 - Code, commits, docs and comments in English. Interface in French and English from the first screen.
-- Licence to be chosen before the public release (default proposal: MIT).
+- Licence: MIT.
 - Swiss nLPD: personal data is limited to name, email and login credentials; no analytics by default.
 
 ## Open questions
