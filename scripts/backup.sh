@@ -4,6 +4,7 @@
 # Needs: INKMESH_DATA, BACKUP_GITHUB_OWNER, a `gh` login on this machine. BACKUP_DIR and
 # BACKUP_KEEP_DAYS are optional.
 set -uo pipefail
+umask 077 # the snapshots hold emails and password hashes
 : "${INKMESH_DATA:?}" "${BACKUP_GITHUB_OWNER:?}"
 backup_dir="${BACKUP_DIR:-$HOME/inkmesh-backups/db}"
 keep_days="${BACKUP_KEEP_DAYS:-14}"
