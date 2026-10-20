@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import type { Workspace } from '#lib/core/access.ts';
 	import type { User } from '#lib/core/accounts.ts';
-	import { t, type Locale } from '#lib/i18n/index.ts';
+	import { t, tn, type Locale } from '#lib/i18n/index.ts';
 
 	let {
 		workspaces,
@@ -42,7 +42,7 @@
 		href="/inbox"
 		aria-current={page.route.id === '/(app)/inbox' ? 'page' : undefined}
 		aria-label={unread
-			? `${t('nav.inbox', locale)}, ${t('inbox.unread', locale, { count })}`
+			? `${t('nav.inbox', locale)}, ${tn('inbox.unread', unread, locale, count)}`
 			: undefined}>{t('nav.inbox', locale)}{#if unread}&nbsp;{count}{/if}</a
 	>
 {/snippet}
@@ -101,7 +101,7 @@
 			<summary
 				><span class="current">{user.name}</span>{#if unread}<span class="phone count"
 						><span aria-hidden="true">·&nbsp;{count}</span><span class="visually-hidden"
-							>, {t('inbox.unread', locale, { count })}</span
+							>, {tn('inbox.unread', unread, locale, count)}</span
 						></span
 					>{/if}</summary
 			>

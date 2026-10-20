@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import type { Comment } from '#lib/core/comments.ts';
-	import { t, type Locale } from '#lib/i18n/index.ts';
+	import { t, tn, type Locale } from '#lib/i18n/index.ts';
 	import Rendered from './Rendered.svelte';
 	import { ago } from './time.ts';
 
@@ -53,7 +53,7 @@
 	{/if}
 	{#if resolved.length}
 		<details>
-			<summary>{t('comments.resolved', locale, { count: String(resolved.length) })}</summary>
+			<summary>{tn('comments.resolved', resolved.length, locale)}</summary>
 			<ol>
 				{#each resolved as c}{@render item(c, false)}{/each}
 			</ol>
