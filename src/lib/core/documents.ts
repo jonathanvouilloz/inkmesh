@@ -43,6 +43,12 @@ const sha256 = (source: string | Uint8Array) => createHash('sha256').update(sour
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
 const notFound = (what: string) => Object.assign(new Error(`${what} not found`), { code: 'ENOENT' });
 const COMMIT = /^[0-9a-f]{7,40}$/;
+// Prefix comparison, not LIKE: `_` and `%` are legal in names.
+const AT_OR_UNDER = `(path = ? OR substr(path, 1, length(?) + 1) = ? || '/')`;
+
+/** A new document at `rel` must not be shown by a link left from a deleted one; restoreDeleted keeps them. */
+const dropLinks = (slug: string, rel: string) =>
+	db().prepare(`DELETE FROM public_links WHERE workspace = ? AND ${AT_OR_UNDER}`).run(slug, rel, rel, rel);
 
 /** A document is a .md file whose name is not a dot-file, inside valid folders: listTree shows nothing else. */
 export function documentFile(root: string, path: string): string {
@@ -266,6 +272,7 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
+		dropLinks(slug, rel);
 		let commit: string;
 		try {
 			commit = await gitCommit(root, {
@@ -325,6 +332,7 @@ export async function importDocument(
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
+		if (!old) dropLinks(slug, rel);
 		const verb = opts.expectedHash !== undefined ? 'Update' : old ? 'Replace' : 'Import';
 		let commit: string;
 		try {
@@ -384,6 +392,7 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 		const relTo = relative(root, dest);
 		if (relTo === relFrom || relTo.startsWith(`${relFrom}/`)) throw new InvalidPath(to);
 		if (await fs.lstat(dest).catch(() => null)) throw new Conflict(`${relTo} already exists`);
+		dropLinks(slug, relTo);
 		// Every session: the move may rewrite links in any document, and a session must not keep an old path.
 		await flushSessions(slug, () => true);
 		await fs.mkdir(dirname(dest), { recursive: true });
@@ -426,13 +435,15 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 			if (notesMoved) await fs.rename(notesTo, notesFrom).catch(report(`rename comments of ${relTo} back`));
 			throw err;
 		}
-		// Prefix comparison, not LIKE: `_` and `%` are legal in names.
-		db()
-			.prepare(
-				`UPDATE public_links SET path = ? || substr(path, length(?) + 1)
-				 WHERE workspace = ? AND (path = ? OR substr(path, 1, length(?) + 1) = ? || '/')`
-			)
-			.run(relTo, relFrom, slug, relFrom, relFrom, relFrom);
+		try {
+			db()
+				.prepare(
+					`UPDATE public_links SET path = ? || substr(path, length(?) + 1) WHERE workspace = ? AND ${AT_OR_UNDER}`
+				)
+				.run(relTo, relFrom, slug, relFrom, relFrom, relFrom);
+		} catch (err) {
+			console.error('move: public links not moved', err); // the move is committed; the links answer 404
+		}
 		// Also for an empty folder, whose move git does not see: commit is ''.
 		appendEvent(slug, actor, { type: 'move', path: relTo, from: relFrom, commit });
 		await syncIndex(slug, [relFrom, relTo, ...rewritten.map((r) => r.rel)]);

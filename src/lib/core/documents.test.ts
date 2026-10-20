@@ -696,6 +696,26 @@ describe('documents', () => {
 		expect((await sharedDocument(u, 'f_x.md')).source).toBe('# f_x\n');
 	});
 
+	it('a new document at a deleted path is not shown by the old link', async () => {
+		const enc = (s: string) => new TextEncoder().encode(s);
+		const linked = async (p: string) => {
+			await createDocument('demo', p, actor);
+			const t = await createPublicLink('demo', p, null, actor);
+			await deletePath('demo', p, actor);
+			return t;
+		};
+		const created = await linked('c.md');
+		await createDocument('demo', 'c.md', actor);
+		const imported = await linked('i.md');
+		await importDocument('demo', 'i.md', enc('# new\n'), { actor });
+		const moved = await linked('m.md');
+		await createDocument('demo', 'y.md', actor);
+		await movePath('demo', 'y.md', 'm.md', actor);
+		for (const [t, p] of [[created, 'c.md'], [imported, 'i.md'], [moved, 'm.md']])
+			await expect(sharedDocument(t, p)).rejects.toBeTruthy();
+		expect(db().prepare('SELECT count(*) AS n FROM public_links').get()).toEqual({ n: 0 });
+	});
+
 	it('readers cannot delete', async () => {
 		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
 		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
