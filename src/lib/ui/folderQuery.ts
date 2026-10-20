@@ -25,9 +25,14 @@ const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLow
 export function queryFolder(nodes: TreeNode[], fields: Record<string, Fields>, params: URLSearchParams): FolderListing {
 	const docs = nodes.filter((n) => n.kind === 'doc');
 	const of = (n: TreeNode) => fields[n.path] ?? {};
+	// Own keys only: a sibling's `constructor` or `toString` key must not reach Object.prototype.
+	const get = (n: TreeNode, k: string) => (Object.hasOwn(of(n), k) ? of(n)[k] : undefined);
 	const values = new Map<string, Set<string>>();
 	for (const d of docs)
-		for (const [k, v] of Object.entries(of(d))) values.set(k, new Set([...(values.get(k) ?? []), ...v]));
+		for (const [k, v] of Object.entries(of(d))) {
+			const set = values.get(k) ?? values.set(k, new Set()).get(k)!;
+			for (const x of v) set.add(x);
+		}
 
 	const param = params.get('sort');
 	const sort = param && (values.has(param) || BUILT_INS.includes(param)) ? param : null;
@@ -39,14 +44,15 @@ export function queryFolder(nodes: TreeNode[], fields: Record<string, Fields>, p
 		if (filters.length < MAX_FILTERS && !RESERVED.includes(k) && values.has(k) && value) filters.push([k, value]);
 	}
 
-	const key = (n: TreeNode) => (shown ? of(n)[shown]?.[0] : sort === 'title' ? n.title : n.modified);
+	const key = (n: TreeNode) => (shown ? get(n, shown)?.[0] : sort === 'title' ? n.title : n.modified);
 	const sign = order === 'desc' ? -1 : 1;
-	let shownDocs = docs.filter((d) => filters.every(([k, v]) => of(d)[k]?.some((x) => same(x, v))));
-	// Array sort is stable: ties keep walkTree's name order, in both orders.
+	let shownDocs = docs.filter((d) => filters.every(([k, v]) => get(d, k)?.some((x) => same(x, v))));
+	// Missing values last in both orders; ties by name A to Z in both orders.
 	if (sort)
 		shownDocs = shownDocs.toSorted((a, b) => {
 			const [x, y] = [key(a), key(b)];
-			return x === undefined || y === undefined ? (x === undefined ? 1 : 0) - (y === undefined ? 1 : 0) : sign * compare(x, y);
+			const missing = Number(x === undefined) - Number(y === undefined);
+			return missing || (x === undefined || y === undefined ? 0 : sign * compare(x, y)) || compare(a.name, b.name);
 		});
 
 	const names = [...values.keys()].sort(compare).slice(0, MAX_FIELDS);

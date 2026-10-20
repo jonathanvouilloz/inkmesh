@@ -107,3 +107,18 @@ it('queryString round trips', () => {
 	const q = queryFolder(nodes, { 'a.md': { date: ['2026-01-01'], tags: ['q 3'] } }, new URLSearchParams(s));
 	expect([q.sort, q.order, q.filters]).toEqual(['date', 'desc', [['tags', 'q 3']]]);
 });
+
+it('breaks ties by name whatever the input order', () => {
+	const shuffled = [nodes[3], nodes[2], nodes[0], nodes[1]];
+	const order = (s: string) => queryFolder(shuffled, fields, new URLSearchParams(s)).nodes.map((n) => n.name);
+	expect(order('sort=tags')).toEqual(['sub', 'a.md', 'b.md', 'c.md']);
+	expect(order('sort=tags&order=desc')).toEqual(['sub', 'a.md', 'b.md', 'c.md']);
+});
+
+it('ignores inherited keys of a document without the field', () => {
+	const odd: Record<string, Fields> = { ...fields, 'a.md': { ...fields['a.md'], constructor: ['x'], toString: ['y'] } };
+	expect(names('constructor=x', odd)).toEqual(['a']);
+	expect(names('toString=y&status=draft', odd)).toEqual(['a']);
+	expect(names('sort=constructor&order=desc', odd)).toEqual(['sub', 'a', 'b', 'c']);
+	expect(queryFolder(nodes, fields, new URLSearchParams('constructor=x')).filters).toEqual([]);
+});
