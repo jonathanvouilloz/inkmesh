@@ -38,6 +38,9 @@ export const en = {
 	'mail.loginSubject': 'Your inkmesh sign-in link',
 	'mail.loginBody':
 		'Hello {name},\n\nUse this link to sign in to inkmesh. It works once, for 15 minutes:\n\n{url}\n\nIf you did not ask for it, ignore this email: nobody can sign in without the link.\n',
+	'mail.inviteSubject': '{inviter} invites you to {workspace}',
+	'mail.inviteBody':
+		'{inviter} invites you to join {workspace} on inkmesh as {role}.\n\nOpen this link to accept. It works once and expires in 7 days:\n\n{url}\n',
 	'nav.logout': 'Log out',
 	'nav.workspaces': 'Workspaces',
 	'nav.members': 'Members',
@@ -83,6 +86,11 @@ export const en = {
 	'members.revoke': 'Revoke',
 	'members.save': 'Save',
 	'members.lastOwner': 'A workspace keeps at least one owner.',
+	'members.sendTo': 'Email the link to (optional)',
+	'members.mailed': 'Link sent to {email}.',
+	'members.mailFailed': 'The email could not be sent: copy the link instead.',
+	'members.mailThrottled': 'Too many emails sent: copy the link instead.',
+	'members.mailBad': 'This email address is not valid: copy the link instead.',
 	'account.title': 'Account',
 	'account.name': 'Display name',
 	'account.nameBad': 'Enter a name of 1 to 80 characters.',

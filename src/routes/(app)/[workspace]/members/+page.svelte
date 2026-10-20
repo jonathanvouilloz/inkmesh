@@ -12,6 +12,11 @@
 	let linksHeading = $state<HTMLHeadingElement>();
 	let opener: HTMLElement | undefined;
 	let revoking = $state<{ id: number; name: string }>();
+	const mailErrors = {
+		email: 'members.mailBad',
+		throttled: 'members.mailThrottled',
+		failed: 'members.mailFailed'
+	} as const;
 
 	async function copy(id: string, link: string) {
 		try {
@@ -127,10 +132,22 @@
 				{/each}
 			</select>
 		</label>
+		{#if data.mail}
+			<label class="to">
+				{t('members.sendTo', locale)}
+				<input type="email" name="email" class="mono" autocomplete="off" spellcheck="false" />
+			</label>
+		{/if}
 		<button>{t('members.create', locale)}</button>
 	</form>
 	{#if form?.link}
 		{@render oneTime('invite-link', form.link, 'members.once')}
+		{#if form.mailed}
+			{@const [before, after] = t('members.mailed', locale).split('{email}')}
+			<p role="status">{before}<span class="mono">{form.mailed}</span>{after}</p>
+		{:else if form.mailError}
+			<p class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
+		{/if}
 	{/if}
 
 	{#if data.publicLinks}
@@ -187,7 +204,7 @@
 			<p>{t('share.empty', locale)}</p>
 		{/if}
 
-		<form class="invite share" method="POST" action="?/shareCreate#public-links">
+		<form class="invite" method="POST" action="?/shareCreate#public-links">
 			<label class="scope">
 				{t('share.scope', locale)}
 				<select name="scope" class="mono">
@@ -389,10 +406,11 @@
 	.links td .row {
 		flex-wrap: nowrap;
 	}
-	.share {
+	.invite {
 		flex-wrap: wrap;
 	}
-	.scope {
+	.scope,
+	.to {
 		flex: 1 1 240px;
 		min-width: 0;
 	}

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
 import { type Locale, t } from "../i18n/index.ts";
+import type { Role } from "./access.ts";
 import { dataDir } from "./data.ts";
 
 export type Mail = {
@@ -122,5 +123,21 @@ export function loginLinkMail(
     to: user.email,
     subject: t("mail.loginSubject", locale),
     text: t("mail.loginBody", locale, { name: user.name, url }),
+  };
+}
+
+export function invitationMail(
+  to: string,
+  inviter: string,
+  workspace: string,
+  role: Role,
+  url: string,
+  locale: Locale,
+): Mail {
+  const vars = { inviter, workspace, url, role: t(`role.${role}`, locale).toLowerCase() };
+  return {
+    to,
+    subject: t("mail.inviteSubject", locale, vars),
+    text: t("mail.inviteBody", locale, vars),
   };
 }

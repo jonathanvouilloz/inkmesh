@@ -40,6 +40,9 @@ export const fr: Record<keyof typeof en, string> = {
 	'mail.loginSubject': 'Votre lien de connexion à inkmesh',
 	'mail.loginBody':
 		'Bonjour {name},\n\nUtilisez ce lien pour vous connecter à inkmesh. Il fonctionne une fois, pendant 15 minutes :\n\n{url}\n\nSi vous ne l’avez pas demandé, ignorez cet e-mail : personne ne peut se connecter sans le lien.\n',
+	'mail.inviteSubject': '{inviter} vous invite dans {workspace}',
+	'mail.inviteBody':
+		'{inviter} vous invite à rejoindre {workspace} sur inkmesh comme {role}.\n\nOuvrez ce lien pour accepter. Il fonctionne une fois et expire dans 7 jours :\n\n{url}\n',
 	'nav.logout': 'Se déconnecter',
 	'nav.workspaces': 'Espaces de travail',
 	'nav.members': 'Membres',
@@ -85,6 +88,11 @@ export const fr: Record<keyof typeof en, string> = {
 	'members.revoke': 'Révoquer',
 	'members.save': 'Enregistrer',
 	'members.lastOwner': 'Un espace de travail garde au moins un propriétaire.',
+	'members.sendTo': 'Envoyer le lien à (facultatif)',
+	'members.mailed': 'Lien envoyé à {email}.',
+	'members.mailFailed': 'L’e-mail n’a pas pu être envoyé : copiez plutôt le lien.',
+	'members.mailThrottled': 'Trop d’e-mails envoyés : copiez plutôt le lien.',
+	'members.mailBad': 'Cette adresse e-mail n’est pas valide : copiez plutôt le lien.',
 	'account.title': 'Compte',
 	'account.name': 'Nom d’affichage',
 	'account.nameBad': 'Saisissez un nom de 1 à 80 caractères.',
