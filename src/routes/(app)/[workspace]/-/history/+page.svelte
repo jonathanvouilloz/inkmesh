@@ -90,6 +90,11 @@
 		font-size: 12.5px;
 		font-variant-numeric: tabular-nums;
 	}
+	/* One value per line: only a path may wrap, and only where nothing else fits. */
+	th,
+	td:not(.path) {
+		white-space: nowrap;
+	}
 	.path {
 		overflow-wrap: anywhere;
 	}
@@ -126,6 +131,34 @@
 	@media (max-width: 767px) {
 		.page {
 			padding: 24px 16px;
+		}
+		/* Each row in two columns: the path on its own full line, who and when under it, Restore at the right. */
+		table,
+		tbody {
+			display: block;
+		}
+		thead {
+			display: none;
+		}
+		tr {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			column-gap: 12px;
+			padding: 6px 0;
+			border-bottom: 1px solid var(--hairline);
+		}
+		td {
+			border: 0;
+			padding: 0;
+		}
+		td.path {
+			grid-column: 1 / -1;
+			padding-bottom: 4px;
+		}
+		td.end {
+			grid-row: 2 / span 2;
+			grid-column: 2;
+			align-self: center;
 		}
 	}
 </style>
