@@ -98,7 +98,13 @@
 		{/if}
 		{@render inbox('inbox')}
 		<details class="user" bind:this={menus[1]}>
-			<summary><span class="current">{user.name}</span></summary>
+			<summary
+				><span class="current">{user.name}</span>{#if unread}<span class="phone count"
+						><span aria-hidden="true">·&nbsp;{count}</span><span class="visually-hidden"
+							>, {t('inbox.unread', locale, { count })}</span
+						></span
+					>{/if}</summary
+			>
 			<ul>
 				{#if current}
 					<li class="phone">
@@ -182,6 +188,18 @@
 		max-width: 16rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	/* The phone bar has no room for the inbox link: its count rides on the user menu instead. */
+	.count {
+		flex: none;
+	}
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
 		white-space: nowrap;
 	}
 	summary::-webkit-details-marker {
