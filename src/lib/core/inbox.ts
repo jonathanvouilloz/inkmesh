@@ -18,7 +18,7 @@ export function inbox(userId: number, limit = 50): InboxItem[] {
 	db().prepare(START).run(userId);
 	const rows = db()
 		.prepare(`SELECT e.*, w.name AS workspace_name, e.id > ${LAST_READ} AS unread ${MINE} ORDER BY e.id DESC LIMIT ?`)
-		.all(userId, userId, userId, limit) as Record<string, unknown>[];
+		.all(userId, userId, userId, Math.min(50, Math.max(1, Math.trunc(limit) || 1))) // SQLite reads LIMIT -1 as no limit as Record<string, unknown>[];
 	return rows.map((r) => ({
 		...eventFromRow(r),
 		workspace: r.workspace as string,
