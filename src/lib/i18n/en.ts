@@ -41,6 +41,12 @@ export const en = {
 	'mail.inviteSubject': '{inviter} invites you to {workspace}',
 	'mail.inviteBody':
 		'{inviter} invites you to join {workspace} on inkmesh as {role}.\n\nOpen this link to accept. It works once and expires in 7 days:\n\n{url}\n',
+	'mail.digestSubject.one': 'inkmesh: 1 change in your workspaces',
+	'mail.digestSubject.other': 'inkmesh: {count} changes in your workspaces',
+	'mail.digestIntro': 'What changed in your workspaces since your last digest:',
+	'mail.digestMore': '{count} more in your inbox.',
+	'mail.digestInbox': 'Open your inbox: {url}',
+	'mail.digestFooter': 'You get this email because you turned on the daily digest in inkmesh. To stop it: {url}',
 	'nav.logout': 'Log out',
 	'nav.workspaces': 'Workspaces',
 	'nav.members': 'Members',

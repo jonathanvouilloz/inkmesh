@@ -2,9 +2,10 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
-import { type Locale, t } from "../i18n/index.ts";
+import { type Locale, t, tn } from "../i18n/index.ts";
 import type { Role } from "./access.ts";
 import { dataDir } from "./data.ts";
+import type { InboxItem } from "./inbox.ts";
 
 export type Mail = {
   to: string;
@@ -139,5 +140,38 @@ export function invitationMail(
     to,
     subject: t("mail.inviteSubject", locale, vars),
     text: t("mail.inviteBody", locale, vars),
+  };
+}
+
+export function digestMail(
+  to: string,
+  items: InboxItem[],
+  total: number,
+  urls: { inbox: string; unsubscribe: string },
+  locale: Locale,
+): Mail {
+  const lines = items.map((e) => {
+    const author = e.agent ? `${e.author} via ${e.agent}` : e.author;
+    const vars = { author, path: e.path, from: e.from ?? "", workspace: e.workspaceName };
+    return `${t(`inbox.${e.type}`, locale, vars)} · ${e.workspaceName}`;
+  });
+  const more = total - items.length;
+  if (more > 0) lines.push(t("mail.digestMore", locale, { count: String(more) }));
+  return {
+    to,
+    subject: tn("mail.digestSubject", total, locale),
+    text: [
+      t("mail.digestIntro", locale),
+      "",
+      ...lines,
+      "",
+      t("mail.digestInbox", locale, { url: urls.inbox }),
+      "",
+      t("mail.digestFooter", locale, { url: urls.unsubscribe }),
+    ].join("\n") + "\n",
+    headers: {
+      "List-Unsubscribe": `<${urls.unsubscribe}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
   };
 }

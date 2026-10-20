@@ -1,6 +1,7 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { loginAllowed, loginFailed, sessionUser } from '#lib/core/accounts.ts';
 import { db } from '#lib/core/db.ts';
+import { digestHour, startDigests } from '#lib/core/digest.ts';
 import { assertGit } from '#lib/core/git.ts';
 import { mailConfig } from '#lib/core/mail.ts';
 import { rebuildIndex } from '#lib/core/search.ts';
@@ -10,7 +11,9 @@ import { crossSiteForbidden, isAgentPath } from '#lib/server/csrf.ts';
 export const init: ServerInit = async () => {
 	// A partial or invalid email configuration throws here and stops the start.
 	const mail = mailConfig();
+	const hour = digestHour();
 	console.log(mail ? `email: on (${mail.smtp.protocol.slice(0, -1)})` : 'email: off');
+	if (mail) console.log(`digest: daily at ${String(hour).padStart(2, '0')}:00 UTC`);
 	db();
 	await assertGit();
 	// Sessions left by a crash are committed, with their author, before any request.
@@ -18,6 +21,8 @@ export const init: ServerInit = async () => {
 	if (recovered > 0) console.log(`committed ${recovered} editing session(s) left open`);
 	// Files changed outside core (an agent with shell access) are only seen here.
 	console.log(`search index: ${await rebuildIndex()} document(s)`);
+	// The catch-up run sends what a missed slot would have; the timer is unref'd and needs no stop.
+	startDigests();
 	process.once('sveltekit:shutdown', () =>
 		commitAllSessions()
 			.then((made) => {

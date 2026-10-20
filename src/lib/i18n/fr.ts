@@ -43,6 +43,13 @@ export const fr: Record<keyof typeof en, string> = {
 	'mail.inviteSubject': '{inviter} vous invite dans {workspace}',
 	'mail.inviteBody':
 		'{inviter} vous invite à rejoindre {workspace} sur inkmesh comme {role}.\n\nOuvrez ce lien pour accepter. Il fonctionne une fois et expire dans 7 jours :\n\n{url}\n',
+	'mail.digestSubject.one': 'inkmesh : 1 changement dans vos espaces',
+	'mail.digestSubject.other': 'inkmesh : {count} changements dans vos espaces',
+	'mail.digestIntro': 'Ce qui a changé dans vos espaces depuis le dernier résumé :',
+	'mail.digestMore': '{count} de plus dans votre boîte de réception.',
+	'mail.digestInbox': 'Ouvrir votre boîte de réception : {url}',
+	'mail.digestFooter':
+		'Vous recevez cet e-mail parce que vous avez activé le résumé quotidien dans inkmesh. Pour l’arrêter : {url}',
 	'nav.logout': 'Se déconnecter',
 	'nav.workspaces': 'Espaces de travail',
 	'nav.members': 'Membres',

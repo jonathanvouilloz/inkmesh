@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createWorkspace, removeMember } from './access.ts';
 import { createUser, type User } from './accounts.ts';
 import { closeDb, db } from './db.ts';
 import { appendEvent } from './events.ts';
-import { inbox, markRead, unreadCount } from './inbox.ts';
+import { inbox, markRead, pendingDigest, unreadCount } from './inbox.ts';
 
 let dir: string;
 let jon: User;
@@ -29,6 +29,7 @@ beforeEach(async () => {
 	db().prepare("INSERT INTO memberships (workspace, user_id, role) VALUES ('demo', ?, 'editor')").run(ann.id);
 });
 afterEach(() => {
+	vi.useRealTimers();
 	closeDb();
 	delete process.env.INKMESH_DATA;
 	fs.rmSync(dir, { recursive: true, force: true });
@@ -111,5 +112,32 @@ describe('inbox', () => {
 		unreadCount(jon.id);
 		db().prepare('DELETE FROM users WHERE id = ?').run(jon.id);
 		expect(db().prepare('SELECT count(*) AS n FROM inbox_cursors').get()).toEqual({ n: 0 });
+	});
+
+	it('pending digest respects both cursors and the slot', () => {
+		inbox(jon.id); // the cursor starts before the events
+		vi.useFakeTimers({ toFake: ['Date'] });
+		const ids: number[] = [];
+		const ats: string[] = [];
+		for (let i = 1; i <= 5; i++) {
+			vi.setSystemTime(new Date(`2026-10-20T0${i}:00:00.000Z`));
+			appendEvent('demo', ann, { type: 'update', path: `${i}.md` });
+			ids.push(lastId());
+			ats.push(new Date().toISOString());
+		}
+		appendEvent('demo', jon, { type: 'update', path: 'mine.md' });
+		markRead(jon.id, ids[1]);
+		const pending = pendingDigest(jon.id, ids[2], ats[3]);
+		expect(pending.items.map((e) => e.id)).toEqual([ids[3]]);
+		expect(pending).toMatchObject({ total: 1, lastId: ids[3] });
+		expect(pending.items[0]).toMatchObject({ workspaceName: 'Demo', unread: true });
+		expect(pendingDigest(jon.id, 0, ats[3]).items.map((e) => e.id)).toEqual([ids[3], ids[2]]);
+		expect(pendingDigest(jon.id, 0, new Date().toISOString()).items.map((e) => e.path)).not.toContain('mine.md');
+		expect(pendingDigest(jon.id, ids[4], new Date().toISOString())).toEqual({ items: [], total: 0, lastId: 0 });
+		for (let i = 0; i < 60; i++) appendEvent('demo', ann, { type: 'create', path: `n${i}.md` });
+		const many = pendingDigest(jon.id, ids[4], new Date().toISOString());
+		expect(many.items).toHaveLength(50);
+		expect(many).toMatchObject({ total: 60, lastId: lastId() });
+		expect(many.items[0].path).toBe('n59.md');
 	});
 });
