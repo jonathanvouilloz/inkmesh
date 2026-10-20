@@ -134,14 +134,6 @@
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
-	.visually-hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
 	@media (max-width: 767px) {
 		main {
 			padding: 24px 16px;

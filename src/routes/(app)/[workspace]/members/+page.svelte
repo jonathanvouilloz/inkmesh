@@ -46,7 +46,7 @@
 			<tr>
 				<th>{t('invite.name', locale)}</th>
 				<th>{t('members.role', locale)}</th>
-				{#if owner}<td></td>{/if}
+				{#if owner}<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>{/if}
 			</tr>
 		</thead>
 		<tbody>
@@ -91,7 +91,7 @@
 					<th>{t('members.role', locale)}</th>
 					<th>{t('members.by', locale)}</th>
 					<th>{t('members.expires', locale)}</th>
-					<td></td>
+					<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -142,7 +142,7 @@
 						<th>{t('share.scope', locale)}</th>
 						<th>{t('share.signup', locale)}</th>
 						<th class="created">{t('members.by', locale)}</th>
-						<td></td>
+						<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
 					</tr>
 				</thead>
 				<tbody>

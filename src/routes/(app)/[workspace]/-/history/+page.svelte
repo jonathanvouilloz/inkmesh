@@ -26,7 +26,7 @@
 					<th>{t('deleted.path', locale)}</th>
 					<th>{t('deleted.by', locale)}</th>
 					<th>{t('deleted.when', locale)}</th>
-					{#if editable}<td></td>{/if}
+					{#if editable}<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>{/if}
 				</tr>
 			</thead>
 			<tbody>

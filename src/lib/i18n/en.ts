@@ -211,6 +211,7 @@ export const en = {
 	'deleted.when': 'When',
 	'deleted.restore': 'Restore',
 	'deleted.exists': 'A document already exists at {path}.',
+	'table.actions': 'Actions',
 	'share.title': 'Public links',
 	'share.intro': 'Anyone with a public link can read what it covers, without an account.',
 	'share.scope': 'Covers',

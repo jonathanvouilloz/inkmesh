@@ -133,7 +133,7 @@
 					<th>{t('connect.name', locale)}</th>
 					<th class="created">{t('connect.created', locale)}</th>
 					<th>{t('connect.lastUsed', locale)}</th>
-					<td></td>
+					<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -284,14 +284,6 @@
 	h2 {
 		margin-top: 16px;
 		font-size: 13px;
-	}
-	.visually-hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 	h2:focus {
 		outline: none;

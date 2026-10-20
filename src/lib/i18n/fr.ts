@@ -214,6 +214,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'deleted.when': 'Quand',
 	'deleted.restore': 'Restaurer',
 	'deleted.exists': 'Un document existe déjà à l’emplacement {path}.',
+	'table.actions': 'Actions',
 	'share.title': 'Liens publics',
 	'share.intro': 'Toute personne qui a un lien public peut lire ce qu’il couvre, sans compte.',
 	'share.scope': 'Couvre',

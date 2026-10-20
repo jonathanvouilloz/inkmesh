@@ -127,6 +127,8 @@ test('restore a deleted document', async ({ page }) => {
 
 	await rail(page).getByRole('link', { name: 'Deleted documents' }).click();
 	await expect(page.getByRole('heading', { name: 'Deleted documents' })).toBeVisible();
+	// Every column has a header, the action column a visually hidden one.
+	await expect(page.getByRole('columnheader', { name: 'Actions' })).toHaveCount(1);
 	const row = page.getByRole('row').filter({ hasText: doc });
 	await expect(row).toContainText('Owner');
 	await row.getByRole('button', { name: 'Restore' }).click();
