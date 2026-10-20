@@ -11,6 +11,7 @@
 		current,
 		user,
 		locale,
+		unread,
 		search,
 		children
 	}: {
@@ -18,6 +19,8 @@
 		current?: string;
 		user: User;
 		locale: Locale;
+		/** Unread inbox lines, capped at 100 by core. */
+		unread: number;
 		/** The workspace search box, and the query to show in it. */
 		search?: { workspace: string; q: string };
 		/** Rendered first: the workspace shell puts its phone drawer opener here. */
@@ -26,10 +29,23 @@
 
 	// The workspace switcher and the user menu, closed alike by navigation, Escape and an outside click.
 	const menus: HTMLDetailsElement[] = [];
+	const count = $derived(unread > 99 ? '99+' : String(unread));
 	const name = $derived(workspaces.find((w) => w.slug === current)?.name ?? t('nav.workspaces', locale));
 
 	afterNavigate(() => menus.forEach((m) => (m.open = false)));
 </script>
+
+<!-- On phones the bar has no room for it: the link moves into the user menu, like Connect. -->
+{#snippet inbox(cls?: string)}
+	<a
+		class={cls}
+		href="/inbox"
+		aria-current={page.route.id === '/(app)/inbox' ? 'page' : undefined}
+		aria-label={unread
+			? `${t('nav.inbox', locale)}, ${t('inbox.unread', locale, { count })}`
+			: undefined}>{t('nav.inbox', locale)}{#if unread}&nbsp;{count}{/if}</a
+	>
+{/snippet}
 
 <svelte:window
 	onkeydown={(e) => {
@@ -80,6 +96,7 @@
 				>{t('nav.connect', locale)}</a
 			>
 		{/if}
+		{@render inbox('inbox')}
 		<details class="user" bind:this={menus[1]}>
 			<summary><span class="current">{user.name}</span></summary>
 			<ul>
@@ -92,6 +109,7 @@
 						>
 					</li>
 				{/if}
+				<li class="phone">{@render inbox()}</li>
 				<li><a href="/account">{t('nav.account', locale)}</a></li>
 				<li>
 					<form method="POST" action="/logout">
@@ -138,14 +156,16 @@
 		min-width: 0;
 	}
 	.user,
+	.inbox,
 	.connect {
 		margin-left: auto;
 	}
+	.inbox,
 	.connect {
 		padding: 3px 6px;
 		border-radius: var(--radius);
 	}
-	.connect[aria-current='page'] {
+	:is(.inbox, .connect)[aria-current='page'] {
 		color: var(--accent);
 		font-weight: 500;
 	}
@@ -257,7 +277,8 @@
 		.phone {
 			display: none;
 		}
-		.connect + .user {
+		.connect + .inbox,
+		.inbox + .user {
 			margin-left: 0;
 		}
 	}
@@ -271,10 +292,11 @@
 			transition: width var(--ease);
 		}
 	}
-	/* Phones: one row; long workspace and user names shrink to an ellipsis, the connect link moves into the user menu. */
+	/* Phones: one row; long workspace and user names shrink to an ellipsis, the connect and inbox links move into the user menu. */
 	@media (max-width: 767px) {
 		/* On phones the search box sits at the top of the drawer instead. */
 		.connect,
+		.inbox,
 		.search {
 			display: none;
 		}

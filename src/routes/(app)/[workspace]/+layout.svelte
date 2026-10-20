@@ -119,6 +119,7 @@
 	current={data.workspace}
 	user={data.user}
 	locale={data.locale}
+	unread={data.unread}
 	{search}
 >
 	<button
