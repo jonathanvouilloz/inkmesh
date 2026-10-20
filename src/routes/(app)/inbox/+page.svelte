@@ -89,13 +89,19 @@
 		border-bottom: 1px solid var(--hairline);
 	}
 	li p {
+		flex: 1 1 40ch;
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 	.unread {
 		font-weight: 600;
 	}
+	/* Fragment Mono ships only at 400: no synthesised bold. */
+	.unread .mono {
+		font-weight: 400;
+	}
 	.meta {
+		flex: none;
 		display: flex;
 		gap: 12px;
 		white-space: nowrap;
