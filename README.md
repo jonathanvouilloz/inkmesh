@@ -93,12 +93,12 @@ Open a workspace, then "Connect an agent" in the sidebar. Pick the tool and name
 
 Everything lives in the data directory: `inkmesh.db` and `workspaces/`, where each workspace is an ordinary git repository you can clone or read without inkmesh.
 
-- **Backup:** copy the data directory while inkmesh is stopped. With Docker: `docker compose stop && docker compose cp inkmesh:/data ./inkmesh-backup && docker compose start`. To back up while running, copy `workspaces/` and snapshot the database with `sqlite3 inkmesh.db "VACUUM INTO '/backup/inkmesh.db'"`.
+- **Backup:** copy the data directory while inkmesh is stopped. With Docker: `docker compose stop && docker compose cp inkmesh:/data ./inkmesh-backup && docker compose start`. To back up while running, copy `workspaces/` and snapshot the database with Node's built-in SQLite (the image has no `sqlite3`): `docker compose exec inkmesh node -e "const s = require('node:sqlite'); s.backup(new s.DatabaseSync('/data/inkmesh.db'), '/data/inkmesh-backup.db')"`, then `docker compose cp inkmesh:/data/inkmesh-backup.db .`. Without Docker, run the same `node -e` with your data directory's paths.
 - **Upgrade:** pull, rebuild, restart. With Docker: `git pull && docker compose up -d --build`. Without: `git pull && npm ci && npm run build`, then restart `node build`. Database migrations run at start and only go forward, so take a backup first if you may want to go back.
 
 ## Privacy
 
-inkmesh keeps, for each account: name, email address, password hash, sessions, agent tokens (hashed) and the events behind the inbox. Git history keeps the display name of whoever made each change. When email is on, the SMTP provider receives what each message holds: the recipient's address, and document titles and names in invitations and digests. inkmesh has no analytics and sends nothing anywhere else.
+inkmesh keeps, for each account: name, email address, password hash, sessions, agent tokens (hashed) and the events behind the inbox. Git history keeps the display name of whoever made each change. When email is on, the SMTP provider receives what each message holds: the recipient's address, and the workspace names, document paths and people's names that invitations and digests contain. inkmesh has no analytics and sends nothing anywhere else.
 
 ## Development
 
@@ -120,4 +120,4 @@ MIT, see [LICENSE](LICENSE).
 
 ## En français
 
-inkmesh est un espace de travail auto-hébergé et open source. Chaque document est un vrai fichier Markdown sur le disque, versionné par git. Les personnes l'éditent dans le navigateur avec un éditeur simple, les agents IA passent par un serveur MCP ou une API HTTP, avec les mêmes droits. L'interface existe en français et en anglais, selon la langue du navigateur. Le plus simple pour l'installer est Docker : copiez `deploy/docker.env.example` vers `inkmesh.env`, lancez `docker compose up -d` derrière un proxy HTTPS, puis créez le premier compte administrateur (voir « Run with Docker » plus haut). Toutes les variables sont décrites dans la section « Configuration ». L'envoi d'e-mails est facultatif. inkmesh est distribué sous licence MIT.
+inkmesh est un espace de travail auto-hébergé et open source. Chaque document est un vrai fichier Markdown sur le disque, versionné par git. Les personnes le modifient dans le navigateur avec un éditeur simple ; les agents IA passent par un serveur MCP ou une API HTTP, avec les mêmes droits. L’interface existe en français et en anglais, selon la langue du navigateur. Le plus simple pour l’installer est Docker : copiez `deploy/docker.env.example` vers `inkmesh.env`, lancez `docker compose up -d` derrière un proxy HTTPS, puis créez le premier compte administrateur (voir « Run with Docker » plus haut). Toutes les variables sont décrites dans la section « Configuration ». L’envoi d’e-mails (lien de connexion, invitations, résumé quotidien) est facultatif et désactivé par défaut. inkmesh est distribué sous licence MIT.
