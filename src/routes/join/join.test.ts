@@ -46,7 +46,7 @@ function signup(token: string, email: string, cookies: Record<string, string> = 
 
 it('sign-up from a link creates a member with the link\'s role', async () => {
 	const t = await createPublicLink('demo', 'notes/a.md', 'reader', jon);
-	expect(load({ params: { token: t }, locals: { user: null } } as never)).toEqual({
+	expect(load({ params: { token: t }, locals: { user: null }, url: new URL('http://x/join/' + t) } as never)).toEqual({
 		link: { workspaceName: 'Demo', role: 'reader' },
 		user: null
 	});
@@ -58,7 +58,7 @@ it('sign-up from a link creates a member with the link\'s role', async () => {
 
 it('a closed link refuses', async () => {
 	const t = await createPublicLink('demo', null, null, jon);
-	expect(load({ params: { token: t }, locals: { user: null } } as never)).toEqual({ link: null, user: null });
+	expect(load({ params: { token: t }, locals: { user: null }, url: new URL('http://x/join/' + t) } as never)).toEqual({ link: null, user: null });
 	expect(await signup(t, 'nina@b.c')).toMatchObject({ status: 410 });
 	expect(userByEmail('nina@b.c')).toBeFalsy();
 });

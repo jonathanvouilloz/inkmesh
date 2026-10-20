@@ -97,6 +97,9 @@ test('a workspace link lets a visitor browse and join', async ({ page, browser }
 
 	await view.getByRole('link', { name: 'Join' }).click();
 	await expect(view.getByRole('heading', { name: 'Join Demo' })).toBeVisible();
+	// Before any data is given: the role granted, who sees it, and a way in for an existing account.
+	await expect(view.getByText('You join Demo as reader. Its members see your name and email.')).toBeVisible();
+	await expect(view.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '?signin');
 	await view.getByLabel('Name').fill('Pia');
 	await view.getByLabel('Email').fill('pia@example.ch');
 	await view.getByLabel('Password').fill('ten chars ok');
