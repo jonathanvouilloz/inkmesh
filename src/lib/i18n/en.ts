@@ -227,4 +227,8 @@ export const en = {
 	'public.join': 'Join',
 	'public.empty': 'This folder is empty.',
 	'public.breadcrumb': 'Folders',
+	'join.title': 'Join {workspace}',
+	'join.as': 'Join {workspace} as {role}',
+	'join.closed': 'This link does not allow sign-up.',
+	'join.tooMany': 'Too many attempts. Try again later.',
 };

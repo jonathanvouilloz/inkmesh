@@ -230,4 +230,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'public.join': 'Rejoindre',
 	'public.empty': 'Ce dossier est vide.',
 	'public.breadcrumb': 'Dossiers',
+	'join.title': 'Rejoindre {workspace}',
+	'join.as': 'Rejoindre {workspace} comme {role}',
+	'join.closed': 'Ce lien ne permet pas de s’inscrire.',
+	'join.tooMany': 'Trop de tentatives. Réessayez plus tard.',
 };
