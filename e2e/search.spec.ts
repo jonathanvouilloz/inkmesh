@@ -27,3 +27,17 @@ test('a query that finds nothing says so', async ({ page }) => {
 	await page.goto('/demo/-/search?q=zzyzxnothing');
 	await expect(page.getByText('No document contains zzyzxnothing.')).toBeVisible();
 });
+
+test.describe('on a phone', () => {
+	test.use({ viewport: { width: 390, height: 844 } });
+
+	test('the results page offers its own search box', async ({ page }) => {
+		await page.goto('/demo/-/search?q=zzyzxnothing');
+		const box = page.getByRole('main').getByRole('searchbox', { name: 'Search this workspace' });
+		await expect(box).toHaveValue('zzyzxnothing');
+		await expect(box).toHaveAttribute('placeholder', 'Search');
+		await box.fill('quokka');
+		await page.getByRole('main').getByRole('button', { name: 'Search' }).click();
+		await expect(page).toHaveURL('/demo/-/search?q=quokka');
+	});
+});

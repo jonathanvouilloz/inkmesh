@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
 	import { docHref } from '#lib/ui/href.ts';
+	import SearchForm from '#lib/ui/SearchForm.svelte';
 	import { snippetParts } from '#lib/ui/snippet.ts';
 	import type { PageProps } from './$types';
 
@@ -13,6 +14,8 @@
 
 <section>
 	<h1>{title}</h1>
+	<!-- On phones the header's box is in the drawer: refining a query should not take three steps. -->
+	<div class="again"><SearchForm workspace={data.workspace} q={data.q} {locale} button /></div>
 	{#if !data.q}
 		<p class="muted">{t('search.prompt', locale)}</p>
 	{:else if !data.results.length}
@@ -93,6 +96,14 @@
 		background: var(--panel);
 		color: var(--ink);
 		font-weight: 600;
+	}
+	.again {
+		max-width: 320px;
+	}
+	@media (min-width: 768px) {
+		.again {
+			display: none;
+		}
 	}
 	@media (max-width: 767px) {
 		section {

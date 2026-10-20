@@ -203,6 +203,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'image.notImage': 'seulement des images PNG, JPEG, GIF et WebP',
 	'image.network': 'la connexion a échoué',
 	'search.label': 'Rechercher dans cet espace',
+	'search.placeholder': 'Rechercher',
+	'search.submit': 'Rechercher',
 	'search.title': 'Résultats pour « {q} »',
 	'search.none': 'Aucun document ne contient « {q} ».',
 	'search.prompt': 'Tapez un mot pour chercher.',

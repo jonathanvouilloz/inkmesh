@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import Header from '#lib/ui/Header.svelte';
+	import SearchForm from '#lib/ui/SearchForm.svelte';
 	import Tree from '#lib/ui/Tree.svelte';
 	import { PATH_TYPE, dropTarget, importFiles, moveItem, openDocument, setDrops } from '#lib/ui/drop.ts';
 	import type { LayoutProps } from './$types';
@@ -142,16 +143,7 @@
 		{@attach editable && dropTarget((transfer) => drops.drop('', transfer))}
 	>
 		<!-- The header's search box, moved here on phones. -->
-		<form class="search" role="search" action="/{search.workspace}/-/search">
-			<input
-				type="search"
-				name="q"
-				value={search.q}
-				maxlength="200"
-				aria-label={t('search.label', data.locale)}
-				placeholder={t('search.label', data.locale)}
-			/>
-		</form>
+		<div class="search"><SearchForm workspace={search.workspace} q={search.q} locale={data.locale} /></div>
 		{#if editable}
 			<a
 				class="members"
@@ -240,9 +232,6 @@
 	.opener,
 	.search {
 		display: none;
-	}
-	.search {
-		margin: 0;
 	}
 	.rail {
 		position: sticky;

@@ -5,6 +5,7 @@
 	import type { Workspace } from '#lib/core/access.ts';
 	import type { User } from '#lib/core/accounts.ts';
 	import { t, tn, type Locale } from '#lib/i18n/index.ts';
+	import SearchForm from './SearchForm.svelte';
 
 	let {
 		workspaces,
@@ -77,16 +78,7 @@
 			</ul>
 		</details>
 		{#if search}
-			<form class="search" role="search" action="/{search.workspace}/-/search">
-				<input
-					type="search"
-					name="q"
-					value={search.q}
-					maxlength="200"
-					aria-label={t('search.label', locale)}
-					placeholder={t('search.label', locale)}
-				/>
-			</form>
+			<div class="search"><SearchForm workspace={search.workspace} q={search.q} {locale} /></div>
 		{/if}
 		{#if current}
 			<a
@@ -261,17 +253,11 @@
 		font: inherit;
 		cursor: pointer;
 	}
-	.search input {
-		box-sizing: border-box;
+	.search {
 		width: 200px;
-		padding: 4px 8px;
-		border: 1px solid var(--hairline);
-		border-radius: var(--radius);
-		background: var(--ground);
-		color: var(--ink);
-		font: inherit;
+		--search-padding: 4px 8px;
 	}
-	:is(a, summary, button, input):focus-visible {
+	:is(a, summary, button):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
@@ -293,12 +279,12 @@
 		}
 	}
 	@media (min-width: 1024px) {
-		.search input:focus {
+		.search:focus-within {
 			width: 280px;
 		}
 	}
 	@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-		.search input {
+		.search {
 			transition: width var(--ease);
 		}
 	}
