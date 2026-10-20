@@ -7,7 +7,7 @@
 	import FileActions from './FileActions.svelte';
 	import { ago } from './time.ts';
 	import { docHref } from './href.ts';
-	import { dropTarget, getDrops } from './drop.ts';
+	import { dropTarget, getDrops, hasDrops } from './drop.ts';
 
 	let {
 		workspace,
@@ -33,11 +33,12 @@
 	const documents = (ns: TreeNode[]): number =>
 		ns.reduce((n, c) => n + (c.kind === 'doc' ? 1 : documents(c.children ?? [])), 0);
 	let picker = $state<HTMLInputElement>()!;
-	const { drop, importInto } = getDrops();
+	// Public pages render this view outside the workspace layout that sets the context (readers only).
+	const drops = hasDrops() ? getDrops() : undefined;
 </script>
 
 <section
-	{@attach role !== 'reader' && dropTarget((data) => drop(path, data))}
+	{@attach role !== 'reader' && dropTarget((data) => drops!.drop(path, data))}
 	data-hint={t('drop.here', locale, { folder: name })}
 >
 	<div class="head">
@@ -86,7 +87,7 @@
 				accept=".md,.markdown"
 				hidden
 				onchange={(e) => {
-					importInto(path, [...e.currentTarget.files!]);
+					drops!.importInto(path, [...e.currentTarget.files!]);
 					e.currentTarget.value = ''; // the same file picked again still fires a change
 				}}
 			/>
@@ -113,7 +114,7 @@
 			{/each}
 		</ul>
 	{:else}
-		<p class="empty">{t('folder.empty', locale)}</p>
+		<p class="empty">{t(role === 'reader' ? 'public.empty' : 'folder.empty', locale)}</p>
 	{/if}
 </section>
 

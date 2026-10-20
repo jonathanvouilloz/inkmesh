@@ -12,7 +12,7 @@ export const PATH_TYPE = 'application/x-inkmesh-path';
 export const openDocument: { flush?: () => Promise<void>; reload?: () => void } = {};
 
 /** Set by the workspace layout, which shows the results; used by every drop target and the file picker. */
-export const [getDrops, setDrops] = createContext<{
+export const [getDrops, setDrops, hasDrops] = createContext<{
 	drop: (folder: string, data: DataTransfer) => void;
 	importInto: (folder: string, files: File[]) => void;
 }>();

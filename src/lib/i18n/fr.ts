@@ -225,4 +225,9 @@ export const fr: Record<keyof typeof en, string> = {
 	'share.revoke': 'Révoquer',
 	'share.revokeConfirm': 'Révoquer ce lien ? Les visiteurs perdent l’accès immédiatement.',
 	'share.empty': 'Aucun lien public.',
+	'public.download': 'Télécharger',
+	'public.edit': 'Modifier',
+	'public.join': 'Rejoindre',
+	'public.empty': 'Ce dossier est vide.',
+	'public.breadcrumb': 'Dossiers',
 };

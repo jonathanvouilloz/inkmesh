@@ -222,4 +222,9 @@ export const en = {
 	'share.revoke': 'Revoke',
 	'share.revokeConfirm': 'Revoke this link? Visitors lose access at once.',
 	'share.empty': 'No public link.',
+	'public.download': 'Download',
+	'public.edit': 'Edit',
+	'public.join': 'Join',
+	'public.empty': 'This folder is empty.',
+	'public.breadcrumb': 'Folders',
 };
