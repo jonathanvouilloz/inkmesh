@@ -137,3 +137,35 @@ async function callTool(request: APIRequestContext, token: string, name: string,
 	expect(result.isError).toBeFalsy();
 	return result.content[0].text;
 }
+
+test('a name typed on the consent screen before it hydrates survives hydration', async ({ page, request }) => {
+	const redirectUri = 'http://localhost:9/callback';
+	const registered = await request.post('/oauth/register', {
+		data: { redirect_uris: [redirectUri], client_name: 'Slow client' }
+	});
+	const { client_id } = await registered.json();
+	const query = new URLSearchParams({
+		response_type: 'code',
+		client_id,
+		redirect_uri: redirectUri,
+		code_challenge: 'c'.repeat(43),
+		code_challenge_method: 'S256',
+		state: 's'
+	});
+	// Hold the client scripts, as a slow network would, so the typing lands on the server-rendered form.
+	let release = () => {};
+	const held = new Promise<void>((resolve) => (release = resolve));
+	await page.route('**/_app/immutable/**/*.js', async (route) => {
+		await held;
+		await route.continue();
+	});
+	await page.goto('/oauth/authorize?' + query, { waitUntil: 'commit' });
+	const name = page.getByLabel('Name of this agent');
+	await expect(name).toHaveValue('Slow client');
+	await name.fill('typed early');
+	release();
+	await page.waitForLoadState('networkidle');
+	await expect(name).toHaveValue('typed early');
+	// The hint below the field follows the name the visitor typed.
+	await expect(page.getByText(/via typed early/)).toBeVisible();
+});
