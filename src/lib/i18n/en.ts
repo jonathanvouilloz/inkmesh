@@ -260,7 +260,7 @@ export const en = {
 	'query.order': 'Order',
 	'query.asc': 'Ascending',
 	'query.desc': 'Descending',
-	'query.field': 'Filter by',
+	'query.field': 'Add a filter',
 	'query.noFilter': 'No filter',
 	'query.value': 'Value',
 	'query.apply': 'Apply',

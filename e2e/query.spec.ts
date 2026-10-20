@@ -54,7 +54,7 @@ test('filter with the form and keyboard', async ({ page }) => {
 	const sort = page.getByLabel('Sort by');
 	while (!(await sort.evaluate((el) => el === document.activeElement))) await page.keyboard.press('Tab');
 	await sort.selectOption('date');
-	await page.getByLabel('Filter by').selectOption('tags');
+	await page.getByLabel('Add a filter').selectOption('tags');
 	await page.getByLabel('Value').fill('q3');
 	await page.keyboard.press('Enter');
 	await expect(page).toHaveURL(/\/demo\/e2e-query\?sort=date&tags=q3$/);
@@ -96,7 +96,7 @@ test('a public workspace link filters too', async ({ page, browser }) => {
 	await view.goto(`${url}/e2e-query?status=done`);
 	await expect(list(view)).toHaveText(['Beta']);
 	// No JavaScript on public pages: the form submits as a plain GET and the server redirects.
-	await view.getByLabel('Filter by').selectOption('status');
+	await view.getByLabel('Add a filter').selectOption('status');
 	await view.getByLabel('Value').fill('draft');
 	await view.getByRole('button', { name: 'Apply' }).click();
 	await expect(view).toHaveURL(`${url}/e2e-query?status=draft`);

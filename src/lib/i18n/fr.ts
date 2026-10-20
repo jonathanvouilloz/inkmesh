@@ -263,7 +263,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'query.order': 'Ordre',
 	'query.asc': 'Croissant',
 	'query.desc': 'Décroissant',
-	'query.field': 'Filtrer par',
+	'query.field': 'Ajouter un filtre',
 	'query.noFilter': 'Aucun filtre',
 	'query.value': 'Valeur',
 	'query.apply': 'Appliquer',
