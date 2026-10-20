@@ -6,6 +6,15 @@
 <div class="rendered">{@html html}</div>
 
 <style>
+	/* The "Footnotes" heading remark-rehype adds for screen readers. */
+	.rendered :global(.sr-only) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
 	/* The editor's document look (Crepe with DESIGN.md's tokens); --rendered-size sets the scale (15px in comments). */
 	.rendered {
 		font-family: var(--font-text);

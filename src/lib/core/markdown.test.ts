@@ -227,6 +227,14 @@ describe('renderHtml', () => {
 		expect(html).not.toContain('Secret');
 	});
 
+	it('footnote links reach their footnotes', () => {
+		const html = renderHtml('Text[^1].\n\n[^1]: Note.\n');
+		const hrefs = [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+		const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+		expect(hrefs.length).toBeGreaterThan(1);
+		for (const href of hrefs) expect(ids, href).toContain(href);
+	});
+
 	it('imageUrls lists images and definitions', () => {
 		expect(imageUrls('![a](x.png) [l](y.md)\n\n[d]: z.png')).toEqual(['x.png', 'z.png']);
 	});

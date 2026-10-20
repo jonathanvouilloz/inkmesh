@@ -1,4 +1,4 @@
-import rehypeSanitize from 'rehype-sanitize';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
@@ -92,7 +92,8 @@ const htmlAsCode = () => (tree: unknown) =>
 const renderer = parser()
 	.use(htmlAsCode)
 	.use(remarkRehype)
-	.use(rehypeSanitize)
+	// remark-rehype already prefixes footnote ids with user-content-; a second prefix would break their links.
+	.use(rehypeSanitize, { ...defaultSchema, clobberPrefix: '' })
 	.use(rehypeStringify);
 
 /** Safe HTML for a Markdown document: no raw HTML, no active URL, no event handler. */
