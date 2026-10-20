@@ -288,6 +288,7 @@ export const en = {
 	'unsubscribe.confirm': 'Stop the digest',
 	'unsubscribe.done': 'The daily digest is off.',
 	'unsubscribe.invalid': 'This link is not valid',
+	'unsubscribe.invalidText': 'To stop the digest, sign in and turn it off on your account page.',
 	'query.label': 'Sort and filter',
 	'query.sort': 'Sort by',
 	'query.name': 'Name',

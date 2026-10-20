@@ -35,3 +35,9 @@ test('turn the daily digest on and off', async ({ page }) => {
 	await page.goto('/inbox');
 	await expect(hint(page)).toHaveAttribute('href', '/account#digest');
 });
+
+test('a bad unsubscribe link says what to do instead', async ({ page }) => {
+	await page.goto('/unsubscribe/1.nope');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('This link is not valid');
+	await expect(page.getByText('To stop the digest, sign in and turn it off on your account page.')).toBeVisible();
+});

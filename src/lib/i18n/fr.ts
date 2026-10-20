@@ -292,6 +292,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'unsubscribe.confirm': 'Arrêter le résumé',
 	'unsubscribe.done': 'Le résumé quotidien est désactivé.',
 	'unsubscribe.invalid': 'Ce lien n’est pas valide',
+	'unsubscribe.invalidText': 'Pour arrêter le résumé, connectez-vous et désactivez-le sur la page de votre compte.',
 	'query.label': 'Trier et filtrer',
 	'query.sort': 'Trier par',
 	'query.name': 'Nom',

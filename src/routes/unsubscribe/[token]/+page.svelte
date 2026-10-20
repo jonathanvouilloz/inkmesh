@@ -23,6 +23,7 @@
 		{/if}
 	{:else}
 		<h1>{t('unsubscribe.invalid', locale)}</h1>
+		<p>{t('unsubscribe.invalidText', locale)}</p>
 	{/if}
 </main>
 
