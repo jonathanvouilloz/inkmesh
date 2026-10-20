@@ -41,7 +41,11 @@ test('an owner creates, changes and revokes public links', async ({ page }) => {
 	await expect(docRow.getByRole('combobox')).toHaveValue('');
 
 	await docRow.getByRole('combobox').selectOption('reader');
+	// The reload waits for the save's own navigation, which it would otherwise interrupt.
+	const saved = page.waitForResponse((r) => r.request().method() === 'POST');
 	await docRow.getByRole('button', { name: 'Save' }).click();
+	await saved;
+	await page.waitForLoadState('networkidle');
 	await page.reload();
 	await expect(docRow.getByRole('combobox')).toHaveValue('reader');
 
