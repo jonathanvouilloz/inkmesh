@@ -8,7 +8,7 @@
 	import { ago } from './time.ts';
 	import { docHref } from './href.ts';
 	import { dropTarget, getDrops, hasDrops } from './drop.ts';
-	import type { FolderListing } from './folderQuery.ts';
+	import { RESERVED, type FolderListing } from './folderQuery.ts';
 
 	let {
 		workspace,
@@ -43,6 +43,8 @@
 	let field: string = $derived(page.url.search && '');
 	// A field named like a built-in shadows it, so it is not offered twice.
 	const sortFields = $derived(query.fields.filter((f) => f !== 'title' && f !== 'modified'));
+	// A field named like a query parameter cannot be filtered on (the URL keeps the parameter's meaning).
+	const filterFields = $derived(query.fields.filter((f) => !RESERVED.includes(f)));
 	const [whereBefore, whereAfter] = $derived(t('query.where', locale).split('{conditions}'));
 </script>
 
@@ -132,12 +134,12 @@
 						<option value="desc" selected={query.order === 'desc'}>{t('query.desc', locale)}</option>
 					</select>
 				</label>
-				{#if query.fields.length}
+				{#if filterFields.length}
 					<label>
 						{t('query.field', locale)}
 						<select name="field" onchange={(e) => (field = e.currentTarget.value)}>
 							<option value="" selected>{t('query.noFilter', locale)}</option>
-							{#each query.fields as f}
+							{#each filterFields as f}
 								<option class="mono" value={f}>{f}</option>
 							{/each}
 						</select>
@@ -182,7 +184,8 @@
 					{:else}
 						<a href={docHref(workspace, node.path)}>{node.title}</a>
 						{#if query.shown}
-							<span class="file">{query.shownValues[node.path]}</span>
+							<!-- A document without the sorted field sorts last: the dash says why. -->
+							<span class="file">{query.shownValues[node.path] ?? '—'}</span>
 						{:else}
 							<span class="file">{node.name}</span>
 						{/if}
