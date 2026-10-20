@@ -54,7 +54,7 @@ function landingEvent(token: string, cookies: Record<string, string> = {}) {
 		params: { token },
 		request: new Request('http://localhost/login/link/' + token, { method: 'POST' }),
 		locals: { user: null, actor: null, locale: 'en' },
-		cookies: { set: (name: string, value: string) => (cookies[name] = value) }
+		cookies: { get: (name: string) => cookies[name], set: (name: string, value: string) => (cookies[name] = value) }
 	} as never;
 }
 
@@ -93,6 +93,16 @@ it('the landing GET never consumes the link', async () => {
 	expect(accounts.sessionUser(cookies.inkmesh_session)?.email).toBe('ann@example.ch');
 	expect(await consume(token)).toMatchObject({ status: 410, data: { expired: true } });
 	expect(await landingLoad({ params: { token } } as never)).toEqual({ email: null });
+});
+
+it('signing in over an existing session removes the old one', async () => {
+	const eve = await accounts.createUser({ email: 'eve@example.ch', name: 'Eve', password: 'long enough 1' });
+	const old = accounts.createSession(eve.id);
+	await ask('eve@example.ch', '203.0.113.45');
+	const cookies: Record<string, string> = { inkmesh_session: old };
+	expect(await consume(await emailedToken(), cookies)).toMatchObject({ status: 303 });
+	expect(accounts.sessionUser(old)).toBeNull();
+	expect(accounts.sessionUser(cookies.inkmesh_session)?.email).toBe('eve@example.ch');
 });
 
 it('next is kept and made safe', async () => {
