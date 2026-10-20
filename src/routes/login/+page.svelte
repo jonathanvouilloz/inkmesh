@@ -11,6 +11,8 @@
 		const search = params.toString();
 		return search ? '?' + search : '/login';
 	};
+	// A named action replaces the query string: carry `next` in it, so a failed attempt keeps it.
+	const action = (name: string) => `?/${name}` + (data.next ? '&next=' + encodeURIComponent(data.next) : '');
 </script>
 
 <svelte:head><title>{t('login.title', data.locale)}</title></svelte:head>
@@ -21,7 +23,7 @@
 		{@const [before, after] = t('login.linkSent', data.locale).split('{email}')}
 		<p role="status">{before}<span class="mono">{form.email}</span>{after}</p>
 	{:else if method === 'link'}
-		<form method="POST" action="?/link">
+		<form method="POST" action={action('link')}>
 			<input type="hidden" name="next" value={data.next} />
 			<label>
 				{t('login.email', data.locale)}
@@ -45,7 +47,7 @@
 			<a href={query(false)}>{t('login.usePassword', data.locale)}</a>
 		</form>
 	{:else}
-		<form method="POST" action="?/password">
+		<form method="POST" action={action('password')}>
 			<input type="hidden" name="next" value={data.next} />
 			<label>
 				{t('login.email', data.locale)}

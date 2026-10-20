@@ -11,6 +11,19 @@ test('anonymous visitors are sent to login and come back', async ({ page }) => {
 	await expect(page).toHaveURL(/\/demo$/);
 });
 
+test('next survives a failed attempt', async ({ page }) => {
+	await page.goto('/demo');
+	await expect(page).toHaveURL(/\/login\?next=%2Fdemo$/);
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Email').fill('owner@inkmesh.local');
+	await page.getByLabel('Password').fill('not-the-password');
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page.getByRole('alert')).toBeVisible();
+	await page.getByLabel('Password').fill('inkmesh-dev');
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page).toHaveURL(/\/demo$/);
+});
+
 test('a wrong password stays on the form with one generic message', async ({ page }) => {
 	await page.goto('/login');
 	await page.getByLabel('Email').fill('owner@inkmesh.local');
