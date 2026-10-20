@@ -65,6 +65,8 @@
 	article,
 	.crumbs {
 		box-sizing: content-box;
+		/* FolderView's size, so its 72ch column and this one share a left edge. */
+		font-size: 13px;
 		max-width: 72ch;
 		margin: 0 auto;
 		padding: 32px;

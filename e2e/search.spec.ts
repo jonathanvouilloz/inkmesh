@@ -15,7 +15,7 @@ test('search from the header', async ({ page }) => {
 	await box.fill('quokk');
 	await box.press('Enter');
 	await expect(page).toHaveURL('/demo/-/search?q=quokk');
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Results for quokk');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Results for “quokk”');
 	const hit = page.getByRole('main').getByRole('listitem').filter({ hasText: 'e2e-search/quokka.md' });
 	await expect(hit.locator('mark')).toHaveText('quokka');
 
@@ -25,7 +25,7 @@ test('search from the header', async ({ page }) => {
 
 test('a query that finds nothing says so', async ({ page }) => {
 	await page.goto('/demo/-/search?q=zzyzxnothing');
-	await expect(page.getByText('No document contains zzyzxnothing.')).toBeVisible();
+	await expect(page.getByText('No document contains “zzyzxnothing”.')).toBeVisible();
 });
 
 test.describe('on a phone', () => {

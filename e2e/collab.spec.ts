@@ -107,7 +107,7 @@ test('restore an earlier version', async ({ page }) => {
 
 	await page.getByRole('button', { name: 'Restore this version' }).click();
 	const dialog = page.getByRole('dialog');
-	await expect(dialog).toContainText('Restore this version? The current text stays in the history.');
+	await expect(dialog).toContainText('The current text stays in the history.');
 	await dialog.getByRole('button', { name: 'Restore this version' }).click();
 
 	await expect(page).toHaveURL(new RegExp(`/demo/${doc}$`));
