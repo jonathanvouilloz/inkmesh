@@ -8,7 +8,7 @@ const SCRYPT: ScryptOptions = { N: 2 ** 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024
 const KEY_LENGTH = 64;
 const MIN_PASSWORD = 10;
 const SESSION_DAYS = 30;
-export const LOGIN_LINK_MINUTES = 15;
+const LOGIN_LINK_MINUTES = 15;
 const SQLITE_CONSTRAINT_UNIQUE = 2067;
 // Hash of a throwaway password: unknown emails still pay one scrypt, so timing does not reveal accounts.
 const DUMMY_HASH =
