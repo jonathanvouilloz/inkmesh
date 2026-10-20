@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import type { Role } from '#lib/core/access.ts';
 	import type { TreeNode } from '#lib/core/documents.ts';
-	import type { Fields } from '#lib/core/markdown.ts';
 	import { t, type Locale } from '#lib/i18n/index.ts';
 	import FileActions from './FileActions.svelte';
 	import { ago } from './time.ts';
@@ -20,7 +19,7 @@
 		name,
 		folders = [],
 		query,
-		fields
+		shown
 	}: {
 		workspace: string;
 		/** '' is the workspace root. */
@@ -34,8 +33,8 @@
 		folders?: string[];
 		/** The listing sorted and filtered from the URL; `nodes` stays the whole folder. */
 		query: FolderListing;
-		/** Each document's frontmatter fields, for the sorted field's value. */
-		fields: Record<string, Fields>;
+		/** Each listed document's values of the sorted field, by path. */
+		shown: Record<string, string>;
 	} = $props();
 
 	const documents = (ns: TreeNode[]): number =>
@@ -186,7 +185,7 @@
 					{:else}
 						<a href={docHref(workspace, node.path)}>{node.title}</a>
 						{#if query.shown}
-							<span class="file">{fields[node.path]?.[query.shown]?.join(', ')}</span>
+							<span class="file">{shown[node.path]}</span>
 						{:else}
 							<span class="file">{node.name}</span>
 						{/if}

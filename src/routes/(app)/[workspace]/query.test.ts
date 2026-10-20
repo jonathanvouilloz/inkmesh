@@ -60,7 +60,11 @@ async function load(search: string, user: User = owner, rest?: string) {
 const paths = (r: unknown) => (r as Listing).query.nodes.map((n) => n.path);
 
 it('the root and a folder load a sorted, filtered list', async () => {
-	expect(paths(await load('?sort=date&order=desc'))).toEqual(['f', 'b.md', 'a.md']);
+	const root = await load('?sort=date&order=desc');
+	expect(paths(root)).toEqual(['f', 'b.md', 'a.md']);
+	// Only the sorted field's values reach the page, not each document's frontmatter.
+	expect((root as unknown as { shown: unknown }).shown).toEqual({ 'b.md': '2026-03-01', 'a.md': '2026-01-05' });
+	expect(root).not.toHaveProperty('fields');
 	expect(paths(await load('?status=draft', owner, 'f'))).toEqual(['f/x.md', 'f/z.md']);
 	expect(paths(await load('', owner, 'f'))).toEqual(['f/sub', 'f/x.md', 'f/y.md', 'f/z.md']);
 });
@@ -68,6 +72,7 @@ it('the root and a folder load a sorted, filtered list', async () => {
 it("the form's parameters redirect to the canonical URL", async () => {
 	expect(await load('?field=status&value=draft', owner, 'f')).toEqual({ thrown: 303, location: '/demo/f?status=draft' });
 	expect(await load('?sort=date&order=asc&field=&value=')).toEqual({ thrown: 303, location: '/demo?sort=date' });
+	expect(await load('?sort=&order=desc', owner, 'f')).toEqual({ thrown: 303, location: '/demo/f' });
 });
 
 it('a reader can sort and filter', async () => {

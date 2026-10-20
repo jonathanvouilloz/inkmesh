@@ -153,6 +153,9 @@ it('a workspace link filters its folders', async () => {
 	const t = await createPublicLink('demo', null, null, jon);
 	const folder = (await page(t, 'notes', '?status=draft')) as { query: { nodes: Array<{ path: string }> } };
 	expect(folder.query.nodes.map((n) => n.path)).toEqual(['notes/a.md']);
+	const sorted = (await page(t, 'notes', '?sort=status')) as { shown: unknown };
+	expect(sorted).toMatchObject({ shown: { 'notes/a.md': 'draft' } });
+	expect(sorted).not.toHaveProperty('fields');
 	expect(await page(t, 'notes', '?field=status&value=draft')).toEqual({
 		thrown: 303,
 		location: `/s/${t}/notes?status=draft`

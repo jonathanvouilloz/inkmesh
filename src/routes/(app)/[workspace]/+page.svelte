@@ -10,7 +10,7 @@
 	path=""
 	nodes={data.tree}
 	query={data.query}
-	fields={data.fields}
+	shown={data.shown}
 	role={data.role}
 	locale={data.locale}
 	name={data.workspaces.find((w) => w.slug === data.workspace)?.name ?? data.workspace}

@@ -14,7 +14,7 @@
 	path=""
 	nodes={data.nodes}
 	query={data.query}
-	fields={data.fields}
+	shown={data.shown}
 	role="reader"
 	locale={data.locale}
 	name={data.workspaceName}
