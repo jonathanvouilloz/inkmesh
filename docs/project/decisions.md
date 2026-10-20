@@ -301,4 +301,4 @@
 - Choice: `OnFailure=` on the backup unit starts the template `inkmesh-alert@.service`, which runs `scripts/alert.ts`: an email to every instance admin (`admins()` in `core`) through the app's own SMTP settings, with the job's last 20 log lines. English text, as an operator message.
 - Rejected: a push notification service (one more account and secret); alerting from inside `backup.sh` (misses a crash of the script itself).
 - Why: the backup runs unattended; a silent failure would only show when a restore is needed.
-- Reopen if: more background jobs appear (reuse the template with `OnFailure=inkmesh-alert@%n.service`), or email is off on an instance that still needs alerts.
+- Reopen if: more background jobs appear (reuse the template with `OnFailure=inkmesh-alert@%N.service`), or email is off on an instance that still needs alerts.
