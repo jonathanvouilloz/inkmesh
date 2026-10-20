@@ -3,11 +3,13 @@
 	import { page } from '$app/state';
 	import type { Role } from '#lib/core/access.ts';
 	import type { TreeNode } from '#lib/core/documents.ts';
+	import type { Fields } from '#lib/core/markdown.ts';
 	import { t, type Locale } from '#lib/i18n/index.ts';
 	import FileActions from './FileActions.svelte';
 	import { ago } from './time.ts';
 	import { docHref } from './href.ts';
 	import { dropTarget, getDrops, hasDrops } from './drop.ts';
+	import type { FolderListing } from './folderQuery.ts';
 
 	let {
 		workspace,
@@ -16,7 +18,9 @@
 		role,
 		locale,
 		name,
-		folders = []
+		folders = [],
+		query,
+		fields
 	}: {
 		workspace: string;
 		/** '' is the workspace root. */
@@ -28,6 +32,10 @@
 		name: string;
 		/** Every folder path, for the folder's own "Move to…". */
 		folders?: string[];
+		/** The listing sorted and filtered from the URL; `nodes` stays the whole folder. */
+		query: FolderListing;
+		/** Each document's frontmatter fields, for the sorted field's value. */
+		fields: Record<string, Fields>;
 	} = $props();
 
 	const documents = (ns: TreeNode[]): number =>
@@ -35,7 +43,16 @@
 	let picker = $state<HTMLInputElement>()!;
 	// Public pages render this view outside the workspace layout that sets the context (readers only).
 	const drops = hasDrops() ? getDrops() : undefined;
+	// The field picked for a new filter, back to "No filter" with each new query (the form is keyed on it too).
+	let field: string = $derived(page.url.search && '');
+	// A field named like a built-in shadows it, so it is not offered twice.
+	const sortFields = $derived(query.fields.filter((f) => f !== 'title' && f !== 'modified'));
+	const [whereBefore, whereAfter] = $derived(t('query.where', locale).split('{conditions}'));
 </script>
+
+{#snippet mono(text: string, vars: Record<string, string>)}
+	{#each text.split(/\{(\w+)\}/) as part, i}{#if i % 2}<span class="mono">{vars[part]}</span>{:else}{part}{/if}{/each}
+{/snippet}
 
 <section
 	{@attach role !== 'reader' && dropTarget((data) => drops!.drop(path, data))}
@@ -95,15 +112,84 @@
 		</div>
 	{/if}
 
-	{#if nodes.length}
+	{#if query.documents >= 2}
+		{#key page.url.search}
+			<form class="query" method="GET" aria-label={t('query.label', locale)}>
+				{#each query.filters as [k, v]}
+					<input type="hidden" name={k} value={v} />
+				{/each}
+				<label>
+					{t('query.sort', locale)}
+					<select name="sort">
+						<option value="" selected={!query.sort}>{t('query.name', locale)}</option>
+						<option value="title" selected={query.sort === 'title'}>{t('query.title', locale)}</option>
+						<option value="modified" selected={query.sort === 'modified'}>{t('query.modified', locale)}</option>
+						{#each sortFields as f}
+							<option class="mono" value={f} selected={query.sort === f}>{f}</option>
+						{/each}
+					</select>
+				</label>
+				<label>
+					{t('query.order', locale)}
+					<select name="order">
+						<option value="asc" selected={query.order === 'asc'}>{t('query.asc', locale)}</option>
+						<option value="desc" selected={query.order === 'desc'}>{t('query.desc', locale)}</option>
+					</select>
+				</label>
+				{#if query.fields.length}
+					<label>
+						{t('query.field', locale)}
+						<select name="field" onchange={(e) => (field = e.currentTarget.value)}>
+							<option value="" selected>{t('query.noFilter', locale)}</option>
+							{#each query.fields as f}
+								<option class="mono" value={f}>{f}</option>
+							{/each}
+						</select>
+					</label>
+					<label>
+						{t('query.value', locale)}
+						<input
+							name="value"
+							class="mono"
+							maxlength="200"
+							autocomplete="off"
+							list={field ? `values-${query.fields.indexOf(field)}` : undefined}
+						/>
+					</label>
+					{#each query.fields as f, i}
+						<datalist id="values-{i}">
+							{#each query.values[f] as v}<option value={v}></option>{/each}
+						</datalist>
+					{/each}
+				{/if}
+				<button>{t('query.apply', locale)}</button>
+			</form>
+		{/key}
+	{/if}
+
+	{#if query.filters.length}
+		<p class="where">
+			{whereBefore}{#each query.filters as [k, v], i}{#if i}{` ${t('query.and', locale)} `}{/if}{@render mono(
+					t('query.is', locale),
+					{ field: k, value: v }
+				)}{/each}{whereAfter}
+			<a href={page.url.pathname + query.clear}>{t('query.clear', locale)}</a>
+		</p>
+	{/if}
+
+	{#if query.nodes.length}
 		<ul>
-			{#each nodes as node (node.path)}
+			{#each query.nodes as node (node.path)}
 				<li>
 					{#if node.kind === 'folder'}
 						<a class="folder" href={docHref(workspace, node.path)}>{node.name}</a>
 					{:else}
 						<a href={docHref(workspace, node.path)}>{node.title}</a>
-						<span class="file">{node.name}</span>
+						{#if query.shown}
+							<span class="file">{fields[node.path]?.[query.shown]?.join(', ')}</span>
+						{:else}
+							<span class="file">{node.name}</span>
+						{/if}
 						{#if node.modified}
 							<time datetime={node.modified} title={node.modified}
 								>{t('folder.modified', locale, { ago: ago(node.modified, locale) })}</time
@@ -113,6 +199,8 @@
 				</li>
 			{/each}
 		</ul>
+	{:else if nodes.length}
+		<p class="empty">{t('query.none', locale)}</p>
 	{:else}
 		<p class="empty">{t(role === 'reader' ? 'public.empty' : 'folder.empty', locale)}</p>
 	{/if}
@@ -178,8 +266,30 @@
 		color: var(--accent);
 		font-weight: 500;
 	}
+	.query {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		gap: 8px;
+	}
+	/* The mono input is shorter than a select: one height keeps the labels on one line. */
+	.query :is(input, select) {
+		box-sizing: border-box;
+		height: 30px;
+	}
+	.query input {
+		width: 16ch;
+	}
+	.where {
+		margin: -16px 0 0;
+		color: var(--muted);
+	}
+	.where a {
+		color: var(--accent);
+	}
 	.folder,
 	.file,
+	.mono,
 	time,
 	input[name='name'] {
 		font-family: var(--font-mono);
@@ -231,7 +341,8 @@
 		gap: 4px;
 		font-weight: 600;
 	}
-	input {
+	input,
+	select {
 		padding: 6px 8px;
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);
@@ -243,13 +354,16 @@
 		margin: 0;
 		color: var(--error);
 	}
-	:is(a, summary, button, input):focus-visible {
+	:is(a, summary, button, input, select):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
 	@media (max-width: 767px) {
 		section {
 			padding: 24px 16px;
+		}
+		.query > * {
+			flex: 1 1 100%;
 		}
 	}
 </style>

@@ -1,14 +1,23 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { createDocument, createFolder, deletePath, importDocument, movePath } from '#lib/core/documents.ts';
+import { createDocument, createFolder, deletePath, folderFields, importDocument, movePath } from '#lib/core/documents.ts';
 import { Conflict, InvalidContent, InvalidPath } from '#lib/core/paths.ts';
 import { requireRole } from '#lib/server/guard.ts';
+import { canonicalQuery, queryFolder } from '#lib/ui/folderQuery.ts';
 import { docHref } from '#lib/ui/href.ts';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export type ImportResult = {
 	name: string;
 	path?: string;
 	outcome: 'imported' | 'replaced' | 'exists' | 'invalid' | 'too-large' | 'not-utf8';
+};
+
+export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
+	const to = canonicalQuery(url.searchParams);
+	if (to !== null) redirect(303, url.pathname + to);
+	const { tree } = await parent();
+	const fields = await folderFields(params.workspace, '', locals.actor!);
+	return { query: queryFolder(tree, fields, url.searchParams), fields };
 };
 
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';

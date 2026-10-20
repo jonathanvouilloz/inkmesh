@@ -57,14 +57,16 @@ async function outcome<T>(run: () => T | Promise<T>) {
 	}
 }
 
-const event = (token: string, rest?: string) => ({
+const event = (token: string, rest?: string, search = '') => ({
 	params: { token, path: rest },
+	url: new URL(`http://localhost/s/${token}${rest ? '/' + rest : ''}${search}`),
 	getClientAddress: () => IP,
 	parent: async () => layoutLoad({ params: { token }, getClientAddress: () => IP } as never)
 });
 const layout = (token: string) => outcome(() => layoutLoad(event(token) as never));
 const root = (token: string) => outcome(() => rootLoad(event(token) as never));
-const page = (token: string, rest: string) => outcome(() => pathLoad(event(token, rest) as never));
+const page = (token: string, rest: string, search?: string) =>
+	outcome(() => pathLoad(event(token, rest, search) as never));
 const serve = (token: string, rest: string) => outcome(() => raw(event(token, rest) as never));
 
 const forbiddenCookies = new Proxy(
@@ -97,7 +99,7 @@ it('public responses carry no cookie and noindex', async () => {
 	expect(res.headers.get('cache-control')).toBe('no-store');
 	expect(res.headers.get('x-frame-options')).toBe('DENY');
 	expect(res.headers.get('content-security-policy')).toBe(
-		"default-src 'none'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		"default-src 'none'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 	);
 	expect(res.headers.get('set-cookie')).toBeNull();
 });
@@ -145,6 +147,21 @@ it('a workspace link lists folders', async () => {
 	for (const hidden of ['.inkmesh/comments/notes/a.md', '.git/config', '../other/x.md'])
 		expect(await serve(t, hidden)).toEqual({ thrown: 404, location: undefined });
 	expect(await page(t, '.git')).toEqual({ thrown: 404, location: undefined });
+});
+
+it('a workspace link filters its folders', async () => {
+	const t = await createPublicLink('demo', null, null, jon);
+	const folder = (await page(t, 'notes', '?status=draft')) as { query: { nodes: Array<{ path: string }> } };
+	expect(folder.query.nodes.map((n) => n.path)).toEqual(['notes/a.md']);
+	expect(await page(t, 'notes', '?field=status&value=draft')).toEqual({
+		thrown: 303,
+		location: `/s/${t}/notes?status=draft`
+	});
+});
+
+it('a document link has no folder to filter', async () => {
+	const t = await createPublicLink('demo', 'notes/a.md', null, jon);
+	expect(await page(t, 'notes', '?status=draft')).toEqual({ thrown: 404, location: undefined });
 });
 
 it('an unknown token is 404 and throttled', async () => {

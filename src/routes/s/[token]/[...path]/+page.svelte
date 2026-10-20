@@ -58,7 +58,16 @@
 	</article>
 {:else}
 	<div class="crumbs">{@render breadcrumb()}</div>
-	<FolderView workspace={base} path={data.docPath} nodes={data.nodes} role="reader" locale={data.locale} name={segments.at(-1)!} />
+	<FolderView
+		workspace={base}
+		path={data.docPath}
+		nodes={data.nodes}
+		query={data.query}
+		fields={data.fields}
+		role="reader"
+		locale={data.locale}
+		name={segments.at(-1)!}
+	/>
 {/if}
 
 <style>

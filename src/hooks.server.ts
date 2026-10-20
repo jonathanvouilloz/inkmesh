@@ -30,7 +30,7 @@ const PUBLIC_HEADERS = {
 	'cache-control': 'no-store',
 	'x-frame-options': 'DENY',
 	'content-security-policy':
-		"default-src 'none'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		"default-src 'none'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 };
 
 export const handle: Handle = async ({ event, resolve }) => {

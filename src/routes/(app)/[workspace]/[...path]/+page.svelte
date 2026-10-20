@@ -183,6 +183,8 @@
 			workspace={data.workspace}
 			path={data.path}
 			nodes={data.nodes}
+			query={data.query}
+			fields={data.fields}
 			role={data.role}
 			locale={data.locale}
 			name={data.path.split('/').pop()!}

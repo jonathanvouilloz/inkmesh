@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { addComment, listComments, resolveComment } from '#lib/core/comments.ts';
 import {
+	folderFields,
 	history,
 	readDocument,
 	readVersion,
@@ -13,6 +14,7 @@ import { frontmatterEntries, renderHtml, splitFrontmatter } from '#lib/core/mark
 import { Conflict, InvalidContent, InvalidPath } from '#lib/core/paths.ts';
 import { endSession } from '#lib/core/sessions.ts';
 import { isNotFound, notFoundOn, requireRole } from '#lib/server/guard.ts';
+import { canonicalQuery, queryFolder } from '#lib/ui/folderQuery.ts';
 import { docHref } from '#lib/ui/href.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -22,11 +24,15 @@ export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 	const actor = locals.actor!;
 	// A folder name never ends in .md, so any other path is a folder of the tree.
 	if (!params.path.endsWith('.md')) {
+		const to = canonicalQuery(url.searchParams);
+		if (to !== null) redirect(303, url.pathname + to);
 		let nodes: TreeNode[] | undefined = tree;
 		for (const segment of params.path.split('/'))
 			nodes = nodes?.find((n) => n.kind === 'folder' && n.name === segment)?.children;
 		if (!nodes) error(404);
-		return { kind: 'folder' as const, path: params.path, nodes };
+		const fields = await folderFields(params.workspace, params.path, actor);
+		const query = queryFolder(nodes, fields, url.searchParams);
+		return { kind: 'folder' as const, path: params.path, nodes, query, fields };
 	}
 	const commit = url.searchParams.get('v');
 	if (commit !== null) {

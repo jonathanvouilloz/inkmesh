@@ -9,6 +9,8 @@
 	workspace={data.workspace}
 	path=""
 	nodes={data.tree}
+	query={data.query}
+	fields={data.fields}
 	role={data.role}
 	locale={data.locale}
 	name={data.workspaces.find((w) => w.slug === data.workspace)?.name ?? data.workspace}
