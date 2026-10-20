@@ -181,3 +181,105 @@
 - Rejected: `value={form?.x ?? ''}`: at hydration Svelte sets `input.value` and erases what a visitor typed before the scripts ran.
 - Why: on a slow network a person types into the server-rendered form before it hydrates; their text must survive.
 - Reopen if: Svelte stops resetting `value` at hydration.
+
+## 2026-10-20 — Email over SMTP from the environment, nodemailer
+- Choice: `SMTP_URL` (`smtp://`, `smtps://`, or `memory:` and `file:` for tests and trials), `MAIL_FROM` and `INKMESH_URL` turn email on, all three or none; a partial or invalid setup stops the start with a line naming the unset variable. Off, every email feature hides or says why, and password login works as before. Plain text only. Client: `nodemailer`, pinned exactly (no dependencies).
+- Rejected: a hand-rolled SMTP client (about 250 lines of protocol we would own: STARTTLS, AUTH, dot-stuffing, encoded headers); an HTTP mail API (ties self-hosters to one vendor).
+- Why: a lost magic link is a locked-out user; nodemailer has handled those edge cases for years and adds no transitive package.
+- Reopen if: nodemailer stops being maintained or grows dependencies, or HTML email is wanted.
+
+## 2026-10-20 — Email links use INKMESH_URL
+- Choice: every URL in an email (sign-in link, invitation, digest inbox and unsubscribe) is built from `INKMESH_URL`. The invitation link shown on screen keeps the request's origin.
+- Rejected: the request's origin: with `Host: evil.example` an attacker could have a victim emailed a valid token pointing to the attacker's server.
+- Why: an email outlives the request that caused it and must point to the real instance.
+- Reopen if: one instance must serve several public hostnames.
+
+## 2026-10-20 — Failed sends log the user id and the error code only
+- Choice: a failed send logs its label, the recipient's user id and nodemailer's `code`/`responseCode`, never `err.message`, the address or the URL.
+- Rejected: logging the error message (it may hold the address, and a link holds a token).
+- Why: logs leave the database's protection and must carry neither personal data nor credentials.
+- Reopen if: failures cannot be diagnosed from the codes.
+
+## 2026-10-20 — Magic links: single use, 15 minutes, POST to consume
+- Choice: `/login?method=link` asks for an address; the answer is the same sentence for a known or unknown one, the send is not awaited, and the throttles (`link-ip` 10, `link-email` 3 per 15 minutes) count every request before the lookup. The token is stored hashed in `login_links`, lives 15 minutes, and a password change deletes it. The landing page's GET only reads; its POST consumes the link in one `DELETE … RETURNING` and starts the session. A refused address stays in the field; the sent state offers "Use another address".
+- Rejected: consuming on GET (mail scanners open links and would burn them); a separate "forgot password" flow (the link is the recovery path, the CLI reset stays).
+- Why: sign-in without a password, with no account enumeration and no state change on GET.
+- Reopen if: users ask for longer-lived links, or scanners start POSTing.
+
+## 2026-10-20 — Digest opt-in, daily slot, per-user state
+- Choice: the daily digest is off until the user turns it on (account page). One slot a day at `DIGEST_HOUR` UTC (default 8); a run sends each opted-in user not yet served for the slot their unread events up to the slot, newest first, 50 lines at most. State is two columns per user (`digest_last_id`, `digest_sent_at`), none per event. The start-up catch-up and the timer call the same idempotent run, so a restart never sends twice for one slot. The timer is in memory, like the rate limits: a one-process shortcut.
+- Rejected: on by default (nLPD art. 7, privacy by default: the digest hands paths and names to the SMTP provider); per-event state; immediate emails.
+- Why: one short email on days that had changes, with the least stored state.
+- Reopen if: users ask for immediate emails, mentions arrive, or the app runs as more than one process.
+
+## 2026-10-20 — The digest cursor moves only when the digest turns on
+- Choice: turning the digest on sets `digest_last_id` to the current highest event id; saving the setting while it is already on keeps the cursor, so pending events are not dropped. Turning it off and on again restarts from the present.
+- Rejected: resetting the cursor on every save (a re-save silently skipped what was pending).
+- Why: the first email covers only what happens after the opt-in, and a Save never loses news.
+- Reopen if: users want a digest of the backlog when they opt in.
+
+## 2026-10-20 — Digest delivery is at least once
+- Choice: the state is written after the send succeeds; a failed send changes nothing, so the next slot carries those events. A crash between the send and the update repeats that digest at the next run.
+- Rejected: marking before sending (a failed send would lose the events).
+- Why: a duplicate email is a smaller harm than a lost one.
+- Reopen if: duplicates are reported, or the SMTP provider offers idempotency keys.
+
+## 2026-10-20 — One-click unsubscribe with an HMAC token
+- Choice: each digest carries `List-Unsubscribe` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058). The token is `<user id>.<HMAC-SHA256>` under a 32-byte key that migration `005-email` creates in `instance_keys`; it never expires and only turns the digest off, compared with `timingSafeEqual`. `/unsubscribe/<token>` acts only on POST; its GET shows one button. `/unsubscribe/` joins `isAgentPath`: exempt from the origin check (mail clients POST without `Origin`) and never reads the session cookie. `unsubscribe` is a reserved workspace slug.
+- Rejected: a stored random token per user (more state, nothing gained); unsubscribing on GET (scanners).
+- Why: stopping the digest must take one action and no login.
+- Reopen if: the token needs to do more than stop the digest, or the key must rotate.
+
+## 2026-10-20 — Inbox hint for the digest stays
+- Choice: with email on and the digest off, the inbox shows one muted link "Get these changes by email once a day" to the account setting, on every visit.
+- Rejected: hiding it once the user has turned the digest off (one more state for a quiet line).
+- Why: it is a neutral link, not a prompt or a modal, and opt-in needs the setting to be findable.
+- Reopen if: users complain about it.
+
+## 2026-10-20 — Invitations by email, address not stored
+- Choice: the members page's "New invitation link" form takes an optional address. The action validates one address and the `invite-mail` throttle (20 per 15 minutes per inviter) before creating anything, so a refusal creates no link. Once the link exists it is shown as before; a failed send says so and keeps the link. The address is not stored. Invitation and sign-in requests share one validator that accepts exactly one address (no list, no CR or LF).
+- Rejected: storing the address (nLPD: only what the account needs); creating the link before the checks (a refusal left an unused link).
+- Why: the link stays the invitation; email is a convenience on top.
+- Reopen if: invitations must be addressed (resend, expiry reminders).
+
+## 2026-10-20 — Sort and filter in the URL, equality only, no YAML parser
+- Choice: `?sort=<key>&order=asc|desc&<field>=<value>`, at most 5 equality filters ANDed (a list contains the value), case-insensitive. The form's `field`/`value` pair redirects (303) to the canonical URL, which also drops empty parameters and `order=asc`. Ties sort by name A→Z in both orders; sorting by name ignores Descending. `sort`, `order`, `field` and `value` are reserved and not offered as filters. Fields come from the frontmatter of the folder's direct documents through `frontmatterFields`: `key: value`, flow lists, and block lists whose `- item` lines are indented or at column 0; block scalars, anchors and aliases have no value; a `__proto__` key is skipped (it broke page serialisation).
+- Rejected: a YAML parser dependency; operators other than equality; carrying fields on every tree node.
+- Why: a shareable URL that works without JavaScript, public pages included, with no new dependency.
+- Reopen if: frontmatter needs real YAML, users ask for ranges, OR filters or name Z→A.
+
+## 2026-10-20 — The filter control reads "Add a filter"
+- Choice: the select is labelled "Add a filter" / « Ajouter un filtre » with the first option "Choose a field" / « Choisir un champ »; active filters show in the sentence under the bar. Below 768 px the bar is a two-column grid.
+- Rejected: "Filter by" with "No filter" (read as "no filter is active" while one was).
+- Why: the select adds a filter; it does not show the current one.
+- Reopen if: filters become removable one by one in the bar.
+
+## 2026-10-20 — Public pages allow their own GET forms
+- Choice: the `/s/` CSP has `form-action 'self'` instead of `'none'`, so the folder query form works on public pages.
+- Rejected: no sort or filter on public pages.
+- Why: public pages hold no POST form, and `/join/` lives outside `/s/`.
+- Reopen if: a public page gains a POST form.
+
+## 2026-10-20 — Docker image behind an HTTPS proxy; systemd stays the VPS reference
+- Choice: a multi-stage `node:24-bookworm-slim` image with git, running as `node` (uid 1000), one `/data` volume, a healthcheck on `/login`; `compose.yaml` publishes on loopback only and reads `inkmesh.env`. The example sets `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`, so a proxy is required: it must append or overwrite `X-Forwarded-For`, and a request straight to the port without that header answers 500. The image build and run are unverified until the owner runs them (hermes has no Docker access).
+- Rejected: leaving `ADDRESS_HEADER` unset (behind a proxy every throttle would key on the proxy's IP); a plain-http trial on port 3000 (the `Secure` cookie and the origin check need HTTPS).
+- Why: other installers get a one-command start; this VPS keeps the systemd deploy it already runs.
+- Reopen if: the owner's Docker check fails, or the VPS moves to containers.
+
+## 2026-10-20 — MIT licence, the inkmesh authors
+- Choice: `LICENSE` is MIT, "Copyright (c) 2026 the inkmesh authors"; `package.json` says `"license": "MIT"` and stays private. Replaces the 2026-10-18 "to confirm" once Jon confirms (pending).
+- Rejected: a copyleft licence.
+- Why: the project is meant to be installed and adapted by others with the least friction.
+- Reopen if: Jon does not confirm, or closed forks become a concern.
+
+## 2026-10-20 — README in one file with a French section
+- Choice: one English `README.md` with a short "En français" section at the end.
+- Rejected: a full French translation in a second file.
+- Why: one file cannot drift from its translation.
+- Reopen if: French-speaking self-hosters need more than the summary.
+
+## 2026-10-20 — Admin CLI unchanged
+- Choice: `npm run admin` keeps its commands; `reset-password` stays the recovery path when email is off.
+- Rejected: a test-email command, a digest command.
+- Why: nothing in M6 needs the CLI.
+- Reopen if: self-hosters need to check their SMTP setup without the UI.
