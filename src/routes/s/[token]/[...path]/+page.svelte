@@ -73,18 +73,19 @@
 	article,
 	.crumbs {
 		box-sizing: content-box;
-		/* FolderView's size, so its 72ch column and this one share a left edge. */
 		font-size: 13px;
-		max-width: 72ch;
 		margin: 0 auto;
 		padding: 32px;
 	}
 	article {
+		max-width: var(--doc-width);
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
 	}
 	.crumbs {
+		/* FolderView's width, so the breadcrumb and the folder share a left edge. */
+		max-width: var(--page-width);
 		padding-bottom: 0;
 	}
 	/* FolderView's own top padding would double the gap under the breadcrumb. */
