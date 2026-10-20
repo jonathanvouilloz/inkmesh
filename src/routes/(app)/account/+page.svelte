@@ -74,7 +74,7 @@
 
 	<section id="digest">
 		<h2>{t('account.digest', data.locale)}</h2>
-		<form method="POST" action="?/digest">
+		<form method="POST" action="?/digest#digest">
 			<label class="check">
 				<input type="checkbox" name="digest" value="1" defaultChecked={data.mail && data.digest} disabled={!data.mail} />
 				{t('account.digestLabel', data.locale, { hour: data.hour })}
@@ -136,6 +136,12 @@
 		flex: none;
 		margin: 0;
 		accent-color: var(--accent);
+	}
+	@media (pointer: coarse) {
+		.check input {
+			width: 18px;
+			height: 18px;
+		}
 	}
 	.check:has(input:disabled) {
 		color: var(--muted);
