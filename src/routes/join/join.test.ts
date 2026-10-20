@@ -71,8 +71,8 @@ it('sign-ups are throttled per IP', async () => {
 	expect(userByEmail('nina@b.c')).toBeFalsy();
 });
 
-it('join and invitation pages are not referred elsewhere, cached or indexed', async () => {
-	for (const pathname of ['/join/abc', '/invite/abc']) {
+it('join, invitation and sign-in link pages are not referred elsewhere, cached or indexed', async () => {
+	for (const pathname of ['/join/abc', '/invite/abc', '/login/link/abc']) {
 		const url = new URL(pathname, 'http://localhost');
 		const event = {
 			url,

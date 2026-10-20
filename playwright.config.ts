@@ -23,12 +23,12 @@ export default defineConfig({
 		{
 			name: 'chromium',
 			dependencies: ['setup'],
-			testIgnore: /login\.spec\.ts/,
+			testIgnore: /login.*\.spec\.ts/,
 			use: { storageState: `${data}/owner.json` }
 		},
 		{
 			name: 'anonymous',
-			testMatch: /login\.spec\.ts/,
+			testMatch: /login.*\.spec\.ts/,
 			use: { storageState: { cookies: [], origins: [] } }
 		}
 	]

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
+import { type Locale, t } from "../i18n/index.ts";
 import { dataDir } from "./data.ts";
 
 export type Mail = {
@@ -110,4 +111,16 @@ export async function sendMail(mail: Mail): Promise<void> {
     return;
   }
   await smtpTransport(smtp).sendMail(message);
+}
+
+export function loginLinkMail(
+  user: { email: string; name: string },
+  url: string,
+  locale: Locale,
+): Mail {
+  return {
+    to: user.email,
+    subject: t("mail.loginSubject", locale),
+    text: t("mail.loginBody", locale, { name: user.name, url }),
+  };
 }

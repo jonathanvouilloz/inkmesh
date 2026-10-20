@@ -4,7 +4,14 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "./db.ts";
-import { appUrl, mailConfig, mailEnabled, outbox, sendMail } from "./mail.ts";
+import {
+  appUrl,
+  loginLinkMail,
+  mailConfig,
+  mailEnabled,
+  outbox,
+  sendMail,
+} from "./mail.ts";
 
 const VARS = ["SMTP_URL", "MAIL_FROM", "INKMESH_URL"];
 const FROM = "inkmesh <noreply@inkmesh.local>";
@@ -145,5 +152,21 @@ describe("mail", () => {
     } finally {
       server.close();
     }
+  });
+
+  it("builds the sign-in email in both languages", () => {
+    const ann = { email: "ann@example.ch", name: "Ann" };
+    const url = "https://a.example/login/link/abc";
+    const en = loginLinkMail(ann, url, "en");
+    expect(en).toMatchObject({
+      to: "ann@example.ch",
+      subject: "Your inkmesh sign-in link",
+    });
+    expect(en.text).toContain("Hello Ann,");
+    expect(en.text).toContain("\n\n" + url + "\n\n");
+    const fr = loginLinkMail(ann, url, "fr");
+    expect(fr.subject).toBe("Votre lien de connexion à inkmesh");
+    expect(fr.text).toContain("Bonjour Ann,");
+    expect(fr.text).toContain("15 minutes\u00a0:\n\n" + url);
   });
 });

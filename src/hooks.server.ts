@@ -65,9 +65,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 	event.locals.actor = user && { id: user.id, name: user.name };
 	const response = await resolve(event, render);
-	// Join and invitation links carry their token in the URL too: never sent to another site, cached or indexed.
+	// Join, invitation, sign-in and unsubscribe links carry their token in the URL too: never sent to another site, cached or indexed.
 	// same-origin, not no-referrer: under no-referrer the sign-up POST would send `Origin: null` and fail the CSRF check.
-	if (/^\/(join|invite)\//.test(event.url.pathname)) {
+	if (/^\/(join|invite|login\/link|unsubscribe)\//.test(event.url.pathname)) {
 		response.headers.set('referrer-policy', 'same-origin');
 		response.headers.set('cache-control', 'no-store');
 		response.headers.set('x-robots-tag', PUBLIC_HEADERS['x-robots-tag']);
