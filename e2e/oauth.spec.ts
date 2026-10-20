@@ -75,7 +75,8 @@ test('the whole OAuth flow ends in a tool call', async ({ page, request }) => {
 	});
 	// Nothing listens on port 9: answer the redirect in the browser so the navigation ends cleanly.
 	await page.route('http://localhost:9/**', (route) => route.fulfill({ body: 'ok' }));
-	await page.goto('/oauth/authorize?' + query);
+	// Hydration rewrites the prefilled name, which would move the caret mid-fill: wait for it.
+	await page.goto('/oauth/authorize?' + query, { waitUntil: 'networkidle' });
 	await page.getByLabel('Name of this agent').fill('e2e-oauth');
 	const [callback] = await Promise.all([
 		page.waitForRequest(/localhost:9\/callback/),
