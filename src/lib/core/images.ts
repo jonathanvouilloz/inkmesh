@@ -7,7 +7,7 @@ import { workspaceDir } from './data.ts';
 import { documentFile, encodeUrlPath, writeAtomic } from './documents.ts';
 import { gitCommit } from './git.ts';
 import { serialised } from './lock.ts';
-import { assertFolderName, InvalidContent, resolveInside } from './paths.ts';
+import { assertFolderName, InvalidContent, notFound, resolveInside } from './paths.ts';
 
 export type ImageType = 'png' | 'jpeg' | 'gif' | 'webp';
 
@@ -25,7 +25,6 @@ const EXTENSIONS: Record<ImageType, string> = {
 	webp: 'webp'
 };
 
-const notAnImage = () => Object.assign(new Error('not an image'), { code: 'ENOENT' });
 
 /** The format whose signature `bytes` starts with, or null: what the bytes are, whatever their name says. */
 export function imageType(bytes: Uint8Array): ImageType | null {
@@ -57,7 +56,7 @@ export async function saveImage(
 	assertRole(slug, actor, 'editor');
 	const root = workspaceDir(slug);
 	const doc = documentFile(root, docPath);
-	if (!(await fs.stat(doc)).isFile()) throw notAnImage(); // a folder named like a document
+	if (!(await fs.stat(doc)).isFile()) throw notFound(docPath); // a folder named like a document
 	if (bytes.byteLength > MAX_IMAGE_BYTES) throw new InvalidContent('too-large');
 	const type = imageType(bytes);
 	if (!type || extensionType(fileName) !== type) throw new InvalidContent('not-image');
@@ -103,11 +102,11 @@ export async function readImageFile(
 	const rel = relative(root, resolveInside(root, path));
 	if (dirname(rel) !== '.') assertFolderName(dirname(rel));
 	const type = extensionType(rel);
-	if (!type || basename(rel).startsWith('.')) throw notAnImage();
+	if (!type || basename(rel).startsWith('.')) throw notFound('image');
 	const bytes = await fs.readFile(join(root, rel)).catch((err) => {
-		throw (err as { code?: unknown }).code === 'EISDIR' ? notAnImage() : err;
+		throw (err as { code?: unknown }).code === 'EISDIR' ? notFound('image') : err;
 	});
-	if (imageType(bytes) !== type) throw notAnImage();
+	if (imageType(bytes) !== type) throw notFound('image');
 	return { bytes, type };
 }
 

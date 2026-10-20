@@ -5,6 +5,8 @@ export class InvalidPath extends Error {}
 export class Conflict extends Error {}
 /** An imported file that is not a document: `message` is 'too-large' or 'not-utf8'. */
 export class InvalidContent extends Error {}
+/** Core's "not found": routes answer 404 for an ENOENT code. */
+export const notFound = (what: string) => Object.assign(new Error(`${what} not found`), { code: 'ENOENT' });
 
 const HIDDEN = new Set(['.git', '.inkmesh']);
 

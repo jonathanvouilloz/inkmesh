@@ -9,7 +9,7 @@ import { documentFile, readSource, target, walkTree, type TreeNode } from './doc
 import { appendEvent } from './events.ts';
 import { extensionType, readImageFile, type ImageType } from './images.ts';
 import { imageUrls } from './markdown.ts';
-import { Conflict } from './paths.ts';
+import { Conflict, notFound } from './paths.ts';
 
 export type SignupRole = 'reader' | 'editor';
 export type PublicLink = {
@@ -34,7 +34,7 @@ export async function createPublicLink(
 	if (path !== null) {
 		const root = workspaceDir(slug);
 		const file = documentFile(root, path);
-		if (!(await fs.stat(file)).isFile()) throw Object.assign(new Error('not a document'), { code: 'ENOENT' });
+		if (!(await fs.stat(file)).isFile()) throw notFound(path);
 		path = relative(root, file);
 	}
 	const token = newToken();

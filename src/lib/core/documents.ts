@@ -15,6 +15,7 @@ import {
 	Conflict,
 	InvalidContent,
 	InvalidPath,
+	notFound,
 	resolveInside
 } from './paths.ts';
 import { syncIndex } from './search.ts';
@@ -41,7 +42,6 @@ export const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
 
 const sha256 = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
-const notFound = (what: string) => Object.assign(new Error(`${what} not found`), { code: 'ENOENT' });
 const COMMIT = /^[0-9a-f]{7,40}$/;
 // Prefix comparison, not LIKE: `_` and `%` are legal in names.
 const AT_OR_UNDER = `(path = ? OR substr(path, 1, length(?) + 1) = ? || '/')`;

@@ -7,7 +7,7 @@ import { documentFile, writeAtomic } from './documents.ts';
 import { appendEvent } from './events.ts';
 import { gitCommit } from './git.ts';
 import { serialised } from './lock.ts';
-import { InvalidContent, resolveInside } from './paths.ts';
+import { InvalidContent, notFound, resolveInside } from './paths.ts';
 
 /** One `## ` section of a thread file; `id === at`. */
 export type Comment = { id: string; author: string; at: string; resolved: boolean; body: string };
@@ -16,7 +16,6 @@ export const MAX_COMMENT_CHARS = 10_000;
 
 const HEADING = /^## (.+) · (\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z)( · resolved)?[ \t]*\r?$/;
 const blank = (line: string) => /^[ \t]*\r?$/.test(line);
-const noSuchComment = () => Object.assign(new Error('no such comment'), { code: 'ENOENT' });
 
 /** The thread file of a document, relative to the workspace. */
 export function commentPath(docPath: string): string {
@@ -68,7 +67,7 @@ export function appendComment(
 export function setResolved(source: string, id: string, resolved: boolean): string {
 	const lines = source.split('\n');
 	const i = lines.findIndex((line) => HEADING.exec(line)?.[2] === id);
-	if (i < 0) throw noSuchComment();
+	if (i < 0) throw notFound('comment');
 	const m = HEADING.exec(lines[i])!;
 	const prefix = `## ${m[1]} · ${m[2]}`;
 	const rest = lines[i].slice(prefix.length + (m[3]?.length ?? 0)); // trailing spaces, \r
@@ -131,7 +130,7 @@ export async function resolveComment(
 	return serialised(slug, async () => {
 		const { rel, file } = await thread(root, path);
 		const old = await readThread(file);
-		if (!old) throw noSuchComment();
+		if (!old) throw notFound('comment');
 		const source = old.toString('utf8');
 		const next = setResolved(source, id, resolved);
 		if (next === source) return;
