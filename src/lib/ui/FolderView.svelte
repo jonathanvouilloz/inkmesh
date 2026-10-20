@@ -364,5 +364,8 @@
 		.query > * {
 			flex: 1 1 100%;
 		}
+		.query input {
+			width: auto;
+		}
 	}
 </style>
