@@ -59,7 +59,8 @@ export function frontmatterFields(frontmatter: string): Fields {
 		}
 		const match = KEY.exec(line);
 		const key = match?.[1].trim();
-		if (!match || !key || fields.has(key)) continue;
+		// `__proto__` would make SvelteKit's serializer (devalue) throw, and with it the folder page.
+		if (!match || !key || key === '__proto__' || fields.has(key)) continue;
 		const value = match[2].trim();
 		// Block scalars, anchors and aliases (`|`, `>`, `&`, `*`) are not understood: no value.
 		if (/^[|>&*]/.test(value)) continue;
@@ -70,7 +71,7 @@ export function frontmatterFields(frontmatter: string): Fields {
 				: [unquote(value)];
 		fields.set(key, values);
 	}
-	// A Map, then fromEntries: a key such as `__proto__` stays a plain own property.
+	// A Map, then fromEntries: a key such as `constructor` stays a plain own property.
 	return Object.fromEntries(
 		[...fields].map(([key, values]) => [key, values.filter(Boolean)]).filter(([, values]) => values.length)
 	);

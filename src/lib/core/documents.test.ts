@@ -772,8 +772,10 @@ describe('documents', () => {
 		// A BOM before the frontmatter still gives its fields; an unreadable file gives none.
 		fs.writeFileSync(path.join(dir, 'z.md'), '\uFEFF---\nstatus: draft\n---\n');
 		fs.writeFileSync(path.join(dir, 'w.md'), '---\nstatus: draft\n---\n', { mode: 0 });
+		fs.writeFileSync(path.join(dir, 'v.md'), '---\n__proto__: x\nstatus: draft\n---\n');
 		const fields = await folderFields('demo', 'g', actor);
 		expect(fields['g/w.md']).toEqual({});
+		expect(Object.keys(fields['g/v.md'])).toEqual(['status']);
 		expect(fields['g/z.md']).toEqual({ status: ['draft'] });
 	});
 

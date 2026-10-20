@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import * as devalue from 'devalue';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { acceptInvitation, createInvitation, createWorkspace } from '#lib/core/access.ts';
 import { createUser, type User } from '#lib/core/accounts.ts';
@@ -85,4 +86,13 @@ it('a non-member gets 404', async () => {
 	const stranger = await createUser({ email: 'x@example.com', name: 'X', password: 'long-enough-1' });
 	expect(await load('?sort=date', stranger)).toMatchObject({ thrown: 404 });
 	expect(await load('?status=draft', stranger, 'f')).toMatchObject({ thrown: 404 });
+});
+
+it('a `__proto__` key in a frontmatter does not break the page', async () => {
+	const doc = '---\n__proto__: x\nstatus: odd\n---\n# P\n';
+	await importDocument('demo', 'p.md', new TextEncoder().encode(doc), { actor: { id: owner.id, name: owner.name } });
+	const root = await load('?status=odd');
+	expect(paths(root)).toEqual(['p.md']);
+	// SvelteKit serializes the load's data with devalue, which throws on a `__proto__` key.
+	expect(() => devalue.stringify(root)).not.toThrow();
 });
