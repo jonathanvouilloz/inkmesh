@@ -52,14 +52,14 @@
 			<tr>
 				<th>{t('invite.name', locale)}</th>
 				<th>{t('members.role', locale)}</th>
-				{#if owner}<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>{/if}
+				{#if owner}<th class="end"><span class="visually-hidden">{t('table.actions', locale)}</span></th>{/if}
 			</tr>
 		</thead>
 		<tbody>
 			{#each data.members as m (m.user.id)}
 				<tr>
 					<td>{m.user.name}<span class="mono email">{m.user.email}</span></td>
-					<td>
+					<td class="role">
 						{#if owner}
 							<form class="row" method="POST" action="?/setRole">
 								<input type="hidden" name="userId" value={m.user.id} />
@@ -89,41 +89,11 @@
 		</tbody>
 	</table>
 
-	{#if data.pending.length}
-		<h2 id="pending">{t('members.pending', locale)}</h2>
-		<table aria-labelledby="pending">
-			<thead>
-				<tr>
-					<th>{t('members.role', locale)}</th>
-					<th>{t('members.by', locale)}</th>
-					<th>{t('members.expires', locale)}</th>
-					<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each data.pending as p (p.id)}
-					<tr>
-						<td>{t(`role.${p.role}`, locale)}</td>
-						<td>{p.createdBy}</td>
-						<td class="mono">
-							<time datetime={p.expiresAt} title={p.expiresAt}>{ago(p.expiresAt, locale)}</time>
-						</td>
-						<td class="end">
-							{#if p.canRevoke}
-								<form method="POST" action="?/revoke">
-									<input type="hidden" name="id" value={p.id} />
-									<button>{t('members.revoke', locale)}</button>
-								</form>
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	{/if}
-
 	<!-- The fragment brings the answer back into view, on a phone too. -->
-	<h2 id="invite">{t('members.invite', locale)}</h2>
+	<hgroup>
+		<h2 id="invite">{t('members.invite', locale)}</h2>
+		<p>{t('members.inviteIntro', locale)}</p>
+	</hgroup>
 	<form class="invite" method="POST" action="?/invite#invite">
 		<label>
 			{t('members.newRole', locale)}
@@ -163,9 +133,44 @@
 		<p id="invite-mail" class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
 	{/if}
 
+	{#if data.pending.length}
+		<h2 id="pending">{t('members.pending', locale)}</h2>
+		<table aria-labelledby="pending">
+			<thead>
+				<tr>
+					<th>{t('members.role', locale)}</th>
+					<th>{t('members.by', locale)}</th>
+					<th>{t('members.expires', locale)}</th>
+					<th class="end"><span class="visually-hidden">{t('table.actions', locale)}</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data.pending as p (p.id)}
+					<tr class:new={p.id === form?.invited}>
+						<td>{t(`role.${p.role}`, locale)}</td>
+						<td>{p.createdBy}</td>
+						<td class="mono">
+							<time datetime={p.expiresAt} title={p.expiresAt}>{ago(p.expiresAt, locale)}</time>
+						</td>
+						<td class="end">
+							{#if p.canRevoke}
+								<form method="POST" action="?/revoke">
+									<input type="hidden" name="id" value={p.id} />
+									<button>{t('members.revoke', locale)}</button>
+								</form>
+							{/if}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
+
 	{#if data.publicLinks}
-		<h2 id="public-links" tabindex="-1" bind:this={linksHeading}>{t('share.title', locale)}</h2>
-		<p>{t('share.intro', locale)}</p>
+		<hgroup>
+			<h2 id="public-links" tabindex="-1" bind:this={linksHeading}>{t('share.title', locale)}</h2>
+			<p>{t('share.intro', locale)}</p>
+		</hgroup>
 		{#if data.publicLinks.length}
 			<table class="links" aria-labelledby="public-links">
 				<thead>
@@ -173,7 +178,7 @@
 						<th>{t('share.scope', locale)}</th>
 						<th>{t('share.signup', locale)}</th>
 						<th class="created">{t('members.by', locale)}</th>
-						<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
+						<th class="end"><span class="visually-hidden">{t('table.actions', locale)}</span></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -181,7 +186,8 @@
 						{@const scope = l.path ?? t('share.workspace', locale)}
 						<!-- The token's last characters tell apart links to the same scope, and match the URL's end. -->
 						{@const name = l.hint ? `${scope}\u00a0…\u2060${l.hint}` : scope}
-						<tr>
+						<!-- The hint ends the new URL; four random characters, so a second match is unlikely and harmless. -->
+						<tr class:new={!!l.hint && !!form?.shareUrl?.endsWith(l.hint)}>
 							<td>
 								{#if l.path}<span class="mono path">{l.path}</span>{:else}{scope}{/if}
 								{#if l.hint}<span class="mono hint">…{l.hint}</span>{/if}
@@ -249,7 +255,8 @@
 {/snippet}
 
 {#snippet oneTime(id: string, link: string, once: 'members.once' | 'share.once')}
-	<div class="link">
+	<section class="link" aria-labelledby="{id}-title">
+		<h3 id="{id}-title">{t('members.newLink', locale)}</h3>
 		<label for={id}>{t(id === 'invite-link' ? 'members.link' : 'share.link', locale)}</label>
 		<span class="row">
 			<!-- Shown once: focus goes to it (after the #public-links fragment took it), so it is copied first. -->
@@ -267,7 +274,7 @@
 			>
 		</span>
 		<p id="{id}-once">{t(once, locale)}</p>
-	</div>
+	</section>
 {/snippet}
 
 <dialog
@@ -300,14 +307,28 @@
 		font-size: 13px;
 	}
 	h1,
-	h2 {
+	h2,
+	h3 {
 		margin: 0;
 		font-size: 16px;
 		font-weight: 600;
 	}
-	h2 {
+	h2,
+	hgroup {
 		margin-top: 16px;
+	}
+	h2,
+	h3 {
 		font-size: 13px;
+	}
+	/* A section's one-line description sits under its heading, apart from what follows. */
+	hgroup {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	hgroup h2 {
+		margin-top: 0;
 	}
 	table {
 		width: 100%;
@@ -333,9 +354,37 @@
 		display: block;
 		color: var(--muted);
 	}
+	/* The first column takes the slack and alone wraps, so every row's controls sit together at the right. */
+	td:first-child {
+		width: 100%;
+	}
+	th,
+	td:not(:first-child) {
+		white-space: nowrap;
+	}
+	/* One actions column, as wide in every table, so Remove and Revoke line up. */
 	.end {
+		width: 96px;
 		padding-right: 0;
 		text-align: right;
+		white-space: nowrap;
+	}
+	/* The row a new link just added, lit for a few seconds. */
+	tr.new {
+		background: color-mix(in srgb, var(--accent), transparent 92%);
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		tr.new {
+			animation: lit 4s ease-out forwards;
+		}
+	}
+	@keyframes lit {
+		60% {
+			background: color-mix(in srgb, var(--accent), transparent 92%);
+		}
+		to {
+			background: transparent;
+		}
 	}
 	form {
 		margin: 0;
@@ -358,10 +407,6 @@
 	}
 	.link label {
 		font-weight: 600;
-	}
-	/* On a phone the role cell wraps its Save button rather than breaking the email. */
-	td .row {
-		flex-wrap: wrap;
 	}
 	.row input {
 		flex: 1;
@@ -387,10 +432,18 @@
 		font-weight: 500;
 		cursor: pointer;
 	}
+	/* The one-time link: told apart from the tables by the accent rule and ground. */
 	.link {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		padding: 12px 16px;
+		border-left: 3px solid var(--accent);
+		border-radius: 0 var(--radius) var(--radius) 0;
+		background: color-mix(in srgb, var(--accent), transparent 92%);
+	}
+	.link h3 {
+		margin-bottom: 4px;
 	}
 	p {
 		margin: 0;
@@ -414,13 +467,6 @@
 	}
 	.hint {
 		color: var(--muted);
-	}
-	/* The scope column takes the slack, so Save stays beside its select. */
-	.links td:first-child {
-		width: 100%;
-	}
-	.links td .row {
-		flex-wrap: nowrap;
 	}
 	.invite {
 		flex-wrap: wrap;
@@ -476,6 +522,10 @@
 	@media (max-width: 767px) {
 		.page {
 			padding: 24px 16px;
+		}
+		/* The role cell wraps its Save button rather than breaking the email. */
+		.role .row {
+			flex-wrap: wrap;
 		}
 		/* Phones keep what a link covers, its sign-up and Revoke; who created it is the one to go. */
 		.created {

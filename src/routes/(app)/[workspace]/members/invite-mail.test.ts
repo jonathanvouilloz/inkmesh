@@ -48,11 +48,14 @@ async function invite(fields: Record<string, string>) {
 }
 
 const link = expect.stringMatching(/^http:\/\/evil\.example\/invite\/[\w-]{43}$/);
+// The new pending row's id, so the page can light that row.
+const invited = expect.stringMatching(/^[0-9a-f]{64}$/);
 const readerLinks = () => pendingInvitations('demo').filter((p) => p.role === 'reader').length;
 
 it('an editor emails an invitation', async () => {
 	const result = await invite({ email: ' ann@example.ch ' });
-	expect(result).toEqual({ link, mailed: 'ann@example.ch' });
+	expect(result).toEqual({ link, invited, mailed: 'ann@example.ch' });
+	expect(pendingInvitations('demo').map((p) => p.id)).toContain(result.invited);
 	expect(mail.outbox).toHaveLength(1);
 	const [sent] = mail.outbox;
 	expect(sent.to).toBe('ann@example.ch');
@@ -80,7 +83,7 @@ it('a failed email keeps the link', async () => {
 		throw Object.assign(new Error('to ann@example.ch'), { code: 'ECONNECTION' });
 	});
 	const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, mailError: 'failed', email: 'ann@example.ch' });
+	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, invited, mailError: 'failed', email: 'ann@example.ch' });
 	expect(readerLinks()).toBe(1);
 	expect(JSON.stringify(log.mock.calls)).not.toContain('ann@example.ch');
 	expect(log.mock.calls[0]).toEqual([`invitation: send failed for user ${jon.id}`, 'ECONNECTION', undefined]);
@@ -106,8 +109,8 @@ it('email sends are throttled per inviter', async () => {
 
 it('email off ignores the field', async () => {
 	for (const name of Object.keys(VARS)) delete process.env[name];
-	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link });
-	expect(await invite({ email: 'nope' })).toEqual({ link });
+	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, invited });
+	expect(await invite({ email: 'nope' })).toEqual({ link, invited });
 	expect(mail.outbox).toHaveLength(0);
 	const page = (await load({
 		params: { workspace: 'demo' },
@@ -119,6 +122,6 @@ it('email off ignores the field', async () => {
 });
 
 it('an empty field sends nothing', async () => {
-	expect(await invite({ email: '  ' })).toEqual({ link });
+	expect(await invite({ email: '  ' })).toEqual({ link, invited });
 	expect(mail.outbox).toHaveLength(0);
 });

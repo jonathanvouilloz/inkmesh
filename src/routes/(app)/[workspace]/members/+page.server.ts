@@ -11,7 +11,7 @@ import {
 	type Role,
 	workspace
 } from '#lib/core/access.ts';
-import { loginAllowed, loginFailed, validEmail } from '#lib/core/accounts.ts';
+import { hashToken, loginAllowed, loginFailed, validEmail } from '#lib/core/accounts.ts';
 import type { TreeNode } from '#lib/core/documents.ts';
 import { appUrl, invitationMail, mailEnabled, sendMail } from '#lib/core/mail.ts';
 import { Conflict } from '#lib/core/paths.ts';
@@ -89,14 +89,15 @@ export const actions: Actions = {
 			if (err instanceof Forbidden) error(403); // above the inviter's own role
 			throw err;
 		}
-		const link = url.origin + '/invite/' + token;
-		if (!email) return { link };
+		// `invited` is the pending row's id, so the page can point at the new row.
+		const [link, invited] = [url.origin + '/invite/' + token, hashToken(token)];
+		if (!email) return { link, invited };
 		loginFailed(key);
 		const name = workspace(params.workspace)!.name;
 		// The emailed link starts with INKMESH_URL, never the request's host.
 		const mail = invitationMail(email, locals.actor!.name, name, wanted, appUrl() + '/invite/' + token, locals.locale);
-		if (!(await sendMail(mail, 'invitation', locals.actor!.id))) return { link, mailError: 'failed' as const, email };
-		return { link, mailed: email };
+		if (!(await sendMail(mail, 'invitation', locals.actor!.id))) return { link, invited, mailError: 'failed' as const, email };
+		return { link, invited, mailed: email };
 	},
 	revoke: async ({ params, locals, request }) => {
 		requireRole(params.workspace, locals, 'editor');

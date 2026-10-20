@@ -15,11 +15,16 @@ const fresh = (browser: Browser) =>
 
 async function newLink(page: Page, role: string): Promise<string> {
 	await page.goto('/demo/members');
+	await expect(page.getByRole('heading', { name: 'Invite someone' })).toBeVisible();
 	await page.getByLabel('Role of the new link').selectOption({ label: role });
 	await page.getByRole('button', { name: 'Create link' }).click();
-	const link = page.getByLabel('Invitation link');
+	// The one-time link sits in its own "New link" panel, focused so it is copied first.
+	const link = page.getByRole('region', { name: 'New link' }).getByLabel('Invitation link');
 	await expect(link).toHaveAttribute('readonly', '');
+	await expect(link).toBeFocused();
 	await expect(page.getByText('This link will not be shown again')).toBeVisible();
+	// The pending row it added is the one lit.
+	await expect(page.getByRole('table', { name: 'Pending invitations' }).locator('tr.new')).toHaveCount(1);
 	return link.inputValue();
 }
 
