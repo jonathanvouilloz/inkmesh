@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	admins,
 	authenticate,
 	changePassword,
 	consumeLoginLink,
@@ -57,6 +58,11 @@ describe('accounts', () => {
 		await expect(
 			createUser({ email: 'A@B.C', name: 'B', password: 'long enough 1' })
 		).rejects.toBeInstanceOf(Conflict);
+	});
+	it('lists the instance admins only', async () => {
+		await createUser({ email: 'a@b.c', name: 'A', password: 'long enough 1', admin: true });
+		await createUser({ email: 'm@b.c', name: 'M', password: 'long enough 1' });
+		expect(admins().map((u) => u.email)).toEqual(['a@b.c']);
 	});
 	it('authenticates case-insensitively and trims', async () => {
 		await createUser({ email: 'Jon@Example.ch', name: 'Jon', password: 'long enough 1' });

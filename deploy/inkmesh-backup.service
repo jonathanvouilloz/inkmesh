@@ -1,5 +1,6 @@
 [Unit]
 Description=inkmesh backup: workspaces to GitHub, daily database snapshot
+OnFailure=inkmesh-alert@%n.service
 
 [Service]
 Type=oneshot

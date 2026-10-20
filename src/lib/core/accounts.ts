@@ -70,6 +70,13 @@ export function insertUser(input: { email: string; name: string; passwordHash: s
 	}
 }
 
+/** Instance admins: who receives the operational alerts (scripts/alert.ts). */
+export function admins(): User[] {
+	return (db().prepare('SELECT id, email, name, admin FROM users WHERE admin = 1 ORDER BY id').all() as Row[]).map(
+		(r) => toUser(r)!
+	);
+}
+
 export function userByEmail(email: string): User | null {
 	return toUser(
 		db().prepare('SELECT id, email, name, admin FROM users WHERE email = ?').get(normalize(email)) as

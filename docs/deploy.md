@@ -50,10 +50,10 @@ Logs: `journalctl --user -u inkmesh -f`, `journalctl --user -u inkmesh-tunnel -f
 
 ## Backup
 
-`scripts/backup.sh`, run every hour by `deploy/inkmesh-backup.timer`, mirrors each workspace's git repository to a private GitHub repository `<BACKUP_GITHUB_OWNER>/inkmesh-<slug>` (created on first run through the `gh` login of `hermes`) and refreshes a daily snapshot of `inkmesh.db` in `~/inkmesh-backups/db/`, kept 14 days. The database never leaves the VPS. Logs: `journalctl --user -u inkmesh-backup`; a failed push or snapshot makes the run fail.
+`scripts/backup.sh`, run every hour by `deploy/inkmesh-backup.timer`, mirrors each workspace's git repository to a private GitHub repository `<BACKUP_GITHUB_OWNER>/inkmesh-<slug>` (created on first run through the `gh` login of `hermes`) and refreshes a daily snapshot of `inkmesh.db` in `~/inkmesh-backups/db/`, kept 14 days. The database never leaves the VPS. Logs: `journalctl --user -u inkmesh-backup`; a failed push or snapshot makes the run fail, and systemd then starts `inkmesh-alert@inkmesh-backup.service.service`, which emails every instance admin the last log lines (`scripts/alert.ts`; nothing is sent when email is off).
 
 1. Env: add `BACKUP_GITHUB_OWNER=jonathanvouilloz` to `~/.config/inkmesh/env`.
-2. Units, linked from the prod clone: `ln -sf ~/inkmesh-app/deploy/inkmesh-backup.service ~/inkmesh-app/deploy/inkmesh-backup.timer ~/.config/systemd/user/ && systemctl --user daemon-reload`.
+2. Units, linked from the prod clone: `ln -sf ~/inkmesh-app/deploy/inkmesh-backup.service ~/inkmesh-app/deploy/inkmesh-backup.timer ~/inkmesh-app/deploy/inkmesh-alert@.service ~/.config/systemd/user/ && systemctl --user daemon-reload`.
 3. First run, by the owner (it sends the documents to GitHub): `systemctl --user start inkmesh-backup && journalctl --user -u inkmesh-backup -n 20 --no-pager`.
 4. Every hour from then on: `systemctl --user enable --now inkmesh-backup.timer`.
 

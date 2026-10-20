@@ -296,3 +296,9 @@
 - Rejected: nightly only (up to a day of work lost with the VPS); pushing the database to GitHub (it holds emails and password hashes); a named remote in each workspace (writes `.git/config` outside `core`); managing remotes inside inkmesh (decision 2026-10-18 keeps v1 free of remotes).
 - Why: everything lived on one VPS with only manual copies before deploys.
 - Reopen if: the database must survive the loss of the VPS (then an encrypted off-site copy), or a workspace grows past what a GitHub repository should hold.
+
+## 2026-10-20 — A failed backup emails the admins
+- Choice: `OnFailure=` on the backup unit starts the template `inkmesh-alert@.service`, which runs `scripts/alert.ts`: an email to every instance admin (`admins()` in `core`) through the app's own SMTP settings, with the job's last 20 log lines. English text, as an operator message.
+- Rejected: a push notification service (one more account and secret); alerting from inside `backup.sh` (misses a crash of the script itself).
+- Why: the backup runs unattended; a silent failure would only show when a restore is needed.
+- Reopen if: more background jobs appear (reuse the template with `OnFailure=inkmesh-alert@%n.service`), or email is off on an instance that still needs alerts.
