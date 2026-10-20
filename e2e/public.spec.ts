@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
-// Only touches e2e-public/ and the links it creates, all revoked at the end (share.spec counts the rows).
+// Only touches e2e-public/ and the links it creates, all revoked after each test (share.spec counts the rows).
 test.use({ locale: 'en-US' });
 
 const doc = 'e2e-public/report.md';
@@ -27,6 +27,17 @@ async function newLink(page: Page, covers: string, signup: string) {
 	await expect(url).toHaveValue(/^http:\/\/localhost:4173\/s\/[\w-]{43}$/);
 	return url.inputValue();
 }
+
+// Runs even when a test fails, so a stray link never reaches share.spec.
+test.afterEach(async ({ page }) => {
+	await page.goto('/demo/members#public-links', { waitUntil: 'networkidle' });
+	const buttons = links(page).getByRole('button', { name: /^Revoke/ });
+	for (let left = await buttons.count(); left > 0; left--) {
+		await buttons.first().click();
+		await page.getByRole('dialog', { name: 'Revoke' }).getByRole('button', { name: 'Revoke' }).click();
+		await expect(buttons).toHaveCount(left - 1);
+	}
+});
 
 async function revoke(page: Page, covers: string) {
 	await page.goto('/demo/members#public-links');
@@ -95,6 +106,4 @@ test('a workspace link lets a visitor browse and join', async ({ page, browser }
 	await expect(view.getByText('You can read this document; editing needs the editor role')).toBeVisible();
 	await expect(view.locator('.milkdown .ProseMirror')).toHaveAttribute('contenteditable', 'false');
 	await visitor.close();
-
-	await revoke(page, 'Whole workspace');
 });
