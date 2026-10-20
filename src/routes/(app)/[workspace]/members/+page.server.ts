@@ -10,14 +10,30 @@ import {
 	setRole,
 	type Role
 } from '#lib/core/access.ts';
+import type { TreeNode } from '#lib/core/documents.ts';
 import { Conflict } from '#lib/core/paths.ts';
-import { requireRole } from '#lib/server/guard.ts';
+import {
+	createPublicLink,
+	publicLinks,
+	revokePublicLink,
+	setSignupRole,
+	type SignupRole
+} from '#lib/core/publicLinks.ts';
+import { isNotFound, requireRole } from '#lib/server/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals, parent }) => {
-	await parent(); // the layouts' redirect and 404 come first
+const docPaths = (nodes: TreeNode[]): string[] =>
+	nodes.flatMap((n) => (n.kind === 'doc' ? [n.path] : docPaths(n.children ?? [])));
+
+export const load: PageServerLoad = async ({ params, locals, parent, url }) => {
+	const { tree } = await parent(); // the layouts' redirect and 404 come first
 	const own = requireRole(params.workspace, locals, 'editor').role;
 	return {
+		...(own === 'owner' && {
+			publicLinks: publicLinks(params.workspace, locals.actor!),
+			documents: docPaths(tree),
+			share: url.searchParams.get('share')
+		}),
 		members: members(params.workspace),
 		// The creator's id stays on the server; the page only learns whether it may revoke.
 		pending: pendingInvitations(params.workspace).map(({ createdById, ...p }) => ({
@@ -33,6 +49,9 @@ const role = (value: FormDataEntryValue | null): Role =>
 	ROLES.includes(value as Role) ? (value as Role) : error(400);
 const userId = (value: FormDataEntryValue | null): number =>
 	/^\d{1,15}$/.test(String(value)) ? Number(value) : error(400);
+// '' turns sign-up off.
+const signup = (value: FormDataEntryValue | null): SignupRole | null =>
+	value === '' ? null : value === 'reader' || value === 'editor' ? value : error(400);
 
 // Core checks the owner rule itself; its refusals become 403, the last-owner guard a message.
 function attempt(run: () => void, leaves = false) {
@@ -77,5 +96,27 @@ export const actions: Actions = {
 		requireRole(params.workspace, locals, 'editor');
 		const id = userId((await request.formData()).get('userId'));
 		return attempt(() => removeMember(params.workspace, id, locals.actor!), id === locals.actor!.id);
+	},
+	shareCreate: async ({ params, locals, request, url }) => {
+		requireRole(params.workspace, locals, 'owner');
+		const form = await request.formData();
+		const signupRole = signup(form.get('signup'));
+		const scope = String(form.get('scope') ?? '');
+		try {
+			const token = await createPublicLink(params.workspace, scope || null, signupRole, locals.actor!);
+			return { shareUrl: url.origin + '/s/' + token };
+		} catch (err) {
+			if (isNotFound(err)) return fail(404, { shareError: 'missing' as const });
+			throw err;
+		}
+	},
+	shareSignup: async ({ params, locals, request }) => {
+		requireRole(params.workspace, locals, 'owner');
+		const form = await request.formData();
+		setSignupRole(params.workspace, userId(form.get('id')), signup(form.get('signup')), locals.actor!);
+	},
+	shareRevoke: async ({ params, locals, request }) => {
+		requireRole(params.workspace, locals, 'owner');
+		revokePublicLink(params.workspace, userId((await request.formData()).get('id')), locals.actor!);
 	}
 };

@@ -44,6 +44,38 @@ CREATE INDEX events_workspace ON events (workspace, id);
 CREATE TABLE editing_sessions (workspace TEXT NOT NULL REFERENCES workspaces ON DELETE CASCADE, path TEXT NOT NULL,
   user_id INTEGER NOT NULL, author TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (workspace, path));
 `
+		},
+	{
+		id: '003-collaboration',
+		sql: `
+-- The M4 CHECK on events.type cannot be altered: rebuild, keeping ids and the AUTOINCREMENT sequence.
+CREATE TABLE events_new (id INTEGER PRIMARY KEY AUTOINCREMENT, workspace TEXT NOT NULL REFERENCES workspaces ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users ON DELETE SET NULL, author TEXT NOT NULL, agent TEXT,
+  type TEXT NOT NULL CHECK (type IN ('create','update','move','delete','comment','join')),
+  path TEXT NOT NULL, from_path TEXT, commit_hash TEXT, at TEXT NOT NULL);
+INSERT INTO events_new SELECT * FROM events;
+-- sqlite_sequence has no unique key, so INSERT OR REPLACE would add a second row: delete, then insert.
+DELETE FROM sqlite_sequence WHERE name = 'events_new';
+INSERT INTO sqlite_sequence (name, seq) SELECT 'events_new', seq FROM sqlite_sequence WHERE name = 'events';
+DROP TABLE events;
+ALTER TABLE events_new RENAME TO events;
+CREATE INDEX events_workspace ON events (workspace, id);
+
+CREATE TABLE public_links (id INTEGER PRIMARY KEY, token_hash TEXT UNIQUE NOT NULL,
+  workspace TEXT NOT NULL REFERENCES workspaces ON DELETE CASCADE,
+  path TEXT /* null = whole workspace */,
+  signup_role TEXT CHECK (signup_role IN ('reader','editor')) /* null = sign-up off */,
+  created_by INTEGER REFERENCES users ON DELETE SET NULL, created_at TEXT NOT NULL);
+CREATE TABLE inbox_cursors (user_id INTEGER PRIMARY KEY REFERENCES users ON DELETE CASCADE,
+  last_read INTEGER NOT NULL);
+CREATE VIRTUAL TABLE search_index USING fts5(workspace UNINDEXED, path UNINDEXED, title, body,
+  tokenize = 'unicode61 remove_diacritics 2');
+`
+	},
+	{
+		id: '004-link-hint',
+		// The token's last 4 characters, so an owner can tell which row a URL is; null for older links.
+		sql: 'ALTER TABLE public_links ADD COLUMN hint TEXT;'
 	}
 ];
 

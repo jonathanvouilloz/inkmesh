@@ -17,12 +17,14 @@ import { clearSessionTimers } from '#lib/core/sessions.ts';
 import { handle } from '../../../hooks.server.ts';
 import { fallback } from '../[...rest]/+server.ts';
 import { GET as changesGET } from './workspaces/[workspace]/changes/+server.ts';
+import { GET as commentsGET, POST as commentsPOST } from './workspaces/[workspace]/comments/[...path]/+server.ts';
 import {
 	DELETE as documentDELETE,
 	GET as documentGET,
 	PUT as documentPUT
 } from './workspaces/[workspace]/documents/[...path]/+server.ts';
 import { POST as movePOST } from './workspaces/[workspace]/move/+server.ts';
+import { GET as searchGET } from './workspaces/[workspace]/search/+server.ts';
 import { GET as treeGET } from './workspaces/[workspace]/tree/+server.ts';
 import { GET as workspacesGET } from './workspaces/+server.ts';
 
@@ -335,4 +337,50 @@ it('bad move bodies are 400', async () => {
 		expect(res.status, body).toBe(400);
 		expect((await res.json()).error.code).toBe('bad_request');
 	}
+});
+
+it('searches a workspace', async () => {
+	const source = '# Fox\n\nThe quick brown fox.\n';
+	await importDocument('demo', 'notes/fox.md', new TextEncoder().encode(source), { actor: jon });
+	const find = (q: string | null, token = annToken) =>
+		call(searchGET, q === null ? '/x' : `/x?q=${encodeURIComponent(q)}`, { workspace: 'demo' }, bearer(token));
+	const res = await find('quick');
+	expect(res.status).toBe(200);
+	const { results } = await res.json();
+	expect(results).toMatchObject([{ path: 'notes/fox.md', title: 'Fox' }]);
+	expect(results[0].snippet).toContain('quick');
+	expect(results[0].snippet).not.toMatch(/[\u0002\u0003]/);
+	expect((await find(null)).status).toBe(400);
+	expect((await find('   ')).status).toBe(400);
+	expect((await find('a'.repeat(201))).status).toBe(400);
+	expect((await find('a'.repeat(200))).status).toBe(200);
+	expect((await find('quick', zoeToken)).status).toBe(404);
+});
+
+it('reads and adds comments', async () => {
+	const params = { workspace: 'demo', path: 'notes/a.md' };
+	const missing = { workspace: 'demo', path: 'notes/missing.md' };
+	const add = (body: unknown, p = params) =>
+		call(commentsPOST, '/x', p, bearer(annToken), {
+			method: 'POST',
+			body: typeof body === 'string' ? body : JSON.stringify(body)
+		});
+	const res = await add({ body: 'Looks good.' });
+	expect(res.status).toBe(201);
+	const { comment } = await res.json();
+	expect(comment).toMatchObject({ author: 'Ann via reader-bot', body: 'Looks good.', resolved: false });
+	const list = await call(commentsGET, '/x', params, bearer(jonToken));
+	expect(list.status).toBe(200);
+	expect((await list.json()).comments).toEqual([comment]);
+	const empty = await add({ body: '  ' });
+	expect(empty.status).toBe(400);
+	expect((await empty.json()).error.message).toBe('the comment is empty');
+	expect((await add('not json')).status).toBe(400);
+	expect((await add({ text: 'x' })).status).toBe(400);
+	const long = await add({ body: 'x'.repeat(10_001) });
+	expect(long.status).toBe(413);
+	expect((await long.json()).error.message).toBe('the comment is longer than 10000 characters');
+	expect((await add({ body: 'x' }, missing)).status).toBe(404);
+	expect((await call(commentsGET, '/x', missing, bearer(jonToken))).status).toBe(404);
+	expect((await call(commentsGET, '/x', params, bearer(zoeToken))).status).toBe(404);
 });

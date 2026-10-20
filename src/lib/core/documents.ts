@@ -3,9 +3,11 @@ import fs from 'node:fs/promises';
 import { basename, dirname, join, posix, relative } from 'node:path';
 import { assertRole } from './access.ts';
 import { commitAuthor, type Actor } from './actor.ts';
+import { commentPath } from './comments.ts';
 import { workspaceDir } from './data.ts';
+import { db } from './db.ts';
 import { appendEvent } from './events.ts';
-import { gitCommit, gitInit, gitLog } from './git.ts';
+import { gitCommit, gitDeletions, gitInit, gitLog, gitShow } from './git.ts';
 import { serialised } from './lock.ts';
 import { patchMarkdown, rewriteUrls, splitFrontmatter } from './markdown.ts';
 import {
@@ -13,8 +15,10 @@ import {
 	Conflict,
 	InvalidContent,
 	InvalidPath,
+	notFound,
 	resolveInside
 } from './paths.ts';
+import { syncIndex } from './search.ts';
 import { flushSessions, openSession } from './sessions.ts';
 
 export type TreeNode = {
@@ -32,14 +36,22 @@ export type HistoryEntry = {
 	date: string;
 	message: string;
 };
+export type DeletedDocument = { path: string; commit: string; name: string; agent?: string; date: string };
 
 export const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
 
 const sha256 = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';
+const COMMIT = /^[0-9a-f]{7,40}$/;
+// Prefix comparison, not LIKE: `_` and `%` are legal in names.
+const AT_OR_UNDER = `(path = ? OR substr(path, 1, length(?) + 1) = ? || '/')`;
+
+/** A new document at `rel` must not be shown by a link left from a deleted one; restoreDeleted keeps them. */
+const dropLinks = (slug: string, rel: string) =>
+	db().prepare(`DELETE FROM public_links WHERE workspace = ? AND ${AT_OR_UNDER}`).run(slug, rel, rel, rel);
 
 /** A document is a .md file whose name is not a dot-file, inside valid folders: listTree shows nothing else. */
-function documentFile(root: string, path: string): string {
+export function documentFile(root: string, path: string): string {
 	const file = resolveInside(root, path);
 	const parent = dirname(relative(root, file));
 	if (parent !== '.') assertFolderName(parent);
@@ -49,7 +61,7 @@ function documentFile(root: string, path: string): string {
 }
 
 /** Writes through a temporary file, so a crash never leaves half a document; `exclusive` fails with EEXIST. */
-async function writeAtomic(file: string, text: string | Uint8Array, exclusive = false): Promise<void> {
+export async function writeAtomic(file: string, text: string | Uint8Array, exclusive = false): Promise<void> {
 	const tmp = `${file}.tmp-${randomBytes(6).toString('hex')}`;
 	try {
 		await fs.writeFile(tmp, text, { flag: 'wx' });
@@ -60,7 +72,7 @@ async function writeAtomic(file: string, text: string | Uint8Array, exclusive = 
 }
 
 /** Every document's workspace-relative path, skipping dot entries and symlinks like listTree. */
-async function documentPaths(root: string, rel = ''): Promise<string[]> {
+export async function documentPaths(root: string, rel = ''): Promise<string[]> {
 	const paths: string[] = [];
 	for (const entry of await fs.readdir(join(root, rel), { withFileTypes: true })) {
 		if (entry.name.startsWith('.')) continue;
@@ -72,7 +84,7 @@ async function documentPaths(root: string, rel = ''): Promise<string[]> {
 }
 
 /** Reads a document's text, or null when it is not UTF-8 (copied in by an agent): never rewrite such bytes. */
-async function readText(file: string): Promise<{ bytes: Buffer; text: string } | null> {
+export async function readText(file: string): Promise<{ bytes: Buffer; text: string } | null> {
 	const bytes = await fs.readFile(file);
 	try {
 		return { bytes, text: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes) };
@@ -81,10 +93,15 @@ async function readText(file: string): Promise<{ bytes: Buffer; text: string } |
 	}
 }
 
+/** A document's title: its first `# ` heading, else the file name without `.md`. */
+export function titleOf(body: string, fileName: string): string {
+	return /^# +(.+?)\s*$/m.exec(body)?.[1] ?? fileName.slice(0, -3);
+}
+
 const under = (path: string, folder: string) => path === folder || path.startsWith(`${folder}/`);
 
 /** A relative URL's path, query or fragment, and the workspace path it points to from `doc`. */
-function target(url: string, doc: string): { path: string; suffix: string; resolved: string } | null {
+export function target(url: string, doc: string): { path: string; suffix: string; resolved: string } | null {
 	if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('/') || url.startsWith('#')) return null;
 	const cut = url.search(/[?#]/);
 	const suffix = cut < 0 ? '' : url.slice(cut);
@@ -96,6 +113,12 @@ function target(url: string, doc: string): { path: string; suffix: string; resol
 	}
 	if (!path) return null;
 	return { path, suffix, resolved: posix.join(posix.dirname(doc), path) };
+}
+
+/** A relative path as a Markdown URL: `(` `)` would end a bare destination early, `:` could read as a scheme. */
+export function encodeUrlPath(rel: string): string {
+	const hex = (c: string) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
+	return encodeURI(rel).replace(/[?#():]/g, hex);
 }
 
 /** The URL that `url`, written in `oldDoc`, becomes in `newDoc` once `moved.from` is at `moved.to`; null when it needs no change. */
@@ -114,9 +137,7 @@ export function relocate(
 	if (posix.join(posix.dirname(newDoc), t.path) === resolved) return null;
 	let rel = posix.relative(posix.dirname(newDoc), resolved) || '.';
 	if (resolved.endsWith('/')) rel += '/';
-	// `(` `)` would end a bare destination early, `:` could read as a scheme.
-	const hex = (c: string) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
-	const next = encodeURI(rel).replace(/[?#():]/g, hex) + t.suffix;
+	const next = encodeUrlPath(rel) + t.suffix;
 	return next === url ? null : next;
 }
 
@@ -147,6 +168,11 @@ export async function ensureWorkspace(slug: string): Promise<void> {
 
 export async function listTree(slug: string, actor: Actor): Promise<TreeNode[]> {
 	assertRole(slug, actor, 'reader');
+	return walkTree(slug);
+}
+
+// Core-internal, no role check: callers check (listTree) or hold a link's scope (publicLinks).
+export async function walkTree(slug: string): Promise<TreeNode[]> {
 	const root = workspaceDir(slug);
 	async function walk(rel: string): Promise<TreeNode[]> {
 		const entries = await fs.readdir(join(root, rel), { withFileTypes: true });
@@ -160,7 +186,7 @@ export async function listTree(slug: string, actor: Actor): Promise<TreeNode[]> 
 				folders.push({ name: entry.name, path: p, kind: 'folder', children: await walk(p) });
 			} else if (entry.isFile() && entry.name.endsWith('.md')) {
 				const { body } = splitFrontmatter(await fs.readFile(join(root, p), 'utf8'));
-				const title = /^# +(.+?)\s*$/m.exec(body)?.[1] ?? entry.name.slice(0, -3);
+				const title = titleOf(body, entry.name);
 				const modified = (await fs.stat(join(root, p))).mtime.toISOString();
 				docs.push({ name: entry.name, path: p, kind: 'doc', title, modified });
 			}
@@ -184,6 +210,14 @@ export async function readDocument(
 	hash: string;
 }> {
 	assertRole(slug, actor, 'reader');
+	return readSource(slug, path);
+}
+
+// Core-internal, no role check: callers check (readDocument) or hold a link's scope (publicLinks).
+export async function readSource(
+	slug: string,
+	path: string
+): Promise<{ path: string; source: string; frontmatter: string; body: string; hash: string }> {
 	const source = await fs.readFile(documentFile(workspaceDir(slug), path), 'utf8');
 	return { path, source, ...splitFrontmatter(source), hash: sha256(source) };
 }
@@ -217,6 +251,7 @@ export async function writeDocument(
 		if (next === source) return { hash: opts.expectedHash };
 		await writeAtomic(file, next);
 		openSession(slug, rel, opts.actor);
+		await syncIndex(slug, [rel]);
 		return { hash: sha256(next) };
 	});
 }
@@ -237,6 +272,7 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
+		dropLinks(slug, rel);
 		let commit: string;
 		try {
 			commit = await gitCommit(root, {
@@ -249,6 +285,7 @@ export async function createDocument(slug: string, path: string, actor: Actor): 
 			throw err;
 		}
 		appendEvent(slug, actor, { type: 'create', path: rel, commit });
+		await syncIndex(slug, [rel]);
 		return rel;
 	});
 }
@@ -295,6 +332,7 @@ export async function importDocument(
 				throw new Conflict(`${rel} already exists`);
 			throw err;
 		}
+		if (!old) dropLinks(slug, rel);
 		const verb = opts.expectedHash !== undefined ? 'Update' : old ? 'Replace' : 'Import';
 		let commit: string;
 		try {
@@ -309,6 +347,7 @@ export async function importDocument(
 		}
 		// Identical bytes leave no commit: nothing changed, so no event.
 		if (commit) appendEvent(slug, opts.actor, { type: old ? 'update' : 'create', path: rel, commit });
+		await syncIndex(slug, [rel]);
 		return { path: rel, replaced: !!old, hash: sha256(bytes) };
 	});
 }
@@ -353,14 +392,24 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 		const relTo = relative(root, dest);
 		if (relTo === relFrom || relTo.startsWith(`${relFrom}/`)) throw new InvalidPath(to);
 		if (await fs.lstat(dest).catch(() => null)) throw new Conflict(`${relTo} already exists`);
+		dropLinks(slug, relTo);
 		// Every session: the move may rewrite links in any document, and a session must not keep an old path.
 		await flushSessions(slug, () => true);
 		await fs.mkdir(dirname(dest), { recursive: true });
 		await fs.rename(src, dest);
+		// The thread file (or folder of threads) moves in the same commit.
+		const notesFrom = resolveInside(root, commentPath(relFrom), { inkmesh: true });
+		const notesTo = resolveInside(root, commentPath(relTo), { inkmesh: true });
+		let notesMoved = false;
 		// Original bytes of every rewritten document, put back if the move fails.
 		const rewritten: Array<{ rel: string; bytes: Buffer }> = [];
 		let commit: string;
 		try {
+			if (await fs.lstat(notesFrom).catch(() => null)) {
+				await fs.mkdir(dirname(notesTo), { recursive: true });
+				await fs.rename(notesFrom, notesTo);
+				notesMoved = true;
+			}
 			// shortcut: parses every document on each move, fine for a few thousand; upgrade to a link index if moves get slow
 			for (const rel of await documentPaths(root)) {
 				const doc = await readText(join(root, rel));
@@ -373,7 +422,7 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 				await writeAtomic(join(root, rel), next);
 			}
 			commit = await gitCommit(root, {
-				paths: [relFrom, relTo, ...rewritten.map((r) => r.rel)],
+				paths: [relFrom, relTo, commentPath(relFrom), commentPath(relTo), ...rewritten.map((r) => r.rel)],
 				message: `Move ${relFrom} to ${relTo}`,
 				author: commitAuthor(actor)
 			});
@@ -383,10 +432,21 @@ export async function movePath(slug: string, from: string, to: string, actor: Ac
 			for (const { rel, bytes } of rewritten)
 				await writeAtomic(join(root, rel), bytes).catch(report(`restore ${rel}`));
 			await fs.rename(dest, src).catch(report(`rename ${relTo} back`));
+			if (notesMoved) await fs.rename(notesTo, notesFrom).catch(report(`rename comments of ${relTo} back`));
 			throw err;
+		}
+		try {
+			db()
+				.prepare(
+					`UPDATE public_links SET path = ? || substr(path, length(?) + 1) WHERE workspace = ? AND ${AT_OR_UNDER}`
+				)
+				.run(relTo, relFrom, slug, relFrom, relFrom, relFrom);
+		} catch (err) {
+			console.error('move: public links not moved', err); // the move is committed; the links answer 404
 		}
 		// Also for an empty folder, whose move git does not see: commit is ''.
 		appendEvent(slug, actor, { type: 'move', path: relTo, from: relFrom, commit });
+		await syncIndex(slug, [relFrom, relTo, ...rewritten.map((r) => r.rel)]);
 		return relTo;
 	});
 }
@@ -409,29 +469,168 @@ export async function deletePath(slug: string, path: string, actor: Actor): Prom
 		const trash = join(root, '.inkmesh', `trash-${randomBytes(6).toString('hex')}`);
 		await fs.mkdir(dirname(trash), { recursive: true });
 		await fs.rename(target, trash);
+		const notes = resolveInside(root, commentPath(rel), { inkmesh: true });
+		let notesMoved = false;
 		let commit: string;
 		try {
-			commit = await gitCommit(root, { paths: [rel], message: `Delete ${rel}`, author: commitAuthor(actor) });
+			if (await fs.lstat(notes).catch(() => null)) {
+				await fs.rename(notes, `${trash}-comments`);
+				notesMoved = true;
+			}
+			commit = await gitCommit(root, {
+				paths: [rel, commentPath(rel)],
+				message: `Delete ${rel}`,
+				author: commitAuthor(actor)
+			});
 		} catch (err) {
 			await fs.rename(trash, target).catch((e) => console.error(`delete rollback: rename ${rel} back`, e));
+			if (notesMoved)
+				await fs
+					.rename(`${trash}-comments`, notes)
+					.catch((e) => console.error(`delete rollback: rename comments of ${rel} back`, e));
 			throw err;
 		}
 		appendEvent(slug, actor, { type: 'delete', path: rel, commit });
+		await syncIndex(slug, [rel]);
 		// The commit holds the delete; a leftover trash entry is hidden and harmless.
-		await fs
-			.rm(trash, { recursive: true, force: true })
-			.catch((e) => console.error(`delete: remove ${trash}`, e));
+		for (const entry of [trash, `${trash}-comments`])
+			await fs
+				.rm(entry, { recursive: true, force: true })
+				.catch((e) => console.error(`delete: remove ${entry}`, e));
 	});
+}
+
+/** A commit author as `name`, plus `agent` when an agent acted (`<name> via <agent>`, see commitAuthor). */
+export function splitAuthor(author: string): { name: string; agent?: string } {
+	const at = author.indexOf(' via ');
+	return at < 0 ? { name: author } : { name: author.slice(0, at), agent: author.slice(at + 5) };
 }
 
 export async function history(slug: string, path: string, actor: Actor): Promise<HistoryEntry[]> {
 	assertRole(slug, actor, 'reader');
 	const root = workspaceDir(slug);
 	resolveInside(root, path);
-	return (await gitLog(root, path, 20)).map(({ name, ...entry }) => {
-		const at = name.indexOf(' via ');
-		return at < 0
-			? { ...entry, name }
-			: { ...entry, name: name.slice(0, at), agent: name.slice(at + 5) };
+	return (await gitLog(root, path, 20)).map(({ name, ...entry }) => ({ ...entry, ...splitAuthor(name) }));
+}
+
+/** The document's bytes at `commit`, a hex id (abbreviated or full); anything else is InvalidPath. */
+async function versionBytes(root: string, rel: string, commit: string): Promise<Buffer> {
+	if (!COMMIT.test(commit)) throw new InvalidPath(commit);
+	const bytes = await gitShow(root, commit, rel);
+	if (!bytes) throw notFound(`${rel} at ${commit}`);
+	return bytes;
+}
+
+export async function readVersion(
+	slug: string,
+	path: string,
+	commit: string,
+	actor: Actor
+): Promise<{ path: string; source: string; commit: string }> {
+	assertRole(slug, actor, 'reader');
+	const root = workspaceDir(slug);
+	const rel = relative(root, documentFile(root, path));
+	const source = (await versionBytes(root, rel, commit)).toString('utf8');
+	return { path: rel, source, commit };
+}
+
+/** Writes the document as it was at `commit`, as a new commit; `commit: ''` when that is the current text. */
+export async function restoreVersion(
+	slug: string,
+	path: string,
+	commit: string,
+	actor: Actor
+): Promise<{ commit: string }> {
+	assertRole(slug, actor, 'editor');
+	if (!COMMIT.test(commit)) throw new InvalidPath(commit);
+	const root = workspaceDir(slug);
+	const file = documentFile(root, path);
+	const rel = relative(root, file);
+	return serialised(slug, async () => {
+		// The restore overwrites the file, so every open session, the restorer's too, is committed first.
+		await flushSessions(slug, (p) => p === rel);
+		const bytes = await versionBytes(root, rel, commit);
+		const current = await fs.readFile(file);
+		if (current.equals(bytes)) return { commit: '' };
+		await writeAtomic(file, bytes);
+		let restored: string;
+		try {
+			restored = await gitCommit(root, {
+				paths: [rel],
+				message: `Restore ${rel} to ${commit.slice(0, 7)}`,
+				author: commitAuthor(actor)
+			});
+		} catch (err) {
+			await writeAtomic(file, current);
+			throw err;
+		}
+		if (restored) appendEvent(slug, actor, { type: 'update', path: rel, commit: restored });
+		await syncIndex(slug, [rel]);
+		return { commit: restored };
+	});
+}
+
+/** Documents deleted in the latest 200 delete commits that do not exist now, newest first. */
+export async function deletedDocuments(slug: string, actor: Actor): Promise<DeletedDocument[]> {
+	assertRole(slug, actor, 'reader');
+	const root = workspaceDir(slug);
+	const seen = new Set<string>();
+	const list: DeletedDocument[] = [];
+	for (const { commit, name, date, paths } of await gitDeletions(root, 200)) {
+		for (const path of paths) {
+			if (seen.has(path)) continue;
+			seen.add(path);
+			// Only what restoreDeleted accepts: no dot-files, .inkmesh/ or invalid folder names.
+			try {
+				documentFile(root, path);
+			} catch {
+				continue;
+			}
+			if (await fs.lstat(join(root, path)).catch(() => null)) continue;
+			list.push({ path, commit, ...splitAuthor(name), date });
+		}
+	}
+	return list;
+}
+
+/** Brings a deleted document back, with its comment thread, from the commit before its deletion. */
+export async function restoreDeleted(slug: string, path: string, actor: Actor): Promise<{ commit: string }> {
+	assertRole(slug, actor, 'editor');
+	const root = workspaceDir(slug);
+	const file = documentFile(root, path);
+	const rel = relative(root, file);
+	const notesRel = commentPath(rel);
+	const notesFile = resolveInside(root, notesRel, { inkmesh: true });
+	return serialised(slug, async () => {
+		if (await fs.lstat(file).catch(() => null)) throw new Conflict(`${rel} already exists`);
+		const deletion = (await gitDeletions(root, 200)).find((d) => d.paths.includes(rel));
+		if (!deletion) throw notFound(`deleted ${rel}`);
+		const bytes = await gitShow(root, `${deletion.commit}^`, rel);
+		if (!bytes) throw notFound(`deleted ${rel}`);
+		const notes = await gitShow(root, `${deletion.commit}^`, notesRel);
+		// A thread already there (written outside core) is kept rather than overwritten.
+		const writeNotes = notes && !(await fs.lstat(notesFile).catch(() => null));
+		let commit: string;
+		try {
+			await fs.mkdir(dirname(file), { recursive: true });
+			await writeAtomic(file, bytes, true);
+			if (writeNotes) {
+				await fs.mkdir(dirname(notesFile), { recursive: true });
+				await writeAtomic(notesFile, notes);
+			}
+			commit = await gitCommit(root, {
+				paths: [rel, notesRel],
+				message: `Restore ${rel}`,
+				author: commitAuthor(actor)
+			});
+		} catch (err) {
+			const report = (what: string) => (e: unknown) => console.error(`restore rollback: ${what}`, e);
+			await fs.rm(file, { force: true }).catch(report(`remove ${rel}`));
+			if (writeNotes) await fs.rm(notesFile, { force: true }).catch(report(`remove comments of ${rel}`));
+			throw err;
+		}
+		appendEvent(slug, actor, { type: 'create', path: rel, commit });
+		await syncIndex(slug, [rel]);
+		return { commit };
 	});
 }

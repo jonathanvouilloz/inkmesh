@@ -1,5 +1,5 @@
 import { Forbidden } from './access.ts';
-import { hashToken, newToken } from './accounts.ts';
+import { hashToken, newToken, UNSAFE_NAME } from './accounts.ts';
 import type { Actor } from './actor.ts';
 import { db, transaction } from './db.ts';
 
@@ -10,8 +10,6 @@ const MAX_NAME = 40;
 const LAST_USE_MS = 60_000;
 
 export const newAgentToken = (): string => 'ink_' + newToken();
-
-export const UNSAFE_NAME = /[<>\x00-\x1f\x7f]/;
 
 // The name lands in the git author `Jon via <name>`.
 export function agentName(name: string): string {

@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import Header from '#lib/ui/Header.svelte';
+	import SearchForm from '#lib/ui/SearchForm.svelte';
 	import Tree from '#lib/ui/Tree.svelte';
 	import { PATH_TYPE, dropTarget, importFiles, moveItem, openDocument, setDrops } from '#lib/ui/drop.ts';
 	import type { LayoutProps } from './$types';
@@ -31,6 +32,10 @@
 	});
 
 	const editable = $derived(data.role !== 'reader');
+	const search = $derived({
+		workspace: data.workspace,
+		q: page.route.id === '/(app)/[workspace]/-/search' ? (page.url.searchParams.get('q') ?? '') : ''
+	});
 	const refused = { invalid: 'drop.invalid', 'too-large': 'drop.tooLarge', 'not-utf8': 'drop.notUtf8' } as const;
 	// One line per file that was not imported, after a count of those that were.
 	let notes = $state<string[]>([]);
@@ -115,6 +120,8 @@
 	current={data.workspace}
 	user={data.user}
 	locale={data.locale}
+	unread={data.unread}
+	{search}
 >
 	<button
 		bind:this={opener}
@@ -135,6 +142,8 @@
 		aria-label={t('nav.documents', data.locale)}
 		{@attach editable && dropTarget((transfer) => drops.drop('', transfer))}
 	>
+		<!-- The header's search box, moved here on phones. -->
+		<div class="search"><SearchForm workspace={search.workspace} q={search.q} locale={data.locale} /></div>
 		{#if editable}
 			<a
 				class="members"
@@ -142,6 +151,14 @@
 				aria-current={page.route.id === '/(app)/[workspace]/members' ? 'page' : undefined}
 				>{t('nav.members', data.locale)}</a
 			>
+		{/if}
+		<a
+			class="members"
+			href="/{data.workspace}/-/history"
+			aria-current={page.route.id === '/(app)/[workspace]/-/history' ? 'page' : undefined}
+			>{t('nav.deleted', data.locale)}</a
+		>
+		{#if editable}
 			<details class="new" open={!!page.form?.createError}>
 				<summary>{t('tree.new', data.locale)}</summary>
 				<form method="POST" action="/{data.workspace}?/create">
@@ -212,7 +229,8 @@
 		grid-template-columns: 240px 1fr;
 		min-height: calc(100vh - var(--sticky-top));
 	}
-	.opener {
+	.opener,
+	.search {
 		display: none;
 	}
 	.rail {
@@ -377,7 +395,8 @@
 			--sticky-top: 0px;
 			display: block;
 		}
-		.opener {
+		.opener,
+		.search {
 			display: block;
 		}
 		.notes:not(:empty) {

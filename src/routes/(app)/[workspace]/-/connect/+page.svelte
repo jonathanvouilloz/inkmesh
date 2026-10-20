@@ -5,6 +5,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import type { Agent } from '#lib/core/agents.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { ago } from '#lib/ui/time.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -133,7 +134,7 @@
 					<th>{t('connect.name', locale)}</th>
 					<th class="created">{t('connect.created', locale)}</th>
 					<th>{t('connect.lastUsed', locale)}</th>
-					<td></td>
+					<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -144,13 +145,11 @@
 							<span class="kind">{t(a.oauth ? 'connect.oauth' : 'connect.token', locale)}</span>
 						</td>
 						<td class="mono created">
-							<time datetime={a.createdAt}>{new Date(a.createdAt).toLocaleDateString(locale)}</time>
+							<time datetime={a.createdAt} title={a.createdAt}>{ago(a.createdAt, locale)}</time>
 						</td>
 						<td>
 							{#if a.lastUsedAt}
-								<time class="mono" datetime={a.lastUsedAt}
-									>{new Date(a.lastUsedAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}</time
-								>
+								<time class="mono" datetime={a.lastUsedAt} title={a.lastUsedAt}>{ago(a.lastUsedAt, locale)}</time>
 							{:else}
 								<span class="muted">{t('connect.notYet', locale)}</span>
 							{/if}
@@ -202,7 +201,7 @@
 					class="mono"
 					required
 					maxlength="40"
-					value={form?.nameError ? form.name : ''}
+					defaultValue={form?.nameError ? form.name : ''}
 					aria-invalid={form?.nameError ? 'true' : undefined}
 					aria-describedby={form?.nameError ? 'name-error' : undefined}
 				/>
@@ -284,14 +283,6 @@
 	h2 {
 		margin-top: 16px;
 		font-size: 13px;
-	}
-	.visually-hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 	h2:focus {
 		outline: none;

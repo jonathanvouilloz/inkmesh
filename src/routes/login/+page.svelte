@@ -22,7 +22,7 @@
 				autocomplete="email"
 				required
 				autofocus={!!form?.error}
-				value={form?.email ?? ''}
+				defaultValue={form?.email ?? ''}
 				aria-invalid={form?.error ? 'true' : undefined}
 				aria-describedby={form?.error ? 'login-error' : undefined}
 			/>

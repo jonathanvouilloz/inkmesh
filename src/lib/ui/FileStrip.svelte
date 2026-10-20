@@ -14,6 +14,8 @@
 		raw = $bindable(),
 		details = $bindable(),
 		opener = $bindable(),
+		version,
+		message,
 		children
 	}: {
 		path: string;
@@ -23,6 +25,10 @@
 		raw: boolean;
 		details: boolean;
 		opener?: HTMLButtonElement;
+		/** The short hash of the version shown instead of the editor. */
+		version?: string;
+		/** An error to announce in place of the save state (a refused image). */
+		message?: string;
 		/** The file actions menu, before the strip buttons. */
 		children?: Snippet;
 	} = $props();
@@ -30,8 +36,12 @@
 
 <div class="strip" data-testid="file-strip">
 	<span class="path"><bdi>{path}</bdi></span>
-	<span class="state {saveState}" class:readonly role="status" aria-live="polite"
-		>{readonly
+	<span class="state {message ? 'error' : saveState}" class:readonly role="status" aria-live="polite"
+		>{version
+			? t('version.label', locale, { hash: version })
+			: message
+			? message
+			: readonly
 			? t('editor.readonly', locale)
 			: saveState === 'idle'
 				? ''
@@ -46,7 +56,9 @@
 			aria-controls="details"
 			onclick={() => (details = !details)}>{t('rail.open', locale)}</button
 		>
-		<button aria-pressed={raw} onclick={() => (raw = !raw)}>{t('strip.raw', locale)}</button>
+		{#if !version}
+			<button aria-pressed={raw} onclick={() => (raw = !raw)}>{t('strip.raw', locale)}</button>
+		{/if}
 	</span>
 </div>
 
@@ -94,7 +106,8 @@
 	}
 	/* Full sentences wrap instead of pushing the buttons off a narrow strip. */
 	.conflict,
-	.readonly {
+	.readonly,
+	.error {
 		white-space: normal;
 	}
 	.error {
@@ -139,7 +152,8 @@
 			text-align: left;
 		}
 		.conflict,
-		.readonly {
+		.readonly,
+		.error {
 			padding-bottom: 8px;
 		}
 		.details {

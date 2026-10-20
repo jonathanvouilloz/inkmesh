@@ -29,6 +29,15 @@ describe('resolveInside', () => {
 		});
 	}
 
+	it('allows .inkmesh only when asked', () => {
+		expect(() => resolveInside(root, '.inkmesh/comments/a.md')).toThrow(InvalidPath);
+		expect(resolveInside(root, '.inkmesh/comments/a.md', { inkmesh: true })).toBe(
+			`${root}/.inkmesh/comments/a.md`
+		);
+		for (const rel of ['a/.inkmesh/x', '.inkmesh/../.git/config', '.git/x'])
+			expect(() => resolveInside(root, rel, { inkmesh: true })).toThrow(InvalidPath);
+	});
+
 	it('rejects a symlink that escapes the root', () => {
 		fs.symlinkSync('/tmp', root + '/link');
 		expect(() => resolveInside(root, 'link/x')).toThrow(InvalidPath);

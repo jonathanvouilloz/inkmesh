@@ -64,6 +64,12 @@ describe('access', () => {
 		await expect(createWorkspace('oauth', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
 	});
 
+	it('inbox and join are reserved slugs', async () => {
+		const jon = await user('jon');
+		await expect(createWorkspace('inbox', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
+		await expect(createWorkspace('join', 'x', jon)).rejects.toBeInstanceOf(InvalidPath);
+	});
+
 	it('drops the workspace row when its folder cannot be created', async () => {
 		const jon = await user('jon');
 		fs.mkdirSync(path.dirname(workspaceDir('team')), { recursive: true });
@@ -193,6 +199,23 @@ describe('access', () => {
 			acceptInvitationAsNewUser(token, { email: 'eve@example.ch', name: 'Eve', passwordHash })
 		).toThrow(Conflict);
 		expect(userByEmail('eve@example.ch')).toBeNull();
+	});
+
+	it('accepting an invitation appends a join event', async () => {
+		const jon = await user('jon');
+		const bob = await user('bob');
+		await createWorkspace('team', 'Team', jon);
+		acceptInvitation(createInvitation('team', 'reader', jon), bob.id);
+		const passwordHash = await hashPassword('long enough 1');
+		const { user: dan } = acceptInvitationAsNewUser(createInvitation('team', 'editor', jon), {
+			email: 'dan@example.ch',
+			name: 'Dan',
+			passwordHash
+		});
+		expect(db().prepare("SELECT workspace, user_id, author, path FROM events WHERE type = 'join' ORDER BY id").all()).toEqual([
+			{ workspace: 'team', user_id: bob.id, author: 'bob', path: '' },
+			{ workspace: 'team', user_id: dan.id, author: 'Dan', path: '' }
+		]);
 	});
 
 	it('joining raises but never lowers a role', async () => {

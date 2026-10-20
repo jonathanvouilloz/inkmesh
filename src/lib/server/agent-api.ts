@@ -3,6 +3,7 @@ import { Forbidden, workspacesOf } from '#lib/core/access.ts';
 import { loginAllowed, loginFailed } from '#lib/core/accounts.ts';
 import type { Actor } from '#lib/core/actor.ts';
 import { authenticateToken, type AgentAuth } from '#lib/core/agents.ts';
+import { addComment, listComments, MAX_COMMENT_CHARS } from '#lib/core/comments.ts';
 import {
 	deletePath,
 	importDocument,
@@ -13,6 +14,7 @@ import {
 } from '#lib/core/documents.ts';
 import { changes } from '#lib/core/events.ts';
 import { Conflict, InvalidContent, InvalidPath } from '#lib/core/paths.ts';
+import { search } from '#lib/core/search.ts';
 
 export type ApiErrorCode =
 	| 'unauthorized'
@@ -131,5 +133,31 @@ export const ops = {
 	}),
 	remove: (actor: Actor, ws: string, path: string) => deletePath(ws, path, actor),
 	// Without `since`: the 50 latest and `more: false`, even when older events exist.
-	changes: (actor: Actor, ws: string, since?: number) => changes(ws, actor, since)
+	changes: (actor: Actor, ws: string, since?: number) => changes(ws, actor, since),
+	search: (actor: Actor, ws: string, q: string) => {
+		const query = q.trim();
+		if (!query || query.length > 200)
+			throw new ApiError(400, 'bad_request', 'the query must be 1 to 200 characters');
+		// The highlight markers are for the UI; agents get plain text.
+		const results = search(ws, query, actor).map((hit) => ({
+			...hit,
+			snippet: hit.snippet.replace(/[\u0002\u0003]/g, '')
+		}));
+		return { results };
+	},
+	comments: async (actor: Actor, ws: string, path: string) => ({
+		comments: await listComments(ws, path, actor)
+	}),
+	comment: async (actor: Actor, ws: string, path: string, body: string) => {
+		try {
+			return { comment: await addComment(ws, path, body, actor) };
+		} catch (err) {
+			// toApiError's messages speak of documents; these speak of the comment.
+			if (err instanceof InvalidContent && err.message === 'too-large')
+				throw new ApiError(413, 'payload_too_large', `the comment is longer than ${MAX_COMMENT_CHARS} characters`);
+			if (err instanceof InvalidContent && err.message === 'empty')
+				throw new ApiError(400, 'bad_request', 'the comment is empty');
+			throw err;
+		}
+	}
 };

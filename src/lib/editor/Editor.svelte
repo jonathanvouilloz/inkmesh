@@ -10,13 +10,16 @@
 		raw = false,
 		readonly = false,
 		locale,
-		onchange
+		onchange,
+		onupload
 	}: {
 		value: string;
 		raw?: boolean;
 		readonly?: boolean;
 		locale: Locale;
 		onchange: (markdown: string) => void;
+		/** Stores a pasted or dropped image; null when it was refused. Readers get none. */
+		onupload?: (file: File) => Promise<{ src: string; alt: string } | null>;
 	} = $props();
 
 	let host: HTMLDivElement;
@@ -27,9 +30,10 @@
 
 	onMount(() => {
 		load = async () => {
-			const [{ Crepe }, { crepeFeatures }] = await Promise.all([
+			const [{ Crepe }, { crepeFeatures, inertUnsafeUrls, prefixHeadingIds }, { uploadConfig }] = await Promise.all([
 				import('@milkdown/crepe'),
-				import('./config.ts')
+				import('./config.ts'),
+				import('@milkdown/kit/plugin/upload')
 			]);
 			const crepe = new Crepe({
 				root: host,
@@ -39,6 +43,21 @@
 				// shortcut: only the placeholder is localised; Crepe's toolbar and slash-menu labels stay English, upgrade through featureConfigs when French users ask
 				featureConfigs: { [Crepe.Feature.Placeholder]: { text: t('editor.placeholder', locale) } }
 			});
+			inertUnsafeUrls(crepe);
+			prefixHeadingIds(crepe);
+			const upload = untrack(() => onupload);
+			if (upload)
+				crepe.editor.config((ctx) =>
+					ctx.update(uploadConfig.key, (prev) => ({
+						...prev,
+						// Never rejects: the plugin would leave its placeholder behind.
+						uploader: async (files, schema) => {
+							const images = Array.from(files).filter((file) => file.type.startsWith('image/'));
+							const stored = await Promise.all(images.map((file) => upload(file).catch(() => null)));
+							return stored.flatMap((image) => (image ? [schema.nodes.image.createAndFill(image)!] : []));
+						}
+					}))
+				);
 			crepe.setReadonly(untrack(() => readonly));
 			crepe.on((listener) =>
 				listener.markdownUpdated((_ctx, markdown) => {

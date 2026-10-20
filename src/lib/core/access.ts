@@ -1,7 +1,8 @@
-import { hashToken, insertUser, newToken, type User } from './accounts.ts';
+import { hashToken, insertUser, newToken, userById, type User } from './accounts.ts';
 import type { Actor } from './actor.ts';
 import { db, transaction } from './db.ts';
 import { ensureWorkspace } from './documents.ts';
+import { appendEvent } from './events.ts';
 import { Conflict, InvalidPath } from './paths.ts';
 
 export type Role = 'reader' | 'editor' | 'owner';
@@ -13,7 +14,7 @@ export type Invitation = { workspace: Workspace; role: Role; createdBy: string; 
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,39}$/;
 // Workspaces live at /<slug>, so a slug must not shadow a top-level route.
-const RESERVED = new Set(['login', 'logout', 'account', 'invite', 'api', 'mcp', 'oauth', 'assets', 'static', 'favicon.ico']);
+const RESERVED = new Set(['login', 'logout', 'account', 'invite', 'join', 'inbox', 'api', 'mcp', 'oauth', 'assets', 'static', 'favicon.ico']);
 const INVITATION_DAYS = 7;
 const rank = (role: Role) => ROLES.indexOf(role);
 const now = () => new Date().toISOString();
@@ -150,6 +151,12 @@ function claim(token: string, userId: number): Workspace {
 	const { workspace: slug, role } = db()
 		.prepare('SELECT workspace, role FROM invitations WHERE token_hash = ?')
 		.get(tokenHash) as { workspace: string; role: Role };
+	grantRole(slug, userId, role);
+	return workspace(slug)!;
+}
+
+/** Adds the member, or raises their role; never lowers it. Core-internal (invitations, public links). */
+export function grantRole(slug: string, userId: number, role: Role): void {
 	const current = roleOf(slug, userId);
 	if (!current) {
 		db()
@@ -160,11 +167,12 @@ function claim(token: string, userId: number): Workspace {
 			.prepare('UPDATE memberships SET role = ? WHERE workspace = ? AND user_id = ?')
 			.run(role, slug, userId);
 	}
-	return workspace(slug)!;
 }
 
 export function acceptInvitation(token: string, userId: number): Workspace {
-	return transaction(() => claim(token, userId));
+	const ws = transaction(() => claim(token, userId));
+	appendEvent(ws.slug, { id: userId, name: userById(userId)!.name }, { type: 'join', path: '' });
+	return ws;
 }
 
 // One transaction, so a link used up in between leaves no account behind.
@@ -172,10 +180,12 @@ export function acceptInvitationAsNewUser(
 	token: string,
 	input: { email: string; name: string; passwordHash: string }
 ): { user: User; workspace: Workspace } {
-	return transaction(() => {
+	const result = transaction(() => {
 		const user = insertUser(input);
 		return { user, workspace: claim(token, user.id) };
 	});
+	appendEvent(result.workspace.slug, { id: result.user.id, name: result.user.name }, { type: 'join', path: '' });
+	return result;
 }
 
 export function pendingInvitations(

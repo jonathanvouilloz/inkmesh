@@ -10,7 +10,7 @@
 
 <svelte:head><title>{t('account.title', data.locale)}</title></svelte:head>
 
-<Header workspaces={data.workspaces} user={data.user} locale={data.locale} />
+<Header workspaces={data.workspaces} user={data.user} locale={data.locale} unread={data.unread} />
 
 <main>
 	<h1>{t('account.title', data.locale)}</h1>

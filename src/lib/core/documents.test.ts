@@ -11,6 +11,7 @@ import { closeDb, db } from './db.ts';
 import {
 	createDocument,
 	createFolder,
+	deletedDocuments,
 	deletePath,
 	history,
 	importDocument,
@@ -19,11 +20,17 @@ import {
 	MAX_DOCUMENT_BYTES,
 	movePath,
 	readDocument,
+	readVersion,
 	relocate,
+	restoreDeleted,
+	restoreVersion,
 	writeDocument
 } from './documents.ts';
+import { addComment, listComments } from './comments.ts';
 import { changes } from './events.ts';
 import { Conflict, InvalidContent, InvalidPath } from './paths.ts';
+import { createPublicLink, sharedDocument } from './publicLinks.ts';
+import { search } from './search.ts';
 import { clearSessionTimers, commitAllSessions } from './sessions.ts';
 
 let actor: Actor;
@@ -98,6 +105,11 @@ describe('documents', () => {
 			await expect(createFolder('demo', p, actor)).rejects.toThrow(InvalidPath);
 		await expect(createFolder('demo', 'rapports', actor)).rejects.toThrow(Conflict);
 		await expect(createFolder('demo', doc, actor)).rejects.toThrow(InvalidPath);
+	});
+
+	it('refuses image-like folder names', async () => {
+		await expect(createFolder('demo', 'shots.PNG', actor)).rejects.toThrow(InvalidPath);
+		await expect(movePath('demo', 'rapports', 'a.webp', actor)).rejects.toThrow(InvalidPath);
 	});
 
 	it('readers cannot create folders', async () => {
@@ -630,6 +642,80 @@ describe('documents', () => {
 		expect(head()).toBe(before);
 	});
 
+	it('comments move and leave with their document', async () => {
+		const root = workspaceDir('demo');
+		const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+		await createDocument('demo', 'f/a.md', actor);
+		await addComment('demo', 'f/a.md', 'Looks good', actor);
+		await movePath('demo', 'f/a.md', 'g/b.md', actor);
+		expect((await listComments('demo', 'g/b.md', actor)).map((c) => c.body)).toEqual(['Looks good']);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/f/a.md'))).toBe(false);
+		expect(git('log', '-1', '--format=%s').trim()).toBe('Move f/a.md to g/b.md');
+		expect(git('show', '--name-status', '--no-renames', '--format=', 'HEAD').trim().split('\n').sort()).toEqual([
+			'A\t.inkmesh/comments/g/b.md',
+			'A\tg/b.md',
+			'D\t.inkmesh/comments/f/a.md',
+			'D\tf/a.md'
+		]);
+		await movePath('demo', 'g', 'h', actor);
+		expect((await listComments('demo', 'h/b.md', actor)).map((c) => c.body)).toEqual(['Looks good']);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/g'))).toBe(false);
+		await deletePath('demo', 'h', actor);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/h'))).toBe(false);
+		expect(git('log', '-1', '--format=%s').trim()).toBe('Delete h');
+		expect(git('show', '--name-status', '--format=', 'HEAD').trim().split('\n').sort()).toEqual([
+			'D\t.inkmesh/comments/h/b.md',
+			'D\th/b.md'
+		]);
+		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
+		expect(git('status', '--porcelain')).toBe('');
+	});
+
+	it('a failed move keeps the thread in place', async () => {
+		const root = workspaceDir('demo');
+		await addComment('demo', doc, 'Stay', actor);
+		fs.writeFileSync(path.join(root, '.git/index.lock'), '');
+		await expect(movePath('demo', doc, 'x.md', actor)).rejects.toThrow(/index\.lock/);
+		await expect(movePath('demo', 'rapports', 'r2', actor)).rejects.toThrow(/index\.lock/);
+		await expect(deletePath('demo', doc, actor)).rejects.toThrow(/index\.lock/);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments', doc))).toBe(true);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/x.md'))).toBe(false);
+		expect(fs.existsSync(path.join(root, '.inkmesh/comments/r2'))).toBe(false);
+		expect(fs.readdirSync(path.join(root, '.inkmesh')).filter((f) => f.startsWith('trash-'))).toEqual([]);
+		fs.rmSync(path.join(root, '.git/index.lock'));
+		expect((await listComments('demo', doc, actor)).map((c) => c.body)).toEqual(['Stay']);
+	});
+
+	it('a public link follows its document', async () => {
+		await createDocument('demo', 'f/a.md', actor);
+		await createDocument('demo', 'f_x.md', actor);
+		const t = await createPublicLink('demo', 'f/a.md', null, actor);
+		const u = await createPublicLink('demo', 'f_x.md', null, actor);
+		await movePath('demo', 'f', 'g', actor);
+		expect((await sharedDocument(t, 'g/a.md')).source).toBe('# a\n');
+		expect((await sharedDocument(u, 'f_x.md')).source).toBe('# f_x\n');
+	});
+
+	it('a new document at a deleted path is not shown by the old link', async () => {
+		const enc = (s: string) => new TextEncoder().encode(s);
+		const linked = async (p: string) => {
+			await createDocument('demo', p, actor);
+			const t = await createPublicLink('demo', p, null, actor);
+			await deletePath('demo', p, actor);
+			return t;
+		};
+		const created = await linked('c.md');
+		await createDocument('demo', 'c.md', actor);
+		const imported = await linked('i.md');
+		await importDocument('demo', 'i.md', enc('# new\n'), { actor });
+		const moved = await linked('m.md');
+		await createDocument('demo', 'y.md', actor);
+		await movePath('demo', 'y.md', 'm.md', actor);
+		for (const [t, p] of [[created, 'c.md'], [imported, 'i.md'], [moved, 'm.md']])
+			await expect(sharedDocument(t, p)).rejects.toBeTruthy();
+		expect(db().prepare('SELECT count(*) AS n FROM public_links').get()).toEqual({ n: 0 });
+	});
+
 	it('readers cannot delete', async () => {
 		const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
 		db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
@@ -719,5 +805,182 @@ describe('documents', () => {
 	it('returns the stored hash', async () => {
 		const res = await importDocument('demo', 'h.md', new TextEncoder().encode('\uFEFF# été\r\n'), { actor });
 		expect(res.hash).toBe((await readDocument('demo', 'h.md', actor)).hash);
+	});
+
+	describe('restore', () => {
+		let ann: Actor;
+		const enc = new TextEncoder();
+		const git = (...args: string[]) =>
+			execFileSync('git', args, { cwd: workspaceDir('demo'), encoding: 'utf8' }).trim();
+		const write = async (p: string, body: string, who: Actor) =>
+			writeDocument('demo', p, body, { expectedHash: (await readDocument('demo', p, who)).hash, actor: who });
+		beforeEach(async () => {
+			const user = await createUser({ email: 'ann@b.c', name: 'Ann', password: 'long enough 1' });
+			db().prepare("insert into memberships values ('demo', ?, 'editor')").run(user.id);
+			ann = { id: user.id, name: 'Ann' };
+			await importDocument('demo', 'a.md', enc.encode('# a\n\nzanzibar\n'), { actor });
+		});
+		const first = async () => (await history('demo', 'a.md', actor)).at(-1)!.hash;
+
+		it('reads an old version', async () => {
+			const v1 = await first();
+			await importDocument('demo', 'a.md', enc.encode('# a\n\nnew\n'), { actor, overwrite: true });
+			expect(await readVersion('demo', 'a.md', v1, actor)).toEqual({
+				path: 'a.md',
+				source: '# a\n\nzanzibar\n',
+				commit: v1
+			});
+			expect((await readVersion('demo', 'a.md', v1.slice(0, 7), actor)).source).toBe('# a\n\nzanzibar\n');
+			await expect(readVersion('demo', 'a.md', 'f'.repeat(40), actor)).rejects.toMatchObject({ code: 'ENOENT' });
+			await expect(readVersion('demo', 'nope.md', v1, actor)).rejects.toMatchObject({ code: 'ENOENT' });
+		});
+
+		it('restores a version as a new commit', async () => {
+			const v1 = await first();
+			await importDocument('demo', 'a.md', enc.encode('# a\n\nnew\n'), { actor, overwrite: true });
+			const since = changes('demo', ann).cursor;
+			const { commit } = await restoreVersion('demo', 'a.md', v1, ann);
+			expect(commit).toMatch(/^[0-9a-f]{40}$/);
+			expect(git('log', '-1', '--format=%an %s')).toBe(`Ann Restore a.md to ${v1.slice(0, 7)}`);
+			expect((await readDocument('demo', 'a.md', actor)).source).toBe('# a\n\nzanzibar\n');
+			expect(changes('demo', actor, since).events.map((e) => [e.type, e.path, e.commit])).toEqual([
+				['update', 'a.md', commit]
+			]);
+			expect(search('demo', 'zanzibar', actor).map((h) => h.path)).toEqual(['a.md']);
+		});
+
+		it('restoring the same text makes no commit', async () => {
+			const head = git('rev-parse', 'HEAD');
+			expect(await restoreVersion('demo', 'a.md', await first(), ann)).toEqual({ commit: '' });
+			expect(git('rev-parse', 'HEAD')).toBe(head);
+		});
+
+		it('restore commits the open session first', async () => {
+			const v1 = await first();
+			await write('a.md', 'J', actor);
+			await restoreVersion('demo', 'a.md', v1, ann);
+			const log = await history('demo', 'a.md', actor);
+			expect(log.slice(0, 2).map((e) => [e.name, e.message])).toEqual([
+				['Ann', `Restore a.md to ${v1.slice(0, 7)}`],
+				['Jon', 'Update a.md']
+			]);
+			expect(git('show', `${log[1].hash}:a.md`)).toContain('J');
+			expect((await readDocument('demo', 'a.md', actor)).source).toBe('# a\n\nzanzibar\n');
+		});
+
+		it("restore commits the restorer's own open session first", async () => {
+			const v1 = await first();
+			await write('a.md', 'Mine', ann);
+			await restoreVersion('demo', 'a.md', v1, ann);
+			const log = await history('demo', 'a.md', actor);
+			expect(log.slice(0, 2).map((e) => [e.name, e.message])).toEqual([
+				['Ann', `Restore a.md to ${v1.slice(0, 7)}`],
+				['Ann', 'Update a.md']
+			]);
+			expect(git('show', `${log[1].hash}:a.md`)).toContain('Mine');
+			expect(await commitAllSessions()).toBe(0);
+		});
+
+		it('refuses a bad commit id', async () => {
+			for (const bad of ['HEAD', 'abc', '../x', 'a'.repeat(41), '-p', 'ABCDEF1']) {
+				await expect(readVersion('demo', 'a.md', bad, actor)).rejects.toBeInstanceOf(InvalidPath);
+				await expect(restoreVersion('demo', 'a.md', bad, ann)).rejects.toBeInstanceOf(InvalidPath);
+			}
+			await expect(restoreVersion('demo', 'a.md', 'f'.repeat(40), ann)).rejects.toMatchObject({ code: 'ENOENT' });
+		});
+
+		it('lists deleted documents', async () => {
+			await createDocument('demo', 'f/b.md', actor);
+			await createDocument('demo', 'c.md', actor);
+			await addComment('demo', 'a.md', 'Note', actor);
+			await deletePath('demo', 'a.md', actor);
+			await deletePath('demo', 'f', agent);
+			await movePath('demo', 'c.md', 'd.md', actor);
+			const list = await deletedDocuments('demo', ann);
+			expect(list.map((d) => d.path)).toEqual(['f/b.md', 'a.md']);
+			expect(list[0]).toMatchObject({ name: 'Jon', agent: 'claude-code', commit: git('rev-parse', 'HEAD~1') });
+			expect(list[1]).toMatchObject({ name: 'Jon', date: expect.any(String) });
+			expect(list[1].agent).toBeUndefined();
+			await restoreDeleted('demo', 'a.md', ann);
+			expect((await deletedDocuments('demo', ann)).map((d) => d.path)).toEqual(['f/b.md']);
+		});
+
+		it('lists only deleted documents that can be restored', async () => {
+			const root = workspaceDir('demo');
+			fs.mkdirSync(path.join(root, 'x.md'));
+			for (const p of ['.hidden.md', 'x.md/b.md', '.dot/c.md']) {
+				fs.mkdirSync(path.dirname(path.join(root, p)), { recursive: true });
+				fs.writeFileSync(path.join(root, p), '# x\n');
+			}
+			git('add', '-A');
+			git('-c', 'user.name=X', '-c', 'user.email=x@y', 'commit', '-qm', 'outside');
+			git('rm', '-rq', '.hidden.md', 'x.md', '.dot');
+			git('-c', 'user.name=X', '-c', 'user.email=x@y', 'commit', '-qm', 'gone');
+			await deletePath('demo', 'a.md', actor);
+			expect((await deletedDocuments('demo', ann)).map((d) => d.path)).toEqual(['a.md']);
+		});
+
+		it('restores a deleted document with its comments', async () => {
+			await addComment('demo', 'a.md', 'Looks good', actor);
+			const token = await createPublicLink('demo', 'a.md', null, actor);
+			await deletePath('demo', 'a.md', actor);
+			await expect(sharedDocument(token, 'a.md')).rejects.toBeTruthy();
+			const since = changes('demo', actor).cursor;
+			const { commit } = await restoreDeleted('demo', 'a.md', ann);
+			expect((await readDocument('demo', 'a.md', actor)).source).toBe('# a\n\nzanzibar\n');
+			expect((await listComments('demo', 'a.md', actor)).map((c) => c.body)).toEqual(['Looks good']);
+			expect(git('log', '-1', '--format=%H %an %s')).toBe(`${commit} Ann Restore a.md`);
+			expect(git('show', '--name-status', '--format=', 'HEAD').split('\n').sort()).toEqual([
+				'A\t.inkmesh/comments/a.md',
+				'A\ta.md'
+			]);
+			expect(changes('demo', actor, since).events.map((e) => [e.type, e.path, e.commit])).toEqual([
+				['create', 'a.md', commit]
+			]);
+			expect(search('demo', 'zanzibar', actor).map((h) => h.path)).toEqual(['a.md']);
+			expect((await sharedDocument(token, 'a.md')).source).toBe('# a\n\nzanzibar\n');
+			expect(git('status', '--porcelain')).toBe('');
+		});
+
+		it('restores a deleted document from a deleted folder', async () => {
+			await createDocument('demo', 'f/g/b.md', actor);
+			await deletePath('demo', 'f', actor);
+			await restoreDeleted('demo', 'f/g/b.md', ann);
+			expect((await readDocument('demo', 'f/g/b.md', actor)).source).toBe('# b\n');
+		});
+
+		it('refuses to restore over an existing path', async () => {
+			await deletePath('demo', 'a.md', actor);
+			await createDocument('demo', 'a.md', actor);
+			await expect(restoreDeleted('demo', 'a.md', ann)).rejects.toBeInstanceOf(Conflict);
+			await expect(restoreDeleted('demo', 'never.md', ann)).rejects.toMatchObject({ code: 'ENOENT' });
+		});
+
+		it('puts things back when the restore commit fails', async () => {
+			const v1 = await first();
+			await importDocument('demo', 'a.md', enc.encode('# a\n\nnew\n'), { actor, overwrite: true });
+			await addComment('demo', 'a.md', 'Note', actor);
+			await createDocument('demo', 'b.md', actor);
+			await deletePath('demo', 'b.md', actor);
+			const root = workspaceDir('demo');
+			fs.writeFileSync(path.join(root, '.git/index.lock'), '');
+			await expect(restoreVersion('demo', 'a.md', v1, ann)).rejects.toThrow(/index\.lock/);
+			await expect(restoreDeleted('demo', 'b.md', ann)).rejects.toThrow(/index\.lock/);
+			fs.rmSync(path.join(root, '.git/index.lock'));
+			expect((await readDocument('demo', 'a.md', actor)).source).toBe('# a\n\nnew\n');
+			expect(fs.existsSync(path.join(root, 'b.md'))).toBe(false);
+		});
+
+		it('readers cannot restore', async () => {
+			const reader = await createUser({ email: 'r@b.c', name: 'R', password: 'long enough 1' });
+			db().prepare("insert into memberships values ('demo', ?, 'reader')").run(reader.id);
+			const r = { id: reader.id, name: 'R' };
+			const v1 = await first();
+			await expect(readVersion('demo', 'a.md', v1, r)).resolves.toBeTruthy();
+			await expect(deletedDocuments('demo', r)).resolves.toEqual([]);
+			await expect(restoreVersion('demo', 'a.md', v1, r)).rejects.toBeInstanceOf(Forbidden);
+			await deletePath('demo', 'a.md', actor);
+			await expect(restoreDeleted('demo', 'a.md', r)).rejects.toBeInstanceOf(Forbidden);
+		});
 	});
 });

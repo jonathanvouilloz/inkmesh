@@ -3,8 +3,10 @@ import { structuredPatch } from 'diff';
 import { describe, expect, it } from 'vitest';
 import {
 	frontmatterEntries,
+	imageUrls,
 	patchMarkdown,
 	processor,
+	renderHtml,
 	rewriteUrls,
 	splitFrontmatter
 } from './markdown.ts';
@@ -186,5 +188,54 @@ describe('rewriteUrls', () => {
 		expect(rewriteUrls('![x.png](x.png) [b.md](b.md "b.md")\n', up)).toBe(
 			'![x.png](new/x.png) [b.md](new/b.md "b.md")\n'
 		);
+	});
+});
+
+describe('renderHtml', () => {
+	it('renderHtml never emits active content', () => {
+		const inputs = [
+			'<script>alert(1)</script>',
+			'a <img src=x onerror=alert(1)> b',
+			'[x](javascript:alert(1))',
+			'[x](JaVaScRiPt:alert(1))',
+			'<javascript:alert(1)>',
+			'[x][r]\n\n[r]: javascript:alert(1)',
+			'![x](data:image/svg+xml;base64,PHN2Zz4=)',
+			'[x](vbscript:msgbox)'
+		];
+		for (const input of inputs) {
+			const html = renderHtml(input);
+			expect(html, input).not.toMatch(/<script|<iframe|<img src="x" onerror/i);
+			// An event-handler attribute inside a tag; text between tags is inert.
+			expect(html, input).not.toMatch(/<[^>]*\son[a-z]+\s*=/i);
+			for (const [, value] of html.matchAll(/\s(?:href|src)\s*=\s*"([^"]*)"/gi))
+				expect(value, input).not.toMatch(/javascript:|vbscript:|data:/i);
+		}
+		// hast-util-to-html escapes only `<` and `&` in text, so `&lt;script&gt;` reads `&#x3C;script>`.
+		expect(renderHtml('<script>alert(1)</script>')).toContain('<pre><code>&#x3C;script>');
+	});
+
+	it('renders the documents people write', () => {
+		const html = renderHtml(
+			'---\ntitle: Secret\n---\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n- [ ] todo\n\n[b](b.md) ![p](img/p.png) https://example.com\n'
+		);
+		expect(html).toContain('<table>');
+		expect(html).toContain('<input type="checkbox" disabled');
+		expect(html).toContain('href="b.md"');
+		expect(html).toContain('src="img/p.png"');
+		expect(html).toContain('href="https://example.com"');
+		expect(html).not.toContain('Secret');
+	});
+
+	it('footnote links reach their footnotes', () => {
+		const html = renderHtml('Text[^1].\n\n[^1]: Note.\n');
+		const hrefs = [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+		const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+		expect(hrefs.length).toBeGreaterThan(1);
+		for (const href of hrefs) expect(ids, href).toContain(href);
+	});
+
+	it('imageUrls lists images and definitions', () => {
+		expect(imageUrls('![a](x.png) [l](y.md)\n\n[d]: z.png')).toEqual(['x.png', 'z.png']);
 	});
 });

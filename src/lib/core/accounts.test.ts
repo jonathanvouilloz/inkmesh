@@ -14,6 +14,7 @@ import {
 	loginSucceeded,
 	loginUndo,
 	sessionUser,
+	validUserName,
 	verifyPassword
 } from './accounts.ts';
 import { closeDb, db } from './db.ts';
@@ -31,6 +32,12 @@ afterEach(() => {
 });
 
 describe('accounts', () => {
+	it('validUserName trims and refuses empty, long and unsafe names', () => {
+		expect(validUserName('  Ann Lee ')).toBe('Ann Lee');
+		for (const bad of ['', '   ', 'x'.repeat(81), 'a<b', 'a\nb', 'a\x7fb', null, 42]) expect(validUserName(bad)).toBeNull();
+		expect(validUserName('x'.repeat(80))).toHaveLength(80);
+	});
+
 	it('hashes with scrypt and verifies', async () => {
 		const stored = await hashPassword('correct horse 1');
 		expect(stored).toMatch(/^scrypt\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/);

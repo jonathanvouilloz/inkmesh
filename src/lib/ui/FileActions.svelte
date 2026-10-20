@@ -136,6 +136,11 @@
 			<li>
 				<a href={docHref(workspace, `-/raw/${path}`)} download>{t('files.download', locale)}</a>
 			</li>
+			{#if role === 'owner'}
+				<li>
+					<a href="/{workspace}/members?share={encodeURIComponent(path)}#public-links">{t('files.share', locale)}</a>
+				</li>
+			{/if}
 		{/if}
 		{#if role !== 'reader'}
 			<li>

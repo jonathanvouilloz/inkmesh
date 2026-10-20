@@ -1,15 +1,22 @@
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeStringify from 'rehype-stringify';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
 
+const parser = unified().use(remarkParse).use(remarkGfm).use(remarkFrontmatter, ['yaml']);
+
 /** The one Markdown configuration, shared by the server and the editor. */
-export const processor = unified()
-	.use(remarkParse)
-	.use(remarkGfm)
-	.use(remarkFrontmatter, ['yaml'])
-	.use(remarkStringify, { bullet: '-', emphasis: '*', strong: '*', fences: true, rule: '-' });
+export const processor = parser().use(remarkStringify, {
+	bullet: '-',
+	emphasis: '*',
+	strong: '*',
+	fences: true,
+	rule: '-'
+});
 
 const FRONTMATTER = /^---\r?\n(?:[\s\S]*?\r?\n)?---(?:\r?\n|$)/;
 
@@ -62,6 +69,45 @@ function blocks(text: string): Block[] {
 		key: String(processor.stringify({ type: 'root', children: [node] })),
 		definition: node.type === 'definition'
 	}));
+}
+
+const PHRASING = new Set([
+	'paragraph',
+	'heading',
+	'tableCell',
+	'emphasis',
+	'strong',
+	'delete',
+	'link',
+	'linkReference'
+]);
+
+// Raw HTML shows as its source, like in the editor: it never reaches the output as HTML.
+const htmlAsCode = () => (tree: unknown) =>
+	walk(tree as Node, (n) => {
+		for (const child of n.children ?? [])
+			if (child.type === 'html') child.type = PHRASING.has(n.type) ? 'inlineCode' : 'code';
+	});
+
+const renderer = parser()
+	.use(htmlAsCode)
+	.use(remarkRehype)
+	// remark-rehype already prefixes footnote ids with user-content-; a second prefix would break their links.
+	.use(rehypeSanitize, { ...defaultSchema, clobberPrefix: '' })
+	.use(rehypeStringify);
+
+/** Safe HTML for a Markdown document: no raw HTML, no active URL, no event handler. */
+export function renderHtml(source: string): string {
+	return String(renderer.processSync(splitFrontmatter(source).body));
+}
+
+/** The URLs of the images and link definitions, in document order. */
+export function imageUrls(source: string): string[] {
+	const urls: string[] = [];
+	walk(processor.parse(source) as unknown as Node, (n) => {
+		if (n.type === 'image' || n.type === 'definition') urls.push(n.url as string);
+	});
+	return urls;
 }
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

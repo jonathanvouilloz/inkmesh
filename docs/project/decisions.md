@@ -121,3 +121,63 @@
 - Rejected: the SDK defaults (open world, destructive), which make clients ask for confirmation on a create; a flat 8 MiB limit.
 - Why: the tools touch only this instance and a create never overwrites; a control byte JSON-escapes to six bytes, so a document at the cap must still fit.
 - Reopen if: a tool starts reaching outside the instance, or the document cap changes shape.
+
+## 2026-10-19 — Public pages rendered on the server and sanitised
+- Choice: public pages, the version view and comment bodies are rendered by `renderHtml` (remark-rehype, rehype-sanitize with the default schema and `clobberPrefix: ''`, rehype-stringify). Raw HTML becomes code before rendering, so it shows as its source. Public pages ship no JavaScript and run under a strict CSP. Members keep the editor.
+- Rejected: the editor in read-only mode (ships the editor bundle to visitors and keeps `javascript:` hrefs live).
+- Why: a page a stranger opens must be inert by construction and work on a slow phone.
+- Reopen if: the editor and the rendered page drift visibly for the same document.
+
+## 2026-10-19 — Images in the document's folder, served at their natural URL
+- Choice: a pasted or dropped image is stored next to its document as `<doc base>-<8 hex>.<ext>` and linked by that relative name. PNG, JPEG, GIF and WebP only, 5 MiB at most, the extension and the signature must agree on upload and on every serve. SVG is refused. The `reroute` hook sends image paths under a workspace or a public link to the raw routes. Folder names ending in an image extension are refused.
+- Rejected: `<doc>.assets/` folders (they fill the tree); sanitising SVG (a dependency, and still a script-capable format on the origin).
+- Why: the Markdown stays readable with `cat` and any other tool resolves the image; no URL rewriting anywhere.
+- Reopen if: users need SVG, or a way to manage and clean up images.
+
+## 2026-10-19 — Public links under /s/, cookie-free; sign-up at /join/
+- Choice: a public link is a random token (stored hashed) under `/s/<token>/…`, read-only, scoped to one document or one workspace, checked in `core`. `handle` returns before the cookie lookup on `/s/`. Sign-up from a link, when its owner turned it on, is a separate route `/join/<token>` because it creates a session.
+- Rejected: public pages inside the app shell with an anonymous session.
+- Why: a public page can never act as a member or leak a session, and the token stays out of referrers.
+- Reopen if: links need an expiry, a password or analytics.
+
+## 2026-10-19 — Inbox on one cursor per user; joins as invitation events
+- Choice: the inbox reads the events table with one read cursor per user (a global event id); a user without one starts at the present. Invitations appear as `join` events, since M2 invitations are links addressed to nobody.
+- Rejected: per-event read flags; a separate notifications table.
+- Why: one number per user covers "what changed since I looked", for humans and agents alike.
+- Reopen if: email digests need per-event state.
+
+## 2026-10-19 — Image paste through Crepe's upload plugin
+- Choice: the editor overrides Crepe's `uploadConfig` with an uploader that posts the file to `/<ws>/-/images` and inserts the plain image node.
+- Rejected: enabling `ImageBlock`.
+- Why: with `ImageBlock` off, Crepe's upload plugin already inserts the plain image node, so the 2026-10-18 reopen condition ("image paste cannot be implemented on the plain image node") did not trigger.
+- Reopen if: Crepe drops the upload plugin or changes the node it inserts.
+
+## 2026-10-20 — A new document at a path drops the public links on it
+- Choice: creating, importing or moving a document onto a path deletes the public links on that path (and under it, for a folder) in the same write. Delete keeps the links (they answer 404); `restoreDeleted` brings the same document back and the links with it.
+- Rejected: keeping links on any path forever (the spec's first reading).
+- Why: a client's old link must never show a different document that later lands at the same path.
+- Reopen if: owners want links to survive a deliberate delete and re-create (today they must share again).
+
+## 2026-10-20 — Public links carry a 4-character hint
+- Choice: migration `004-link-hint` stores the last 4 characters of a link's token (null for older links). The members page, its accessible names and the revoke dialog show it ("Whole workspace …x1Ab").
+- Rejected: showing only the scope, which makes two links to the same scope indistinguishable.
+- Why: an owner must know which link they revoke. Four characters (about 24 of 256 bits) do not help guess a token.
+- Reopen if: links get names chosen by their owner.
+
+## 2026-10-20 — Join and invitation pages send same-origin referrers
+- Choice: `/join/` and `/invite/` answer with `referrer-policy: same-origin`, `cache-control: no-store` and `x-robots-tag: noindex, nofollow`. `/s/` keeps `no-referrer`, since it posts nothing.
+- Rejected: `no-referrer` on the sign-up pages: browsers then send `Origin: null` on the form POST and `csrf.ts` refuses the sign-up.
+- Why: the token never leaves the origin, and the sign-up still passes the origin check.
+- Reopen if: the origin check stops relying on `Origin`.
+
+## 2026-10-20 — The inbox shows the 50 latest lines
+- Choice: `inbox(userId)` returns the 50 latest events, a literal limit; the unread count stops at 100 (the header shows "99+").
+- Rejected: a limit parameter (unused, and `LIMIT -1` would have meant unlimited).
+- Why: the inbox answers "what happened lately"; older events stay in history.
+- Reopen if: the inbox needs paging or filters.
+
+## 2026-10-20 — Prefilled inputs use defaultValue
+- Choice: a server-prefilled text input in a page that hydrates (a value kept after a failed post) uses `defaultValue={…}`, or `bind:value`, never `value={…}`.
+- Rejected: `value={form?.x ?? ''}`: at hydration Svelte sets `input.value` and erases what a visitor typed before the scripts ran.
+- Why: on a slow network a person types into the server-rendered form before it hydrates; their text must survive.
+- Reopen if: Svelte stops resetting `value` at hydration.

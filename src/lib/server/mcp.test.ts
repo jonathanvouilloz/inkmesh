@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 import { acceptInvitation, createInvitation, createWorkspace } from '#lib/core/access.ts';
 import { createUser, loginSucceeded, type User } from '#lib/core/accounts.ts';
 import { createAgent } from '#lib/core/agents.ts';
+import { addComment } from '#lib/core/comments.ts';
 import { closeDb } from '#lib/core/db.ts';
 import { createDocument, history, importDocument } from '#lib/core/documents.ts';
 import { exchangeCode, issueCode, registerClient } from '#lib/core/oauth.ts';
@@ -80,18 +81,21 @@ it('401 with the resource metadata pointer', async () => {
 	);
 });
 
-it('lists the nine tools', async () => {
+it('lists the twelve tools', async () => {
 	const { result } = await rpc(jonToken, 'tools/list');
 	const names = result.tools.map((t: { name: string }) => t.name).sort();
 	expect(names).toEqual([
+		'add_comment',
 		'changes',
 		'create_document',
 		'delete',
 		'list_tree',
 		'list_workspaces',
 		'move',
+		'read_comments',
 		'read_document',
 		'replace_document',
+		'search',
 		'update_document'
 	]);
 	const read = result.tools.find((t: { name: string }) => t.name === 'read_document');
@@ -159,4 +163,28 @@ it("changes reports the agent's human", async () => {
 	const { body } = await tool(jonToken, 'changes', { workspace: 'demo' });
 	expect(body.events.at(-1)).toMatchObject({ type: 'create', path: 'b.md', author: 'Jon' });
 	expect(body.events.at(-1).agent).toBeUndefined();
+});
+
+it('a comment added in the browser is read by an agent', async () => {
+	await addComment('demo', 'a.md', 'From the browser.', jon);
+	const read = await tool(annToken, 'read_comments', { workspace: 'demo', path: 'a.md' });
+	expect(read.isError).toBe(false);
+	expect(read.body.comments).toMatchObject([{ author: 'Jon', body: 'From the browser.', resolved: false }]);
+	const { body } = await tool(annToken, 'changes', { workspace: 'demo' });
+	expect(body.events.at(-1)).toMatchObject({ type: 'comment', path: 'a.md', author: 'Jon' });
+});
+
+it("add_comment works for a reader's agent", async () => {
+	const res = await tool(annToken, 'add_comment', { workspace: 'demo', path: 'a.md', body: 'Noted.' });
+	expect(res.isError).toBe(false);
+	expect(res.body.comment).toMatchObject({ author: 'Ann via reader-bot', body: 'Noted.' });
+	const blank = await tool(annToken, 'add_comment', { workspace: 'demo', path: 'a.md', body: ' ' });
+	expect(blank.body.error).toMatchObject({ code: 'bad_request', message: 'the comment is empty' });
+});
+
+it('search finds a document without highlight markers', async () => {
+	await importDocument('demo', 'b.md', new TextEncoder().encode('# B\n\nZebra crossing.\n'), { actor: jon });
+	const res = await tool(annToken, 'search', { workspace: 'demo', query: 'zebra' });
+	expect(res.body.results).toMatchObject([{ path: 'b.md', title: 'B' }]);
+	expect(res.body.results[0].snippet).not.toMatch(/[\u0002\u0003]/);
 });

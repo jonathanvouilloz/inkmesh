@@ -43,6 +43,8 @@ test('an owner invites an editor who signs up and edits', async ({ page, browser
 	await expect(visit.getByRole('heading', { name: 'Join Demo as editor' })).toBeVisible();
 	// The token lives in the URL only.
 	expect(await visit.content()).not.toContain(editorLink.split('/').pop()!);
+	await visit.getByRole('link', { name: 'Sign in' }).click();
+	await expect(visit).toHaveURL(/\/login\?next=%2Finvite%2F[\w-]{43}$/);
 	await visit.close();
 
 	const nina = await signUp(invitee, editorLink, 'Nina', 'nina@example.ch');
@@ -101,7 +103,7 @@ test('an existing email is sent to sign in and back', async ({ page, browser }) 
 	await visit.getByLabel('Password').fill('ten chars ok');
 	await visit.getByRole('button', { name: 'Create account' }).click();
 	await expect(visit.getByText('You already have an account, sign in to accept')).toBeVisible();
-	await visit.getByRole('link', { name: 'Sign in' }).click();
+	await visit.getByRole('alert').getByRole('link', { name: 'Sign in' }).click();
 	await expect(visit).toHaveURL(/\/login\?next=%2Finvite%2F/);
 	await visit.getByLabel('Email').fill('nina@example.ch');
 	await visit.getByLabel('Password').fill('ten chars ok');
@@ -132,7 +134,7 @@ test('a reader reads without editing', async () => {
 	await expect(page.getByText('You can read this document; editing needs the editor role')).toBeVisible();
 	await expect(page.locator('.milkdown .ProseMirror')).toHaveAttribute('contenteditable', 'false');
 	await page.getByRole('button', { name: 'Raw' }).click();
-	await expect(page.locator('textarea')).toHaveAttribute('readonly', '');
+	await expect(page.getByRole('textbox', { name: 'Raw Markdown' })).toHaveAttribute('readonly', '');
 	await expect(page.locator('#rail').getByText('New document', { exact: true })).toHaveCount(0);
 });
 

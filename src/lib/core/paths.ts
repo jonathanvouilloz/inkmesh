@@ -5,17 +5,22 @@ export class InvalidPath extends Error {}
 export class Conflict extends Error {}
 /** An imported file that is not a document: `message` is 'too-large' or 'not-utf8'. */
 export class InvalidContent extends Error {}
+/** Core's "not found": routes answer 404 for an ENOENT code. */
+export const notFound = (what: string) => Object.assign(new Error(`${what} not found`), { code: 'ENOENT' });
 
 const HIDDEN = new Set(['.git', '.inkmesh']);
 
-/** Resolve `rel` inside `root`, or throw InvalidPath if it could reach outside or into hidden folders. */
-export function resolveInside(root: string, rel: string): string {
+/**
+ * Resolve `rel` inside `root`, or throw InvalidPath if it could reach outside or into hidden folders;
+ * `inkmesh` allows `.inkmesh` as the first segment only (comment threads, trash).
+ */
+export function resolveInside(root: string, rel: string, opts?: { inkmesh?: boolean }): string {
 	const segments = rel.split(/[/\\]/);
 	if (
 		!rel ||
 		rel.includes('\0') ||
 		path.isAbsolute(rel) ||
-		segments.some((s) => s === '..' || HIDDEN.has(s))
+		segments.some((s, i) => s === '..' || (HIDDEN.has(s) && !(opts?.inkmesh && i === 0 && s === '.inkmesh')))
 	)
 		throw new InvalidPath(rel);
 	const abs = path.resolve(root, rel);
@@ -40,8 +45,8 @@ export function resolveInside(root: string, rel: string): string {
 	return abs;
 }
 
-/** No folder segment ends in .md or starts with a dot, so a path ending in .md is always a document. */
+/** No folder segment ends in .md or an image extension or starts with a dot, so such a path is never a folder. */
 export function assertFolderName(rel: string): void {
-	if (rel.split(/[/\\]/).some((s) => s.startsWith('.') || /\.md$/i.test(s)))
+	if (rel.split(/[/\\]/).some((s) => s.startsWith('.') || /\.(md|png|jpe?g|gif|webp)$/i.test(s)))
 		throw new InvalidPath(rel);
 }
