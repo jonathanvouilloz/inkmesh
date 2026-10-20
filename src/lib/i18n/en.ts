@@ -224,7 +224,7 @@ export const en = {
 	'share.link': 'Public link',
 	'share.once': 'This link will not be shown again: copy it now.',
 	'share.revoke': 'Revoke',
-	'share.revokeConfirm': 'Revoke this link? Visitors lose access at once.',
+	'share.revokeConfirm': 'Revoke the link “{link}”? Visitors lose access at once.',
 	'share.empty': 'No public link.',
 	'public.download': 'Download',
 	'public.edit': 'Edit',

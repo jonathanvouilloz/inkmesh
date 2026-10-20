@@ -118,6 +118,8 @@ describe('public links', () => {
 		const t = await createPublicLink('demo', null, 'reader', jon);
 		expect(t).toMatch(/^[A-Za-z0-9_-]{43}$/);
 		expect(db().prepare('SELECT token_hash FROM public_links').get()).toEqual({ token_hash: hashToken(t) });
+		// Only its last 4 characters, so an owner can tell which row a leaked URL is.
+		expect(publicLinks('demo', jon)[0].hint).toBe(t.slice(-4));
 		const tables = db().prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[];
 		for (const { name } of tables)
 			expect(JSON.stringify(db().prepare(`SELECT * FROM "${name}"`).all())).not.toContain(t);
@@ -135,7 +137,7 @@ describe('public links', () => {
 		revokePublicLink('demo', id, jon);
 		expect(sharedScope(t)?.signupRole).toBeNull();
 		expect(publicLinks('other', jon)).toEqual([
-			{ id, path: null, signupRole: null, createdBy: 'Jon', createdAt: expect.any(String) }
+			{ id, path: null, signupRole: null, createdBy: 'Jon', createdAt: expect.any(String), hint: expect.any(String) }
 		]);
 	});
 

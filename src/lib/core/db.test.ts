@@ -51,7 +51,7 @@ describe('db', () => {
 		expect(names()).toEqual(TABLES);
 		closeDb();
 		expect(names()).toEqual(TABLES); // second open: no error, no duplicate
-		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: 3 });
+		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: MIGRATIONS.length });
 	});
 
 	it('enforces foreign keys and roles', () => {

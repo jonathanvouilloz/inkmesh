@@ -11,7 +11,7 @@
 	let revokeDialog = $state<HTMLDialogElement>()!;
 	let linksHeading = $state<HTMLHeadingElement>();
 	let opener: HTMLElement | undefined;
-	let revoking = $state<number>();
+	let revoking = $state<{ id: number; name: string }>();
 
 	async function copy(id: string, link: string) {
 		try {
@@ -28,9 +28,9 @@
 	}
 
 	// Without JavaScript the row's form revokes at once; with it, the dialog asks first.
-	function confirmRevoke(e: MouseEvent, id: number) {
+	function confirmRevoke(e: MouseEvent, id: number, name: string) {
 		e.preventDefault();
-		[revoking, opener] = [id, e.currentTarget as HTMLElement];
+		[revoking, opener] = [{ id, name }, e.currentTarget as HTMLElement];
 		revokeDialog.showModal();
 	}
 </script>
@@ -137,7 +137,7 @@
 		<h2 id="public-links" tabindex="-1" bind:this={linksHeading}>{t('share.title', locale)}</h2>
 		<p>{t('share.intro', locale)}</p>
 		{#if data.publicLinks.length}
-			<table aria-labelledby="public-links">
+			<table class="links" aria-labelledby="public-links">
 				<thead>
 					<tr>
 						<th>{t('share.scope', locale)}</th>
@@ -149,14 +149,17 @@
 				<tbody>
 					{#each data.publicLinks as l (l.id)}
 						{@const scope = l.path ?? t('share.workspace', locale)}
+						<!-- The token's last characters tell apart links to the same scope, and match the URL's end. -->
+						{@const name = l.hint ? `${scope} …${l.hint}` : scope}
 						<tr>
 							<td>
 								{#if l.path}<span class="mono path">{l.path}</span>{:else}{scope}{/if}
+								{#if l.hint}<span class="mono hint">…{l.hint}</span>{/if}
 							</td>
 							<td>
 								<form class="row" method="POST" action="?/shareSignup#public-links">
 									<input type="hidden" name="id" value={l.id} />
-									<select name="signup" aria-label="{t('share.signup', locale)}, {scope}">
+									<select name="signup" aria-label="{t('share.signup', locale)}, {name}">
 										{@render signups(l.signupRole ?? '')}
 									</select>
 									<button>{t('members.save', locale)}</button>
@@ -169,7 +172,9 @@
 							<td class="end">
 								<form method="POST" action="?/shareRevoke#public-links">
 									<input type="hidden" name="id" value={l.id} />
-									<button aria-label="{t('share.revoke', locale)}, {scope}" onclick={(e) => confirmRevoke(e, l.id)}
+									<button
+										aria-label="{t('share.revoke', locale)}, {name}"
+										onclick={(e) => confirmRevoke(e, l.id, name)}
 										>{t('share.revoke', locale)}</button
 									>
 								</form>
@@ -242,8 +247,8 @@
 >
 	<form method="POST" action="?/shareRevoke#public-links">
 		<h2 id="revoke-title">{t('share.revoke', locale)}</h2>
-		<input type="hidden" name="id" value={revoking} />
-		<p>{t('share.revokeConfirm', locale)}</p>
+		<input type="hidden" name="id" value={revoking?.id} />
+		<p>{t('share.revokeConfirm', locale, { link: revoking?.name ?? '' })}</p>
 		<div class="buttons">
 			<button>{t('share.revoke', locale)}</button>
 			<!-- Keeping is the safe answer, so it takes the focus. -->
@@ -370,6 +375,17 @@
 	.path {
 		overflow-wrap: anywhere;
 	}
+	.hint {
+		color: var(--muted);
+		white-space: nowrap;
+	}
+	/* The scope column takes the slack, so Save stays beside its select. */
+	.links td:first-child {
+		width: 100%;
+	}
+	.links td .row {
+		flex-wrap: nowrap;
+	}
 	.share {
 		flex-wrap: wrap;
 	}
@@ -422,6 +438,27 @@
 		/* Phones keep what a link covers, its sign-up and Revoke; who created it is the one to go. */
 		.created {
 			display: none;
+		}
+		/* Each link in two lines: what it covers, then its sign-up and Revoke. */
+		.links,
+		.links tbody {
+			display: block;
+		}
+		.links thead {
+			display: none;
+		}
+		.links tr {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			column-gap: 8px;
+			border-bottom: 1px solid var(--hairline);
+		}
+		.links td {
+			border: 0;
+		}
+		.links td:first-child {
+			grid-column: 1 / -1;
+			width: auto;
 		}
 	}
 </style>

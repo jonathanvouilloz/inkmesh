@@ -18,6 +18,8 @@ export type PublicLink = {
 	signupRole: SignupRole | null;
 	createdBy: string | null;
 	createdAt: string;
+	/** The token's last 4 characters (null for links made before they were kept). */
+	hint: string | null;
 };
 export type SharedScope = { workspace: Workspace; path: string | null; signupRole: SignupRole | null };
 
@@ -40,9 +42,9 @@ export async function createPublicLink(
 	const token = newToken();
 	db()
 		.prepare(
-			'INSERT INTO public_links (token_hash, workspace, path, signup_role, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+			'INSERT INTO public_links (token_hash, workspace, path, signup_role, created_by, created_at, hint) VALUES (?, ?, ?, ?, ?, ?, ?)'
 		)
-		.run(hashToken(token), slug, path, signupRole, actor.id, new Date().toISOString());
+		.run(hashToken(token), slug, path, signupRole, actor.id, new Date().toISOString(), token.slice(-4));
 	return token;
 }
 
@@ -50,7 +52,7 @@ export function publicLinks(slug: string, actor: Actor): PublicLink[] {
 	assertRole(slug, actor, 'owner');
 	return db()
 		.prepare(
-			`SELECT l.id, l.path, l.signup_role AS signupRole, u.name AS createdBy, l.created_at AS createdAt
+			`SELECT l.id, l.path, l.signup_role AS signupRole, u.name AS createdBy, l.created_at AS createdAt, l.hint
 			 FROM public_links l LEFT JOIN users u ON u.id = l.created_by WHERE l.workspace = ? ORDER BY l.id`
 		)
 		.all(slug) as PublicLink[];

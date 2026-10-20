@@ -227,7 +227,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'share.link': 'Lien public',
 	'share.once': 'Ce lien ne sera plus affiché : copiez-le maintenant.',
 	'share.revoke': 'Révoquer',
-	'share.revokeConfirm': 'Révoquer ce lien ? Les visiteurs perdent l’accès immédiatement.',
+	'share.revokeConfirm': 'Révoquer le lien « {link} » ? Les visiteurs perdent l’accès immédiatement.',
 	'share.empty': 'Aucun lien public.',
 	'public.download': 'Télécharger',
 	'public.edit': 'Modifier',

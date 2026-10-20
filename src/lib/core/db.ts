@@ -71,6 +71,11 @@ CREATE TABLE inbox_cursors (user_id INTEGER PRIMARY KEY REFERENCES users ON DELE
 CREATE VIRTUAL TABLE search_index USING fts5(workspace UNINDEXED, path UNINDEXED, title, body,
   tokenize = 'unicode61 remove_diacritics 2');
 `
+	},
+	{
+		id: '004-link-hint',
+		// The token's last 4 characters, so an owner can tell which row a URL is; null for older links.
+		sql: 'ALTER TABLE public_links ADD COLUMN hint TEXT;'
 	}
 ];
 
