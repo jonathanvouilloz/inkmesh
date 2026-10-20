@@ -114,12 +114,17 @@
 		border-collapse: collapse;
 		font-variant-numeric: tabular-nums;
 	}
+	/* The editor's table: a hairline grid and a panel-toned header row. */
 	.rendered :global(:is(th, td)) {
-		padding: 6px 12px 6px 0;
-		border-bottom: 1px solid var(--hairline);
+		padding: 6px 12px;
+		border: 1px solid var(--hairline);
+	}
+	/* A column's Markdown alignment arrives as an align attribute, which any text-align would override. */
+	.rendered :global(:is(th, td):not([align])) {
 		text-align: left;
 	}
 	.rendered :global(th) {
+		background: var(--panel);
 		font-weight: 600;
 		white-space: nowrap;
 	}

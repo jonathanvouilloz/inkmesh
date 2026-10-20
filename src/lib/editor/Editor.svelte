@@ -200,12 +200,27 @@
 			overflow-x: auto;
 		}
 	}
+	/* Crepe draws the grid at 20% of the hairline and its handles in the hairline: both vanish on our ground. */
 	.rich :global(.milkdown .milkdown-table-block :is(th, td)) {
+		border-color: var(--hairline);
 		overflow-wrap: normal;
 		font-variant-numeric: tabular-nums;
 	}
 	.rich :global(.milkdown .milkdown-table-block th) {
+		background: var(--panel);
+		font-weight: 600;
 		white-space: nowrap;
+	}
+	.rich :global(.milkdown .milkdown-table-block svg) {
+		fill: var(--muted);
+	}
+	.rich :global(.milkdown .milkdown-table-block .cell-handle),
+	.rich :global(.milkdown .milkdown-table-block .cell-handle .button-group) {
+		border: 1px solid var(--hairline);
+		background-color: var(--panel);
+	}
+	.rich :global(.milkdown .milkdown-table-block .cell-handle .button-group button:hover) {
+		background-color: var(--hairline);
 	}
 	/* Desktop has no table scroll: a long unbroken cell value wraps rather than overflow its column. */
 	@media (min-width: 768px) {
