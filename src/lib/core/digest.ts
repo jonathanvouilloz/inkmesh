@@ -62,7 +62,10 @@ export function stopDigest(token: string): boolean {
 	return true;
 }
 
-/** Idempotent per slot: only users not sent since the slot, only events up to it; a failed send changes nothing. */
+/**
+ * Idempotent per slot: only users not sent since the slot, only events up to it; a failed send changes nothing.
+ * At least once: a crash between the send and the UPDATE below sends that digest again on the next start.
+ */
 export async function runDigests(slot: Date): Promise<number> {
 	const until = slot.toISOString();
 	const users = db()

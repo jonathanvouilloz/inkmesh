@@ -142,9 +142,10 @@ export function digestMail(
 	locale: Locale
 ): Mail {
 	const lines = items.map((e) => {
-		const author = e.agent ? `${e.author} via ${e.agent}` : e.author;
+		const author = e.agent ? `${e.author} ${t('rail.via', locale)} ${e.agent}` : e.author;
 		const vars = { author, path: e.path, from: e.from ?? '', workspace: e.workspaceName };
-		return `${t(`inbox.${e.type}`, locale, vars)} · ${e.workspaceName}`;
+		const line = t(`inbox.${e.type}`, locale, vars);
+		return e.type === 'join' ? line : `${line} · ${e.workspaceName}`;
 	});
 	const more = total - items.length;
 	if (more > 0) lines.push(t('mail.digestMore', locale, { count: String(more) }));

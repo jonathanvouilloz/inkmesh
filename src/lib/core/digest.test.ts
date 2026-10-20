@@ -97,6 +97,8 @@ describe('digest', () => {
 
 	it('sends one digest with the day’s events', async () => {
 		setDigest(jon.id, true, 'fr');
+		at(-3 * HOUR);
+		appendEvent('demo', ann, { type: 'join', path: '' });
 		at(-2 * HOUR);
 		appendEvent('demo', ann, { type: 'update', path: 'a.md' });
 		at(-HOUR);
@@ -106,9 +108,10 @@ describe('digest', () => {
 		expect(outbox).toHaveLength(1);
 		const [m] = outbox;
 		expect(m.to).toBe('jon@example.ch');
-		expect(m.subject).toBe('inkmesh : 2 changements dans vos espaces');
+		expect(m.subject).toBe('inkmesh : 3 changements dans vos espaces');
 		const lines = m.text.split('\n');
-		expect(lines.slice(2, 4)).toEqual(['Ann a commenté a.md · Demo', 'Ann a modifié a.md · Demo']);
+		// A join names its workspace already.
+		expect(lines.slice(2, 5)).toEqual(['Ann a commenté a.md · Demo', 'Ann a modifié a.md · Demo', 'Ann a rejoint Demo']);
 		expect(m.text).toContain('https://inkmesh.example/inbox');
 		const unsubscribe = m.headers!['List-Unsubscribe'];
 		expect(unsubscribe).toMatch(new RegExp(`^<https://inkmesh\\.example/unsubscribe/${jon.id}\\.`));
