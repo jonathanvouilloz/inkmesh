@@ -1,6 +1,12 @@
 import { error, fail } from '@sveltejs/kit';
-import { UNSAFE_NAME } from '#lib/core/agents.ts';
-import { changePassword, loginAllowed, loginFailed, loginSucceeded, updateName } from '#lib/core/accounts.ts';
+import {
+	changePassword,
+	loginAllowed,
+	loginFailed,
+	loginSucceeded,
+	updateName,
+	validUserName
+} from '#lib/core/accounts.ts';
 import { startSession } from '#lib/server/session.ts';
 import type { Actions } from './$types';
 
@@ -10,9 +16,8 @@ export const actions: Actions = {
 	// Actions run before the (app) layout, so each one checks the session itself.
 	rename: async ({ request, locals }) => {
 		if (!locals.user) error(401);
-		const name = (await request.formData()).get('name');
-		const trimmed = typeof name === 'string' ? name.trim() : '';
-		if (!trimmed || trimmed.length > 80 || UNSAFE_NAME.test(trimmed)) return fail(400, { error: 'account.nameBad' as const });
+		const trimmed = validUserName((await request.formData()).get('name'));
+		if (!trimmed) return fail(400, { error: 'account.nameBad' as const });
 		updateName(locals.user.id, trimmed);
 		// The layout load runs in this same request, after the action, on the user read at its start.
 		locals.user = { ...locals.user, name: trimmed };

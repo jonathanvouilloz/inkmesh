@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { hashToken, newToken } from './accounts.ts';
-import { agentName, assertNameFree, newAgentToken, UNSAFE_NAME } from './agents.ts';
+import { hashToken, newToken, UNSAFE_NAME } from './accounts.ts';
+import { agentName, assertNameFree, newAgentToken } from './agents.ts';
 import { db, transaction } from './db.ts';
 
 type OAuthErrorCode =

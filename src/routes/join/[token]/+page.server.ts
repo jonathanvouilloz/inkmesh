@@ -1,6 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { hashPassword, loginAllowed, loginFailed, userByEmail } from '#lib/core/accounts.ts';
-import { UNSAFE_NAME } from '#lib/core/agents.ts';
+import { hashPassword, loginAllowed, loginFailed, userByEmail, validUserName } from '#lib/core/accounts.ts';
 import { Conflict } from '#lib/core/paths.ts';
 import { joinByLink, joinByLinkAsNewUser, sharedScope } from '#lib/core/publicLinks.ts';
 import { startSession } from '#lib/server/session.ts';
@@ -49,8 +48,8 @@ export const actions: Actions = {
 			password.length > MAX
 		)
 			error(400);
-		const trimmed = name.trim();
-		if (!trimmed || trimmed.length > 80 || UNSAFE_NAME.test(trimmed)) error(400);
+		const trimmed = validUserName(name);
+		if (!trimmed) error(400);
 		if (!link(params.token)) return fail(410, { error: 'join.closed' as const });
 		const address = email.trim();
 		if (!address.includes('@') || address.length > 254)

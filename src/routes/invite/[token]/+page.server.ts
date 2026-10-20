@@ -1,7 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { acceptInvitation, acceptInvitationAsNewUser, invitation } from '#lib/core/access.ts';
-import { hashPassword, userByEmail } from '#lib/core/accounts.ts';
-import { UNSAFE_NAME } from '#lib/core/agents.ts';
+import { hashPassword, userByEmail, validUserName } from '#lib/core/accounts.ts';
 import { Conflict } from '#lib/core/paths.ts';
 import { startSession } from '#lib/server/session.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -43,8 +42,8 @@ export const actions: Actions = {
 			password.length > MAX
 		)
 			error(400);
-		const trimmed = name.trim();
-		if (!trimmed || trimmed.length > 80 || UNSAFE_NAME.test(trimmed)) error(400);
+		const trimmed = validUserName(name);
+		if (!trimmed) error(400);
 		// Checked before scrypt and before using the token, so a refused signup keeps the invitation.
 		if (!invitation(params.token)) return fail(410, { error: 'invite.invalid' as const });
 		const address = email.trim();

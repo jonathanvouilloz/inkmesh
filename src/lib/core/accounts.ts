@@ -91,6 +91,15 @@ export async function authenticate(email: string, password: string): Promise<Use
 	return row && ok ? userById(row.id) : null;
 }
 
+// No markup and no control character: names land in git authors and comment headings.
+export const UNSAFE_NAME = /[<>\x00-\x1f\x7f]/;
+
+/** The trimmed user name, or null when it is empty, longer than 80 characters or unsafe. */
+export function validUserName(name: unknown): string | null {
+	const trimmed = typeof name === 'string' ? name.trim() : '';
+	return trimmed && trimmed.length <= 80 && !UNSAFE_NAME.test(trimmed) ? trimmed : null;
+}
+
 export function updateName(id: number, name: string): void {
 	db().prepare('UPDATE users SET name = ? WHERE id = ?').run(name, id);
 }

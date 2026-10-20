@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { NameTaken, UNSAFE_NAME } from '#lib/core/agents.ts';
+import { UNSAFE_NAME } from '#lib/core/accounts.ts';
+import { NameTaken } from '#lib/core/agents.ts';
 import { issueCode, oauthClient, redirectAllowed, type OAuthClient } from '#lib/core/oauth.ts';
 import type { Actions, PageServerLoad } from './$types';
 
