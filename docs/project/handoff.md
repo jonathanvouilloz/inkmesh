@@ -16,22 +16,6 @@ All six milestones of the roadmap are merged into `main` and deployed (M6 on 202
 
 ## Owner actions (Jon)
 - Choose an SMTP provider and, once `inkmesh.ch` exists (phase B of `docs/deploy.md`), set `SMTP_URL`, `MAIL_FROM` and `INKMESH_URL` in `~/.config/inkmesh/env`. Email stays off in production until then. Sending a real email needs his approval.
-- Check the Docker image, which nobody has built yet (hermes is not in the `docker` group). Either run, from the repo root as a user in that group:
-  ```sh
-  docker build -t inkmesh:m6-check .
-  cp deploy/docker.env.example /tmp/inkmesh-m6-check.env
-  docker run -d --name inkmesh-m6-check --env-file /tmp/inkmesh-m6-check.env -v inkmesh-m6-check:/data -p 127.0.0.1:3999:3000 inkmesh:m6-check
-  for i in $(seq 1 12); do s=$(docker inspect -f '{{.State.Health.Status}}' inkmesh-m6-check); echo "$s"; [ "$s" = healthy ] && break; sleep 5; done   # healthy within 60 s
-  curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3999/login     # 200
-  docker exec inkmesh-m6-check id -u                                        # 1000
-  docker exec inkmesh-m6-check git --version                                # git version 2.x
-  printf 'long enough 1\n' | docker exec -i inkmesh-m6-check npm run admin -- create-admin a@example.ch "Admin"   # Created admin
-  docker logs inkmesh-m6-check                                              # contains "email: off"
-  docker image ls inkmesh:m6-check --format '{{.Size}}'                     # note the size
-  cp deploy/docker.env.example inkmesh.env && docker compose config -q && rm inkmesh.env   # exit 0
-  docker rm -f inkmesh-m6-check && docker volume rm inkmesh-m6-check && docker rmi inkmesh:m6-check && rm /tmp/inkmesh-m6-check.env
-  ```
-  or add `hermes` to the `docker` group so an agent can run it (root-equivalent on the VPS: his call).
 - Test the real clients from the Connect page (Claude web connector, Claude Code `claude mcp add`, ChatGPT developer mode, Cursor `mcp.json`): connected, consent shows the right host, `list_workspaces`, `create_document`, `search` and `add_comment` work, commits read "Jon via <agent>". Fix any recipe wording that no longer matches the vendor menus.
 - Publish the repository and replace the `git clone <this repository>` placeholder in `README.md`.
 - Rename the dev folder when no session runs in it; register `inkmesh.ch` (phase B).

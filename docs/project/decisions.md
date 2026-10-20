@@ -261,7 +261,7 @@
 - Reopen if: a public page gains a POST form.
 
 ## 2026-10-20 — Docker image behind an HTTPS proxy; systemd stays the VPS reference
-- Choice: a multi-stage `node:24-bookworm-slim` image with git, running as `node` (uid 1000), one `/data` volume, a healthcheck on `/login`; `compose.yaml` publishes on loopback only and reads `inkmesh.env`. The example sets `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`, so a proxy is required: it must append or overwrite `X-Forwarded-For`, and a request straight to the port without that header answers 500. The image build and run are unverified until the owner runs them (hermes has no Docker access).
+- Choice: a multi-stage `node:24-bookworm-slim` image with git, running as `node` (uid 1000), one `/data` volume, a healthcheck on `/login`; `compose.yaml` publishes on loopback only and reads `inkmesh.env`. The example sets `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`, so a proxy is required: it must append or overwrite `X-Forwarded-For`, and a request straight to the port without that header answers 500. Verified by the owner on 2026-10-20: build, healthy within 60 s, `/login` 200, uid 1000, git 2.39, `create-admin`, `email: off`, `compose config` valid; image 711 MB.
 - Rejected: leaving `ADDRESS_HEADER` unset (behind a proxy every throttle would key on the proxy's IP); a plain-http trial on port 3000 (the `Secure` cookie and the origin check need HTTPS).
 - Why: other installers get a one-command start; this VPS keeps the systemd deploy it already runs.
 - Reopen if: the owner's Docker check fails, or the VPS moves to containers.
