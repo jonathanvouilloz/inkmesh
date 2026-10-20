@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import Header from '#lib/ui/Header.svelte';
 	import type { PageProps } from './$types';
@@ -10,6 +11,12 @@
 	let slug = $state(untrack(() => form?.slug ?? ''));
 	// The slug follows the name until the user types in it.
 	let slugEdited = $state(untrack(() => !!form?.slug));
+	// The switcher's "New workspace" item lands on /?new: open the form and put the cursor in it.
+	const opened = $derived(page.url.searchParams.has('new'));
+	let nameInput = $state<HTMLInputElement>();
+	$effect(() => {
+		if (opened) nameInput?.focus();
+	});
 	const suggest = (s: string) =>
 		s
 			.normalize('NFD')
@@ -40,7 +47,7 @@
 	{/if}
 
 	{#if data.user.admin}
-		<details class="new" open={!!form?.createError}>
+		<details class="new" open={!!form?.createError || opened}>
 			<summary>{t('home.create', data.locale)}</summary>
 			<form method="POST" action="?/create">
 				<label>
@@ -52,6 +59,7 @@
 						aria-invalid={form?.createError === 'name' ? 'true' : undefined}
 						aria-describedby={form?.createError === 'name' ? 'create-error' : undefined}
 						bind:value={name}
+						bind:this={nameInput}
 						oninput={() => slugEdited || (slug = suggest(name))}
 					/>
 				</label>
@@ -80,7 +88,7 @@
 <style>
 	main {
 		box-sizing: content-box;
-		max-width: 72ch;
+		max-width: var(--page-width);
 		margin: 0 auto;
 		padding: 32px;
 		display: flex;
@@ -138,10 +146,20 @@
 		font-weight: 500;
 		cursor: pointer;
 	}
-	summary {
-		list-style: none;
+	summary,
+	form button {
+		border: 1px solid var(--accent);
 		background: var(--accent);
 		color: #fff;
+	}
+	summary {
+		list-style: none;
+	}
+	/* Open, the form's own submit is the one primary; the summary steps back. */
+	details[open] summary {
+		border-color: var(--hairline);
+		background: var(--ground);
+		color: var(--ink);
 	}
 	summary::-webkit-details-marker {
 		display: none;
@@ -170,9 +188,6 @@
 	}
 	form button {
 		align-self: flex-start;
-		border: 1px solid var(--hairline);
-		background: var(--ground);
-		color: var(--ink);
 	}
 	.error {
 		margin: 0;

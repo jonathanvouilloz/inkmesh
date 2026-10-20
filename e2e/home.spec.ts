@@ -28,6 +28,16 @@ test('an admin creates a workspace and lands in it', async ({ page }) => {
 	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeHidden();
 });
 
+test('the switcher leads an admin to the open create form', async ({ page }) => {
+	await page.goto('/demo');
+	const header = page.getByRole('banner');
+	await header.getByText('Demo', { exact: true }).click();
+	await header.getByRole('link', { name: 'New workspace' }).click();
+	await expect(page).toHaveURL(/\/\?new$/);
+	await expect(page.getByLabel('Name')).toBeFocused();
+	await expect(page.getByLabel('Slug')).toBeVisible();
+});
+
 test('a bad slug is refused inline', async ({ page }) => {
 	await page.goto('/');
 	await page.getByText('New workspace', { exact: true }).click();
@@ -52,4 +62,22 @@ test('the rail links to members, the user menu to account, the wordmark home', a
 	await expect(header.getByRole('link', { name: 'Account' })).toBeHidden();
 	await header.getByRole('link', { name: 'inkmesh' }).click();
 	await expect(page).toHaveURL(/\/$/);
+});
+
+test.describe('Phone', () => {
+	test.use({ viewport: { width: 390, height: 844 } });
+
+	test('the open switcher fits the viewport and creates a workspace', async ({ page }) => {
+		await page.goto('/demo');
+		const header = page.getByRole('banner');
+		await header.getByText('Demo', { exact: true }).click();
+		const create = header.getByRole('link', { name: 'New workspace' });
+		await expect(create).toBeInViewport({ ratio: 1 });
+		const box = (await header.getByRole('list').first().boundingBox())!;
+		expect(box.x).toBeGreaterThanOrEqual(0);
+		expect(box.x + box.width).toBeLessThanOrEqual(390);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+		await create.click();
+		await expect(page).toHaveURL(/\/\?new$/);
+	});
 });

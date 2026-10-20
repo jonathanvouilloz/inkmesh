@@ -20,9 +20,12 @@ test('an owner creates, changes and revokes public links', async ({ page }) => {
 	await expect(page).toHaveURL(/\/demo\/members\?share=.+#public-links$/);
 	await expect(page.getByLabel('Covers')).toHaveValue(doc);
 	await page.getByRole('button', { name: 'Create public link' }).click();
-	const url = page.getByRole('textbox', { name: 'Public link', exact: true });
+	const url = page.getByRole('region', { name: 'New public link' }).getByRole('textbox', { name: 'Public link', exact: true });
 	await expect(url).toHaveValue(/^http:\/\/localhost:4173\/s\/[\w-]{43}$/);
 	await expect(url).toBeFocused();
+	await expect(page.getByText('Read without an account; sign-up optional')).toBeVisible();
+	// The row the link added is the one lit.
+	await expect(section(page).locator('tr.new')).toHaveText(new RegExp(doc));
 	await expect(page.getByText('This link will not be shown again: copy it now.')).toBeVisible();
 	const token = (await url.inputValue()).split('/').pop()!;
 

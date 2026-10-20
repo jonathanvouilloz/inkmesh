@@ -53,7 +53,8 @@ describe('db', () => {
 		expect(names()).toEqual(TABLES);
 		closeDb();
 		expect(names()).toEqual(TABLES); // second open: no error, no duplicate
-		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: 5 });
+		expect(db().prepare('select count(*) as n from migrations').get()).toEqual({ n: 6 });
+		expect(db().prepare('PRAGMA table_info(invitations)').all().map((c) => c.name)).toContain('email');
 		const columns = db().prepare('PRAGMA table_info(users)').all().map((c) => c.name);
 		expect(columns).toEqual(expect.arrayContaining(['locale', 'digest', 'digest_last_id', 'digest_sent_at']));
 		const { key } = db().prepare("SELECT key FROM instance_keys WHERE name = 'unsubscribe'").get() as {

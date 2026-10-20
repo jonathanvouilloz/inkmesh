@@ -75,6 +75,9 @@
 						>
 					</li>
 				{/each}
+				{#if user.admin}
+					<li class="new"><a href="/?new"><span aria-hidden="true">+</span> {t('home.create', locale)}</a></li>
+				{/if}
 			</ul>
 		</details>
 		{#if search}
@@ -237,6 +240,12 @@
 		color: var(--accent);
 		font-weight: 500;
 	}
+	/* Creating sits apart from the list it would add to. */
+	.new {
+		margin-top: 4px;
+		padding-top: 4px;
+		border-top: 1px solid var(--hairline);
+	}
 	.slug {
 		display: block;
 		color: var(--muted);
@@ -297,8 +306,20 @@
 			display: none;
 		}
 		header {
+			position: relative;
 			gap: 8px;
 			padding: 0 12px;
+		}
+		/* The switcher spans the bar, inside the viewport, whatever its trigger's position. */
+		details:not(.user) {
+			position: static;
+		}
+		details:not(.user) ul {
+			left: 12px;
+			right: 12px;
+			min-width: 0;
+			white-space: normal;
+			overflow-wrap: anywhere;
 		}
 		nav {
 			gap: 8px;

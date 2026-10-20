@@ -208,7 +208,7 @@
 <style>
 	section {
 		box-sizing: content-box;
-		max-width: 72ch;
+		max-width: var(--page-width);
 		margin: 0 auto;
 		padding: 32px;
 		display: flex;

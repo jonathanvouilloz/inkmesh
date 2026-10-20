@@ -313,7 +313,7 @@
 	}
 	article {
 		box-sizing: content-box;
-		max-width: 72ch;
+		max-width: var(--doc-width);
 		margin: 0 auto;
 		padding: 32px;
 		font-size: 16.5px;

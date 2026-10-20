@@ -6,13 +6,16 @@
 		locale,
 		signedIn,
 		joinLabel,
-		form
+		form,
+		email
 	}: {
 		locale: Locale;
 		signedIn: boolean;
 		joinLabel: string;
 		/** The sign-up action's failure, so a refused sign-up keeps its name and email. */
 		form?: { error?: string; name?: string; email?: string } | null;
+		/** The address an invitation was mailed to; editable, and a failed submit keeps what was typed. */
+		email?: string | null;
 	} = $props();
 
 	const fieldError = $derived(
@@ -44,7 +47,7 @@
 				type="email"
 				autocomplete="email"
 				required
-				defaultValue={form?.email ?? ''}
+				defaultValue={form?.email ?? email ?? ''}
 				aria-invalid={fieldError === 'email' ? 'true' : undefined}
 				aria-describedby={fieldError === 'email' ? 'signup-error' : undefined}
 			/>

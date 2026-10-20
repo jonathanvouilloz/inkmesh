@@ -7,6 +7,9 @@
 	const locale = $derived(data.locale);
 	const owner = $derived(data.role === 'owner');
 	const lastOwner = $derived(data.members.filter((m) => m.role === 'owner').length === 1);
+	const removable = (role: string) => !(lastOwner && role === 'owner');
+	// No Remove anywhere (a lone owner): no empty actions column, so Save ends at the table's edge.
+	const actions = $derived(owner && data.members.some((m) => removable(m.role)));
 	let copied = $state('');
 	let revokeDialog = $state<HTMLDialogElement>()!;
 	let linksHeading = $state<HTMLHeadingElement>();
@@ -52,14 +55,14 @@
 			<tr>
 				<th>{t('invite.name', locale)}</th>
 				<th>{t('members.role', locale)}</th>
-				{#if owner}<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>{/if}
+				{#if actions}<th class="end"><span class="visually-hidden">{t('table.actions', locale)}</span></th>{/if}
 			</tr>
 		</thead>
 		<tbody>
 			{#each data.members as m (m.user.id)}
 				<tr>
 					<td>{m.user.name}<span class="mono email">{m.user.email}</span></td>
-					<td>
+					<td class="role">
 						{#if owner}
 							<form class="row" method="POST" action="?/setRole">
 								<input type="hidden" name="userId" value={m.user.id} />
@@ -68,18 +71,18 @@
 										<option value={r} selected={r === m.role}>{t(`role.${r}`, locale)}</option>
 									{/each}
 								</select>
-								<button>{t('members.save', locale)}</button>
+								<button aria-label="{t('members.save', locale)}, {m.user.name}">{t('members.save', locale)}</button>
 							</form>
 						{:else}
 							{t(`role.${m.role}`, locale)}
 						{/if}
 					</td>
-					{#if owner}
+					{#if actions}
 						<td class="end">
-							{#if !(lastOwner && m.role === 'owner')}
+							{#if removable(m.role)}
 								<form method="POST" action="?/remove">
 									<input type="hidden" name="userId" value={m.user.id} />
-									<button>{t('members.remove', locale)}</button>
+									<button aria-label="{t('members.remove', locale)}, {m.user.name}">{t('members.remove', locale)}</button>
 								</form>
 							{/if}
 						</td>
@@ -89,41 +92,11 @@
 		</tbody>
 	</table>
 
-	{#if data.pending.length}
-		<h2 id="pending">{t('members.pending', locale)}</h2>
-		<table aria-labelledby="pending">
-			<thead>
-				<tr>
-					<th>{t('members.role', locale)}</th>
-					<th>{t('members.by', locale)}</th>
-					<th>{t('members.expires', locale)}</th>
-					<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each data.pending as p (p.id)}
-					<tr>
-						<td>{t(`role.${p.role}`, locale)}</td>
-						<td>{p.createdBy}</td>
-						<td class="mono">
-							<time datetime={p.expiresAt} title={p.expiresAt}>{ago(p.expiresAt, locale)}</time>
-						</td>
-						<td class="end">
-							{#if p.canRevoke}
-								<form method="POST" action="?/revoke">
-									<input type="hidden" name="id" value={p.id} />
-									<button>{t('members.revoke', locale)}</button>
-								</form>
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	{/if}
-
 	<!-- The fragment brings the answer back into view, on a phone too. -->
-	<h2 id="invite">{t('members.invite', locale)}</h2>
+	<hgroup>
+		<h2 id="invite">{t('members.invite', locale)}</h2>
+		<p>{t('members.inviteIntro', locale)}</p>
+	</hgroup>
 	<form class="invite" method="POST" action="?/invite#invite">
 		<label>
 			{t('members.newRole', locale)}
@@ -163,9 +136,69 @@
 		<p id="invite-mail" class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
 	{/if}
 
+	{#if data.pending.length}
+		<h2 id="pending">{t('members.pending', locale)}</h2>
+		<table aria-labelledby="pending">
+			<thead>
+				<tr>
+					<th>{t('members.role', locale)}</th>
+					<th>{t('members.by', locale)}</th>
+					<th>{t('members.expires', locale)}</th>
+					<th class="end"><span class="visually-hidden">{t('table.actions', locale)}</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data.pending as p (p.id)}
+					<tr class:new={p.id === form?.invited}>
+						<td>{t(`role.${p.role}`, locale)}{#if p.email}<span class="mono email">{p.email}</span>{/if}</td>
+						<td>{p.createdBy}</td>
+						<td class="mono">
+							<time datetime={p.expiresAt} title={p.expiresAt}>{ago(p.expiresAt, locale)}</time>
+						</td>
+						<td class="end">
+							{#if p.canRevoke}
+								<form method="POST" action="?/revoke">
+									<input type="hidden" name="id" value={p.id} />
+									<button
+										aria-label="{t('members.revoke', locale)}, {t(`role.${p.role}`, locale)}, {p.email ??
+											ago(p.expiresAt, locale)}">{t('members.revoke', locale)}</button
+									>
+								</form>
+							{/if}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
+
 	{#if data.publicLinks}
-		<h2 id="public-links" tabindex="-1" bind:this={linksHeading}>{t('share.title', locale)}</h2>
-		<p>{t('share.intro', locale)}</p>
+		<hgroup>
+			<h2 id="public-links" tabindex="-1" bind:this={linksHeading}>{t('share.title', locale)}</h2>
+			<p>{t('share.intro', locale)}</p>
+		</hgroup>
+		<form class="invite" method="POST" action="?/shareCreate#public-links">
+			<label class="scope">
+				{t('share.scope', locale)}
+				<select name="scope">
+					<option value="">{t('share.workspace', locale)}</option>
+					{#each data.documents as d (d)}
+						<option value={d} selected={d === data.share}>{d}</option>
+					{/each}
+				</select>
+			</label>
+			<label>
+				{t('share.signup', locale)}
+				<select name="signup">{@render signups('')}</select>
+			</label>
+			<button>{t('share.create', locale)}</button>
+		</form>
+		{#if form?.shareError}
+			<p class="error" role="alert">{t('error.notFound', locale)}</p>
+		{/if}
+		{#if form?.shareUrl}
+			{@render oneTime('share-link', form.shareUrl, 'share.once')}
+		{/if}
 		{#if data.publicLinks.length}
 			<table class="links" aria-labelledby="public-links">
 				<thead>
@@ -173,7 +206,7 @@
 						<th>{t('share.scope', locale)}</th>
 						<th>{t('share.signup', locale)}</th>
 						<th class="created">{t('members.by', locale)}</th>
-						<th><span class="visually-hidden">{t('table.actions', locale)}</span></th>
+						<th class="end"><span class="visually-hidden">{t('table.actions', locale)}</span></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -181,7 +214,8 @@
 						{@const scope = l.path ?? t('share.workspace', locale)}
 						<!-- The token's last characters tell apart links to the same scope, and match the URL's end. -->
 						{@const name = l.hint ? `${scope}\u00a0…\u2060${l.hint}` : scope}
-						<tr>
+						<!-- The hint ends the new URL; four random characters, so a second match is unlikely and harmless. -->
+						<tr class:new={!!l.hint && !!form?.shareUrl?.endsWith(l.hint)}>
 							<td>
 								{#if l.path}<span class="mono path">{l.path}</span>{:else}{scope}{/if}
 								{#if l.hint}<span class="mono hint">…{l.hint}</span>{/if}
@@ -216,29 +250,6 @@
 		{:else}
 			<p>{t('share.empty', locale)}</p>
 		{/if}
-
-		<form class="invite" method="POST" action="?/shareCreate#public-links">
-			<label class="scope">
-				{t('share.scope', locale)}
-				<select name="scope" class="mono">
-					<option value="">{t('share.workspace', locale)}</option>
-					{#each data.documents as d (d)}
-						<option value={d} selected={d === data.share}>{d}</option>
-					{/each}
-				</select>
-			</label>
-			<label>
-				{t('share.signup', locale)}
-				<select name="signup">{@render signups('')}</select>
-			</label>
-			<button>{t('share.create', locale)}</button>
-		</form>
-		{#if form?.shareError}
-			<p class="error" role="alert">{t('error.notFound', locale)}</p>
-		{/if}
-		{#if form?.shareUrl}
-			{@render oneTime('share-link', form.shareUrl, 'share.once')}
-		{/if}
 	{/if}
 </div>
 
@@ -249,8 +260,11 @@
 {/snippet}
 
 {#snippet oneTime(id: string, link: string, once: 'members.once' | 'share.once')}
-	<div class="link">
-		<label for={id}>{t(id === 'invite-link' ? 'members.link' : 'share.link', locale)}</label>
+	{@const invite = id === 'invite-link'}
+	<section class="link" aria-labelledby="{id}-title">
+		<h3 id="{id}-title">{t(invite ? 'members.newLink' : 'share.new', locale)}</h3>
+		<!-- The title says it already; the label still names the input. -->
+		<label class="visually-hidden" for={id}>{t(invite ? 'members.link' : 'share.link', locale)}</label>
 		<span class="row">
 			<!-- Shown once: focus goes to it (after the #public-links fragment took it), so it is copied first. -->
 			<input
@@ -267,7 +281,7 @@
 			>
 		</span>
 		<p id="{id}-once">{t(once, locale)}</p>
-	</div>
+	</section>
 {/snippet}
 
 <dialog
@@ -291,7 +305,7 @@
 <style>
 	.page {
 		box-sizing: content-box;
-		max-width: 72ch;
+		max-width: var(--page-width);
 		margin: 0 auto;
 		padding: 32px;
 		display: flex;
@@ -300,14 +314,28 @@
 		font-size: 13px;
 	}
 	h1,
-	h2 {
+	h2,
+	h3 {
 		margin: 0;
 		font-size: 16px;
 		font-weight: 600;
 	}
-	h2 {
+	h2,
+	hgroup {
 		margin-top: 16px;
+	}
+	h2,
+	h3 {
 		font-size: 13px;
+	}
+	/* A section's one-line description sits under its heading, apart from what follows. */
+	hgroup {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	hgroup h2 {
+		margin-top: 0;
 	}
 	table {
 		width: 100%;
@@ -332,10 +360,49 @@
 	.email {
 		display: block;
 		color: var(--muted);
+		/* A long address breaks rather than widening the table past a phone. */
+		overflow-wrap: anywhere;
 	}
+	/* The first column takes the slack and alone wraps, so every row's controls sit together at the right. */
+	td:first-child {
+		width: 100%;
+	}
+	th,
+	td:not(:first-child) {
+		white-space: nowrap;
+	}
+	/* Every row's controls end at the table's right edge. */
+	th:last-child,
+	td:last-child {
+		padding-right: 0;
+	}
+	/* One actions column, as wide in every table, so Remove and Revoke line up. */
 	.end {
+		width: 96px;
 		padding-right: 0;
 		text-align: right;
+		white-space: nowrap;
+	}
+	/* The row a new link just added, lit for a few seconds; the bar, like the panel's rule, is the cue without colour vision. */
+	tr.new {
+		background: color-mix(in srgb, var(--accent), transparent 92%);
+	}
+	tr.new td:first-child {
+		padding-left: 8px;
+		box-shadow: inset 3px 0 var(--accent);
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		tr.new {
+			animation: lit 4s ease-out forwards;
+		}
+	}
+	@keyframes lit {
+		60% {
+			background: color-mix(in srgb, var(--accent), transparent 92%);
+		}
+		to {
+			background: transparent;
+		}
 	}
 	form {
 		margin: 0;
@@ -355,13 +422,6 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-	}
-	.link label {
-		font-weight: 600;
-	}
-	/* On a phone the role cell wraps its Save button rather than breaking the email. */
-	td .row {
-		flex-wrap: wrap;
 	}
 	.row input {
 		flex: 1;
@@ -387,10 +447,18 @@
 		font-weight: 500;
 		cursor: pointer;
 	}
+	/* The one-time link: told apart from the tables by the accent rule and ground. */
 	.link {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		padding: 12px 16px;
+		border-left: 3px solid var(--accent);
+		border-radius: 0 var(--radius) var(--radius) 0;
+		background: color-mix(in srgb, var(--accent), transparent 92%);
+	}
+	.link h3 {
+		margin-bottom: 4px;
 	}
 	p {
 		margin: 0;
@@ -415,13 +483,6 @@
 	.hint {
 		color: var(--muted);
 	}
-	/* The scope column takes the slack, so Save stays beside its select. */
-	.links td:first-child {
-		width: 100%;
-	}
-	.links td .row {
-		flex-wrap: nowrap;
-	}
 	.invite {
 		flex-wrap: wrap;
 	}
@@ -430,14 +491,16 @@
 		box-sizing: border-box;
 		height: 32px;
 	}
+	/* Create sits at the right edge, with or without the email field. */
+	.invite button {
+		margin-left: auto;
+	}
 	.scope,
 	.to {
 		flex: 1 1 240px;
 		min-width: 0;
 	}
-	select.mono {
-		font-family: var(--font-mono);
-		font-size: 12.5px;
+	.scope select {
 		text-overflow: ellipsis;
 	}
 	dialog {
@@ -476,6 +539,14 @@
 	@media (max-width: 767px) {
 		.page {
 			padding: 24px 16px;
+		}
+		/* A finger-sized target for every row action. */
+		td button {
+			min-height: 44px;
+		}
+		/* The role cell wraps its Save button rather than breaking the email. */
+		.role .row {
+			flex-wrap: wrap;
 		}
 		/* Phones keep what a link covers, its sign-up and Revoke; who created it is the one to go. */
 		.created {

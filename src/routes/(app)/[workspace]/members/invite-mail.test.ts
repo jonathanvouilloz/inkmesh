@@ -4,8 +4,9 @@ import path from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { acceptInvitation, createInvitation, createWorkspace, pendingInvitations } from '#lib/core/access.ts';
 import { createUser, loginSucceeded, type User } from '#lib/core/accounts.ts';
-import { closeDb, db } from '#lib/core/db.ts';
+import { closeDb } from '#lib/core/db.ts';
 import * as mail from '#lib/core/mail.ts';
+import { load as invitationLoad } from '../../../invite/[token]/+page.server.ts';
 import { actions, load } from './+page.server.ts';
 
 const VARS = { SMTP_URL: 'memory:', MAIL_FROM: 'inkmesh <noreply@inkmesh.local>', INKMESH_URL: 'https://inkmesh.example' };
@@ -47,11 +48,14 @@ async function invite(fields: Record<string, string>) {
 }
 
 const link = expect.stringMatching(/^http:\/\/evil\.example\/invite\/[\w-]{43}$/);
+// The new pending row's id, so the page can light that row.
+const invited = expect.stringMatching(/^[0-9a-f]{64}$/);
 const readerLinks = () => pendingInvitations('demo').filter((p) => p.role === 'reader').length;
 
 it('an editor emails an invitation', async () => {
 	const result = await invite({ email: ' ann@example.ch ' });
-	expect(result).toEqual({ link, mailed: 'ann@example.ch' });
+	expect(result).toEqual({ link, invited, mailed: 'ann@example.ch' });
+	expect(pendingInvitations('demo').map((p) => p.id)).toContain(result.invited);
 	expect(mail.outbox).toHaveLength(1);
 	const [sent] = mail.outbox;
 	expect(sent.to).toBe('ann@example.ch');
@@ -59,9 +63,19 @@ it('an editor emails an invitation', async () => {
 	expect(sent.text).toContain('https://inkmesh.example/invite/' + String(result.link).split('/').pop());
 	expect(sent.text).toContain('as reader');
 	expect(sent.text).not.toContain('evil.example');
-	const tables = db().prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[];
-	for (const { name } of tables)
-		expect(JSON.stringify(db().prepare(`SELECT * FROM "${name}"`).all())).not.toContain('ann@example.ch');
+});
+
+// The invitation page prefills the sign-up form with the address the link was mailed to.
+const invitePage = (link: unknown) =>
+	invitationLoad({
+		params: { token: String(link).split('/').pop() },
+		locals: { user: null },
+		url: new URL('http://x/invite/t')
+	} as never) as { invitation: { email: string | null } };
+
+it('the mailed invitation carries its address, a link-only one none', async () => {
+	expect(invitePage((await invite({ email: ' ann@example.ch ' })).link).invitation.email).toBe('ann@example.ch');
+	expect(invitePage((await invite({})).link).invitation.email).toBeNull();
 });
 
 it('a failed email keeps the link', async () => {
@@ -69,7 +83,7 @@ it('a failed email keeps the link', async () => {
 		throw Object.assign(new Error('to ann@example.ch'), { code: 'ECONNECTION' });
 	});
 	const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, mailError: 'failed', email: 'ann@example.ch' });
+	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, invited, mailError: 'failed', email: 'ann@example.ch' });
 	expect(readerLinks()).toBe(1);
 	expect(JSON.stringify(log.mock.calls)).not.toContain('ann@example.ch');
 	expect(log.mock.calls[0]).toEqual([`invitation: send failed for user ${jon.id}`, 'ECONNECTION', undefined]);
@@ -95,8 +109,8 @@ it('email sends are throttled per inviter', async () => {
 
 it('email off ignores the field', async () => {
 	for (const name of Object.keys(VARS)) delete process.env[name];
-	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link });
-	expect(await invite({ email: 'nope' })).toEqual({ link });
+	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, invited });
+	expect(await invite({ email: 'nope' })).toEqual({ link, invited });
 	expect(mail.outbox).toHaveLength(0);
 	const page = (await load({
 		params: { workspace: 'demo' },
@@ -108,6 +122,6 @@ it('email off ignores the field', async () => {
 });
 
 it('an empty field sends nothing', async () => {
-	expect(await invite({ email: '  ' })).toEqual({ link });
+	expect(await invite({ email: '  ' })).toEqual({ link, invited });
 	expect(mail.outbox).toHaveLength(0);
 });

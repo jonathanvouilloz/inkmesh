@@ -15,11 +15,16 @@ const fresh = (browser: Browser) =>
 
 async function newLink(page: Page, role: string): Promise<string> {
 	await page.goto('/demo/members');
+	await expect(page.getByRole('heading', { name: 'Invite someone' })).toBeVisible();
 	await page.getByLabel('Role of the new link').selectOption({ label: role });
 	await page.getByRole('button', { name: 'Create link' }).click();
-	const link = page.getByLabel('Invitation link');
+	// The one-time link sits in its own panel, focused so it is copied first.
+	const link = page.getByRole('region', { name: 'New invitation link' }).getByLabel('Invitation link');
 	await expect(link).toHaveAttribute('readonly', '');
+	await expect(link).toBeFocused();
 	await expect(page.getByText('This link will not be shown again')).toBeVisible();
+	// The pending row it added is the one lit.
+	await expect(page.getByRole('table', { name: 'Pending invitations' }).locator('tr.new')).toHaveCount(1);
 	return link.inputValue();
 }
 
@@ -141,6 +146,12 @@ test('a reader reads without editing', async () => {
 });
 
 test('a non-admin cannot create a workspace', async () => {
+	const page = await reader.newPage();
+	await page.goto('/');
+	await page.getByRole('banner').getByText('Workspaces', { exact: true }).click();
+	await expect(page.getByRole('banner').getByRole('link', { name: /Demo/ })).toBeVisible();
+	await expect(page.getByRole('banner').getByRole('link', { name: 'New workspace' })).toHaveCount(0);
+	await expect(page.getByText('New workspace', { exact: true })).toHaveCount(0);
 	const response = await reader.request.post('/?/create', {
 		form: { name: 'X', slug: 'x' },
 		headers: { origin: 'http://localhost:4173' }
@@ -173,12 +184,46 @@ test('an owner emails an invitation link', async ({ page }) => {
 	await page.getByLabel('Email the link to (optional)').fill(emailed);
 	await page.getByRole('button', { name: 'Create link' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Link sent to' })).toHaveText('Link sent to ann@example.ch.');
-	const token = (await page.getByLabel('Invitation link').inputValue()).split('/').pop()!;
+	const token = (await page.getByRole('textbox', { name: 'Invitation link' }).inputValue()).split('/').pop()!;
+	// The pending row shows the address, and its Revoke is named for it.
+	const pending = page.getByRole('table', { name: 'Pending invitations' }).locator('tr.new');
+	await expect(pending.getByText(emailed, { exact: true })).toBeVisible();
+	await expect(pending.getByRole('button', { name: 'Revoke, Reader, ann@example.ch' })).toBeVisible();
 	const mail = fs
 		.readdirSync(MAIL)
 		.map((name) => fs.readFileSync(path.join(MAIL, name), 'utf8').replace(/=\r?\n/g, ''))
 		.find((raw) => raw.includes(`To: ${emailed}`));
 	expect(mail).toContain('http://localhost:4173/invite/' + token);
+	// A signed-in visitor joins as themselves: the page data never carries the invited address.
+	const signedIn = await page.request.get('/invite/' + token + '/__data.json');
+	expect(signedIn.ok()).toBe(true);
+	expect(await signedIn.text()).not.toContain(emailed);
+	// The invitee's sign-up form starts with that address, still editable.
+	const invitee = await fresh(page.context().browser()!);
+	const visit = await invitee.newPage();
+	await visit.goto('/invite/' + token, { waitUntil: 'networkidle' });
+	const field = visit.getByLabel('Email');
+	await expect(field).toHaveValue(emailed);
+	await expect(field).toBeEditable();
+	// A refused sign-up keeps what was typed, not the invitation's address.
+	await field.fill('ann.other@example.ch');
+	await visit.getByLabel('Name').fill('Ann');
+	await visit.getByLabel('Password').fill('short');
+	await visit.getByLabel('Password').evaluate((input: HTMLInputElement) => (input.form!.noValidate = true));
+	await visit.getByRole('button', { name: 'Create account' }).click();
+	await expect(visit.getByText('At least 10 characters', { exact: false })).toHaveClass(/error/);
+	await expect(field).toHaveValue('ann.other@example.ch');
+	await invitee.close();
+});
+
+test('a link-only invitation leaves the email field empty', async ({ page, browser }) => {
+	emailed = 'none'; // revokes the link afterwards
+	const link = await newLink(page, 'Reader');
+	const invitee = await fresh(browser);
+	const visit = await invitee.newPage();
+	await visit.goto(link, { waitUntil: 'networkidle' });
+	await expect(visit.getByLabel('Email')).toHaveValue('');
+	await invitee.close();
 });
 
 test('a refused address keeps the field and creates no link', async ({ page }) => {

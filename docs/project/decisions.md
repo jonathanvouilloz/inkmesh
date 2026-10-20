@@ -241,6 +241,7 @@
 - Rejected: storing the address (nLPD: only what the account needs); creating the link before the checks (a refusal left an unused link).
 - Why: the link stays the invitation; email is a convenience on top.
 - Reopen if: invitations must be addressed (resend, expiry reminders).
+- Reopened 2026-10-20, see below.
 
 ## 2026-10-20 — Sort and filter in the URL, equality only, no YAML parser
 - Choice: `?sort=<key>&order=asc|desc&<field>=<value>`, at most 5 equality filters ANDed (a list contains the value), case-insensitive. The form's `field`/`value` pair redirects (303) to the canonical URL, which also drops empty parameters and `order=asc`. Ties sort by name A→Z in both orders; sorting by name ignores Descending. `sort`, `order`, `field` and `value` are reserved and not offered as filters. Fields come from the frontmatter of the folder's direct documents through `frontmatterFields`: `key: value`, flow lists, and block lists whose `- item` lines are indented or at column 0; block scalars, anchors and aliases have no value; a `__proto__` key is skipped (it broke page serialisation).
@@ -283,3 +284,9 @@
 - Rejected: a test-email command, a digest command.
 - Why: nothing in M6 needs the CLI.
 - Reopen if: self-hosters need to check their SMTP setup without the UI.
+
+## 2026-10-20 — Invitation address kept until the invitation is used
+- Choice: an invitation stores the address it was mailed to (`invitations.email`, migration 006), and `/invite/<token>` uses it as the sign-up form's email default, still editable. Using the invitation clears the address, and creating any invitation clears it on expired ones.
+- Rejected: not storing it (the invitee retyped an address we already had).
+- Why: Jon's request after first real use.
+- Reopen if: invitations must be addressed beyond sign-up (resend, expiry reminders), or the address must outlive the link.

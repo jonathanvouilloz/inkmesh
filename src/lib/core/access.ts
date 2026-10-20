@@ -10,7 +10,7 @@ export const ROLES: readonly Role[] = ['reader', 'editor', 'owner'];
 export class Forbidden extends Error {}
 export type Membership = { workspace: string; userId: number; role: Role };
 export type Workspace = { slug: string; name: string };
-export type Invitation = { workspace: Workspace; role: Role; createdBy: string; expiresAt: string };
+export type Invitation = { workspace: Workspace; role: Role; createdBy: string; expiresAt: string; email: string | null };
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,39}$/;
 // Workspaces live at /<slug>, so a slug must not shadow a top-level route.
@@ -104,36 +104,41 @@ export function removeMember(slug: string, userId: number, by: Actor): void {
 	});
 }
 
-export function createInvitation(slug: string, role: Role, by: Actor): string {
+export function createInvitation(slug: string, role: Role, by: Actor, email?: string): string {
 	const { role: own } = assertRole(slug, by, 'editor');
 	if (rank(role) > rank(own)) throw new Forbidden('insufficient role');
 	const token = newToken();
 	const created = new Date();
 	const expires = new Date(created.getTime() + INVITATION_DAYS * 24 * 60 * 60 * 1000);
+	// nLPD: an address is kept only while its invitation can still be used.
+	db()
+		.prepare('UPDATE invitations SET email = NULL WHERE expires_at <= ? AND email IS NOT NULL')
+		.run(created.toISOString());
 	db()
 		.prepare(
-			'INSERT INTO invitations (token_hash, workspace, role, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
+			'INSERT INTO invitations (token_hash, workspace, role, created_by, created_at, expires_at, email) VALUES (?, ?, ?, ?, ?, ?, ?)'
 		)
-		.run(hashToken(token), slug, role, by.id, created.toISOString(), expires.toISOString());
+		.run(hashToken(token), slug, role, by.id, created.toISOString(), expires.toISOString(), email || null);
 	return token;
 }
 
 export function invitation(token: string): Invitation | null {
 	const row = db()
 		.prepare(
-			`SELECT w.slug, w.name, i.role, u.name AS created_by, i.expires_at FROM invitations i
+			`SELECT w.slug, w.name, i.role, u.name AS created_by, i.expires_at, i.email FROM invitations i
 			 JOIN workspaces w ON w.slug = i.workspace JOIN users u ON u.id = i.created_by
 			 WHERE i.token_hash = ? AND i.used_at IS NULL AND i.expires_at > ?`
 		)
 		.get(hashToken(token), now()) as
-		| { slug: string; name: string; role: Role; created_by: string; expires_at: string }
+		| { slug: string; name: string; role: Role; created_by: string; expires_at: string; email: string | null }
 		| undefined;
 	return row
 		? {
 				workspace: { slug: row.slug, name: row.name },
 				role: row.role,
 				createdBy: row.created_by,
-				expiresAt: row.expires_at
+				expiresAt: row.expires_at,
+				email: row.email
 			}
 		: null;
 }
@@ -144,7 +149,7 @@ function claim(token: string, userId: number): Workspace {
 	const at = now();
 	const { changes } = db()
 		.prepare(
-			'UPDATE invitations SET used_by = ?, used_at = ? WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?'
+			'UPDATE invitations SET used_by = ?, used_at = ?, email = NULL WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?'
 		)
 		.run(userId, at, tokenHash, at);
 	if (changes === 0) throw new Conflict('invalid invitation');
@@ -190,14 +195,21 @@ export function acceptInvitationAsNewUser(
 
 export function pendingInvitations(
 	slug: string
-): { id: string; role: Role; createdBy: string; createdById: number; expiresAt: string }[] {
+): { id: string; role: Role; createdBy: string; createdById: number; expiresAt: string; email: string | null }[] {
 	return db()
 		.prepare(
-			`SELECT i.token_hash AS id, i.role, u.name AS createdBy, i.created_by AS createdById, i.expires_at AS expiresAt FROM invitations i
+			`SELECT i.token_hash AS id, i.role, u.name AS createdBy, i.created_by AS createdById, i.expires_at AS expiresAt, i.email FROM invitations i
 			 JOIN users u ON u.id = i.created_by
 			 WHERE i.workspace = ? AND i.used_at IS NULL AND i.expires_at > ? ORDER BY i.created_at`
 		)
-		.all(slug, now()) as { id: string; role: Role; createdBy: string; createdById: number; expiresAt: string }[];
+		.all(slug, now()) as {
+		id: string;
+		role: Role;
+		createdBy: string;
+		createdById: number;
+		expiresAt: string;
+		email: string | null;
+	}[];
 }
 
 export function revokeInvitation(slug: string, id: string, by: Actor): void {
