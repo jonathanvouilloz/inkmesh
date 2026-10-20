@@ -150,7 +150,7 @@
 					{#each data.publicLinks as l (l.id)}
 						{@const scope = l.path ?? t('share.workspace', locale)}
 						<!-- The token's last characters tell apart links to the same scope, and match the URL's end. -->
-						{@const name = l.hint ? `${scope} …${l.hint}` : scope}
+						{@const name = l.hint ? `${scope}\u00a0…\u2060${l.hint}` : scope}
 						<tr>
 							<td>
 								{#if l.path}<span class="mono path">{l.path}</span>{:else}{scope}{/if}
@@ -375,9 +375,12 @@
 	.path {
 		overflow-wrap: anywhere;
 	}
+	.hint,
+	.created time {
+		white-space: nowrap;
+	}
 	.hint {
 		color: var(--muted);
-		white-space: nowrap;
 	}
 	/* The scope column takes the slack, so Save stays beside its select. */
 	.links td:first-child {

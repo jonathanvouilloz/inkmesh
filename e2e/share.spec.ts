@@ -49,7 +49,7 @@ test('an owner creates, changes and revokes public links', async ({ page }) => {
 	await docRow.getByRole('button', { name: /^Revoke/ }).click();
 	const dialog = page.getByRole('dialog', { name: 'Revoke' });
 	// The dialog names the link: its scope and the end of its token, as its URL ends.
-	await expect(dialog).toContainText(`Revoke the link “${doc} …${token.slice(-4)}”? Visitors lose access at once.`);
+	await expect(dialog).toContainText(`Revoke the link “${doc}\u00a0…\u2060${token.slice(-4)}”? Visitors lose access at once.`);
 	await dialog.getByRole('button', { name: 'Cancel' }).click();
 	await expect(docRow.getByRole('button', { name: /^Revoke/ })).toBeFocused();
 	await expect(section(page).getByRole('row')).toHaveCount(3);
