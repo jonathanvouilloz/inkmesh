@@ -276,12 +276,19 @@
 		box-sizing: border-box;
 		height: 30px;
 	}
-	/* Each select sizes to its longest option: capped, so the bar keeps Apply on the Value's row. */
+	/* Each select sizes to its longest option: capped, and the value takes what is left, so Apply stays on the row. */
 	.query select {
 		max-width: 16ch;
 	}
+	/* Room for "Choose a field" / « Choisir un champ ». */
+	.query select[name='field'] {
+		max-width: 20ch;
+	}
+	.query label:has(input) {
+		flex: 1 1 6ch;
+	}
 	.query input {
-		width: 12ch;
+		width: 100%;
 	}
 	.where {
 		margin: -16px 0 0;
@@ -374,7 +381,8 @@
 			grid-column: 1 / -1;
 			justify-self: start;
 		}
-		.query :is(input, select) {
+		.query :is(input, select),
+		.query select[name='field'] {
 			width: 100%;
 			max-width: none;
 		}
