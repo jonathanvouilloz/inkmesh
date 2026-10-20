@@ -18,8 +18,8 @@ async function newLink(page: Page, role: string): Promise<string> {
 	await expect(page.getByRole('heading', { name: 'Invite someone' })).toBeVisible();
 	await page.getByLabel('Role of the new link').selectOption({ label: role });
 	await page.getByRole('button', { name: 'Create link' }).click();
-	// The one-time link sits in its own "New link" panel, focused so it is copied first.
-	const link = page.getByRole('region', { name: 'New link' }).getByLabel('Invitation link');
+	// The one-time link sits in its own panel, focused so it is copied first.
+	const link = page.getByRole('region', { name: 'New invitation link' }).getByLabel('Invitation link');
 	await expect(link).toHaveAttribute('readonly', '');
 	await expect(link).toBeFocused();
 	await expect(page.getByText('This link will not be shown again')).toBeVisible();
@@ -184,7 +184,11 @@ test('an owner emails an invitation link', async ({ page }) => {
 	await page.getByLabel('Email the link to (optional)').fill(emailed);
 	await page.getByRole('button', { name: 'Create link' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Link sent to' })).toHaveText('Link sent to ann@example.ch.');
-	const token = (await page.getByLabel('Invitation link').inputValue()).split('/').pop()!;
+	const token = (await page.getByRole('textbox', { name: 'Invitation link' }).inputValue()).split('/').pop()!;
+	// The pending row shows the address, and its Revoke is named for it.
+	const pending = page.getByRole('table', { name: 'Pending invitations' }).locator('tr.new');
+	await expect(pending.getByText(emailed, { exact: true })).toBeVisible();
+	await expect(pending.getByRole('button', { name: 'Revoke, Reader, ann@example.ch' })).toBeVisible();
 	const mail = fs
 		.readdirSync(MAIL)
 		.map((name) => fs.readFileSync(path.join(MAIL, name), 'utf8').replace(/=\r?\n/g, ''))
