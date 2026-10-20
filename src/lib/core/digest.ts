@@ -26,12 +26,12 @@ export function digestOn(userId: number): boolean {
 	return row?.digest === 1;
 }
 
-/** Turning it on starts at the present: the first email covers only what happens after. */
+/** Turning it on starts at the present: the first email covers only what happens after. Saving it on again keeps the cursor. */
 export function setDigest(userId: number, on: boolean, locale: Locale): void {
 	if (on)
 		db()
 			.prepare(
-				'UPDATE users SET digest = 1, digest_last_id = (SELECT coalesce(max(id), 0) FROM events), locale = ? WHERE id = ?'
+				'UPDATE users SET digest_last_id = CASE WHEN digest = 0 THEN (SELECT coalesce(max(id), 0) FROM events) ELSE digest_last_id END, digest = 1, locale = ? WHERE id = ?'
 			)
 			.run(locale, userId);
 	else db().prepare('UPDATE users SET digest = 0, locale = ? WHERE id = ?').run(locale, userId);

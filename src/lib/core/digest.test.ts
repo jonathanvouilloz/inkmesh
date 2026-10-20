@@ -17,7 +17,7 @@ import {
 	unsubscribeUser
 } from './digest.ts';
 import { appendEvent } from './events.ts';
-import { inbox, markRead } from './inbox.ts';
+import { inbox, markRead, pendingDigest } from './inbox.ts';
 import * as mail from './mail.ts';
 import { outbox } from './mail.ts';
 
@@ -81,6 +81,18 @@ describe('digest', () => {
 		expect(digestOn(jon.id)).toBe(true);
 		expect(await runDigests(SLOT)).toBe(0);
 		expect(outbox).toEqual([]);
+	});
+
+	it('saving again while on keeps the pending events', async () => {
+		setDigest(jon.id, true, 'fr');
+		appendEvent('demo', ann, { type: 'update', path: 'a.md' });
+		setDigest(jon.id, true, 'en');
+		const row = db().prepare('SELECT digest_last_id, locale FROM users WHERE id = ?').get(jon.id) as {
+			digest_last_id: number;
+			locale: string;
+		};
+		expect(row.locale).toBe('en');
+		expect(pendingDigest(jon.id, row.digest_last_id, new Date().toISOString()).items).toHaveLength(1);
 	});
 
 	it('sends one digest with the day’s events', async () => {
