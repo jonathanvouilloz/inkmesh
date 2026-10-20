@@ -201,7 +201,7 @@
 					class="mono"
 					required
 					maxlength="40"
-					value={form?.nameError ? form.name : ''}
+					defaultValue={form?.nameError ? form.name : ''}
 					aria-invalid={form?.nameError ? 'true' : undefined}
 					aria-describedby={form?.nameError ? 'name-error' : undefined}
 				/>
