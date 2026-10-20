@@ -11,7 +11,7 @@ import {
 	type Role
 } from '#lib/core/access.ts';
 import type { TreeNode } from '#lib/core/documents.ts';
-import { Conflict, InvalidPath } from '#lib/core/paths.ts';
+import { Conflict } from '#lib/core/paths.ts';
 import {
 	createPublicLink,
 	publicLinks,
@@ -19,7 +19,7 @@ import {
 	setSignupRole,
 	type SignupRole
 } from '#lib/core/publicLinks.ts';
-import { requireRole } from '#lib/server/guard.ts';
+import { isNotFound, requireRole } from '#lib/server/guard.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const docPaths = (nodes: TreeNode[]): string[] =>
@@ -106,8 +106,7 @@ export const actions: Actions = {
 			const token = await createPublicLink(params.workspace, scope || null, signupRole, locals.actor!);
 			return { shareUrl: url.origin + '/s/' + token };
 		} catch (err) {
-			if (err instanceof InvalidPath || (err as { code?: unknown }).code === 'ENOENT')
-				return fail(404, { shareError: 'missing' as const });
+			if (isNotFound(err)) return fail(404, { shareError: 'missing' as const });
 			throw err;
 		}
 	},

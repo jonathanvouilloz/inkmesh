@@ -12,12 +12,10 @@ import {
 import { frontmatterEntries, renderHtml, splitFrontmatter } from '#lib/core/markdown.ts';
 import { Conflict, InvalidContent, InvalidPath } from '#lib/core/paths.ts';
 import { endSession } from '#lib/core/sessions.ts';
-import { requireRole } from '#lib/server/guard.ts';
+import { isNotFound, notFoundOn, requireRole } from '#lib/server/guard.ts';
 import { docHref } from '#lib/ui/href.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-const notFound = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
-const missing = (err: unknown) => notFound.has((err as { code?: string }).code ?? '');
 
 export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 	const { tree } = await parent();
@@ -37,8 +35,8 @@ export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 			old = await readVersion(params.workspace, params.path, commit, actor);
 		} catch (err) {
 			// A malformed id is a 400; a bad path or a commit without this document, a 404.
-			if (err instanceof InvalidPath) error(err.message === commit ? 400 : 404);
-			if (missing(err)) error(404);
+			if (err instanceof InvalidPath && err.message === commit) error(400);
+			notFoundOn(err);
 			throw err;
 		}
 		return {
@@ -56,8 +54,7 @@ export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 	try {
 		doc = await readDocument(params.workspace, params.path, actor);
 	} catch (err) {
-		if (err instanceof InvalidPath || missing(err)) error(404);
-		throw err;
+		notFoundOn(err);
 	}
 	return {
 		kind: 'doc' as const,
@@ -114,8 +111,7 @@ export const actions: Actions = {
 		} catch (err) {
 			if (err instanceof InvalidContent)
 				return fail(400, { commentError: err.message as 'empty' | 'too-large', body });
-			if (err instanceof InvalidPath || missing(err)) error(404);
-			throw err;
+			notFoundOn(err);
 		}
 	},
 	resolve: async ({ params, request, locals }) => {
@@ -128,7 +124,7 @@ export const actions: Actions = {
 			await resolveComment(params.workspace, params.path, id, resolved === '1', locals.actor!);
 			return {};
 		} catch (err) {
-			if (err instanceof InvalidPath || missing(err)) return fail(404);
+			if (isNotFound(err)) return fail(404);
 			throw err;
 		}
 	},
@@ -139,8 +135,8 @@ export const actions: Actions = {
 		try {
 			await restoreVersion(params.workspace, params.path, commit, locals.actor!);
 		} catch (err) {
-			if (err instanceof InvalidPath) error(err.message === commit ? 400 : 404);
-			if (missing(err)) error(404);
+			if (err instanceof InvalidPath && err.message === commit) error(400);
+			notFoundOn(err);
 			throw err;
 		}
 		redirect(303, docHref(params.workspace, params.path));

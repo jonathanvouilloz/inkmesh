@@ -1,12 +1,11 @@
 import { error, json } from '@sveltejs/kit';
 import { saveImage, MAX_IMAGE_BYTES } from '#lib/core/images.ts';
-import { InvalidContent, InvalidPath } from '#lib/core/paths.ts';
-import { requireRole } from '#lib/server/guard.ts';
+import { InvalidContent } from '#lib/core/paths.ts';
+import { notFoundOn, requireRole } from '#lib/server/guard.ts';
 import type { RequestHandler } from './$types';
 
 // The image plus the multipart framing and the doc field.
 const MAX_BODY = MAX_IMAGE_BYTES + 64 * 1024;
-const notFound = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
 const tooLarge = () => json({ error: 'too-large' }, { status: 413 });
 
 export const POST: RequestHandler = async ({ params, request, locals }) => {
@@ -39,7 +38,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	} catch (err) {
 		if (err instanceof InvalidContent)
 			return err.message === 'too-large' ? tooLarge() : json({ error: 'not-image' }, { status: 400 });
-		if (err instanceof InvalidPath || notFound.has((err as { code?: string }).code ?? '')) error(404);
-		throw err;
+		notFoundOn(err);
 	}
 };

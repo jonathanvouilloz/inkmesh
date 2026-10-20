@@ -2,20 +2,17 @@ import { error } from '@sveltejs/kit';
 import { Forbidden } from '#lib/core/access.ts';
 import { titleOf, type TreeNode } from '#lib/core/documents.ts';
 import { frontmatterEntries, renderHtml } from '#lib/core/markdown.ts';
-import { InvalidPath } from '#lib/core/paths.ts';
 import { sharedDocument, sharedTree } from '#lib/core/publicLinks.ts';
+import { notFoundOn } from '#lib/server/guard.ts';
 import type { PageServerLoad } from './$types';
-
-const notFound = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
 
 // Every refusal answers like an unknown path, so a visitor learns nothing outside the link.
 async function orNotFound<T>(run: () => Promise<T>): Promise<T> {
 	try {
 		return await run();
 	} catch (err) {
-		if (err instanceof Forbidden || err instanceof InvalidPath || notFound.has((err as { code?: string }).code ?? ''))
-			error(404);
-		throw err;
+		if (err instanceof Forbidden) error(404);
+		notFoundOn(err);
 	}
 }
 

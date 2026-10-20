@@ -1,12 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { Forbidden } from '#lib/core/access.ts';
 import { loginFailed } from '#lib/core/accounts.ts';
-import { InvalidPath } from '#lib/core/paths.ts';
 import { sharedFile, sharedScope } from '#lib/core/publicLinks.ts';
+import { notFoundOn } from '#lib/server/guard.ts';
 import { downloadResponse, imageResponse } from '#lib/server/raw.ts';
 import type { RequestHandler } from './$types';
-
-const notFound = new Set(['ENOENT', 'ENOTDIR', 'EISDIR']);
 
 export const GET: RequestHandler = async ({ params, getClientAddress }) => {
 	if (!sharedScope(params.token)) {
@@ -18,8 +16,8 @@ export const GET: RequestHandler = async ({ params, getClientAddress }) => {
 		const file = await sharedFile(params.token, params.path);
 		return file.kind === 'doc' ? downloadResponse(params.path, file.source) : imageResponse(file.bytes, file.type);
 	} catch (err) {
-		if (err instanceof Forbidden || err instanceof InvalidPath || notFound.has((err as { code?: string }).code ?? ''))
-			error(404);
-		throw err;
+		// Out of the link's scope answers like an unknown path.
+		if (err instanceof Forbidden) error(404);
+		notFoundOn(err);
 	}
 };
