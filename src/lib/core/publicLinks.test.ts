@@ -90,6 +90,11 @@ describe('public links', () => {
 		await expect(sharedTree(t)).rejects.toBeInstanceOf(Forbidden);
 		for (const p of ['notes/c.png', 'notes/b.md', '../other/x.md', '.inkmesh/comments/notes/a.md', '.git/config'])
 			await refused(sharedFile(t, p));
+		// Other spellings of the shared path are refused too: the scope is the exact path.
+		for (const p of ['./notes/a.md', 'NOTES/a.md', 'notes/A.md', 'notes//a.md', 'notes/../notes/a.md']) {
+			await refused(sharedDocument(t, p));
+			await refused(sharedFile(t, p));
+		}
 
 		revokePublicLink('demo', publicLinks('demo', jon)[0].id, jon);
 		expect(sharedScope(t)).toBeNull();
