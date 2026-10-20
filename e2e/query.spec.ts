@@ -60,11 +60,11 @@ test('filter with the form and keyboard', async ({ page }) => {
 	while (!(await sort.evaluate((el) => el === document.activeElement))) await page.keyboard.press('Tab');
 	await sort.selectOption('date');
 	await page.getByLabel('Add a filter').selectOption('tags');
-	await page.getByLabel('Value').fill('q3');
+	await page.getByLabel('Value', { exact: true }).fill('q3');
 	await page.keyboard.press('Enter');
 	await expect(page).toHaveURL(/\/demo\/e2e-query\?sort=date&tags=q3$/);
 	await expect(list(page)).toHaveText(['Alpha', 'Beta']);
-	await expect(page.getByLabel('Value')).toHaveValue('');
+	await expect(page.getByLabel('Value', { exact: true })).toHaveValue('');
 
 	await page.getByRole('link', { name: 'Clear filters' }).click();
 	await expect(page).toHaveURL(/\/demo\/e2e-query\?sort=date$/);
@@ -102,7 +102,7 @@ test('a public workspace link filters too', async ({ page, browser }) => {
 	await expect(list(view)).toHaveText(['Beta']);
 	// No JavaScript on public pages: the form submits as a plain GET and the server redirects.
 	await view.getByLabel('Add a filter').selectOption('status');
-	await view.getByLabel('Value').fill('draft');
+	await view.getByLabel('Value', { exact: true }).fill('draft');
 	await view.getByRole('button', { name: 'Apply' }).click();
 	await expect(view).toHaveURL(`${url}/e2e-query?status=draft`);
 	await expect(list(view)).toHaveText(['Alpha', 'Gamma']);
