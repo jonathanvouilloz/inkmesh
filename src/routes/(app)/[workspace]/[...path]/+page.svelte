@@ -127,6 +127,11 @@
 	const readonly = $derived(data.role === 'reader');
 	const doc = $derived(`${data.workspace}/${data.path}`);
 	const isDoc = $derived(data.kind === 'doc');
+	// A refused image belongs to its document: the message does not follow to the next one.
+	$effect(() => {
+		void doc;
+		imageMessage = '';
+	});
 	// Bumped when an import or a move rewrote this document on disk: a fresh autosave and editor show it.
 	let version = $state(0);
 	const autosave = $derived.by(() => {

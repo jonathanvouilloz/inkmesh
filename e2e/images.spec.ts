@@ -53,4 +53,9 @@ test('a refused image is announced', async ({ page }) => {
 	);
 	await expect(page.locator('.ProseMirror img:not(.ProseMirror-separator)')).toHaveCount(0);
 	await expect(page.locator('.ProseMirror')).not.toContainText('Upload in progress');
+
+	// The message belongs to that document: it does not follow an in-app move to another one.
+	await rail(page).locator('a[href="/demo/e2e-images/report.md"]').click();
+	await expect(strip(page).getByText('e2e-images/report.md', { exact: true })).toBeVisible();
+	await expect(strip(page)).not.toContainText('Image not added');
 });
