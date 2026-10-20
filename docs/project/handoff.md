@@ -2,18 +2,17 @@
 Updated: 2026-10-20
 
 ## Where we are
-Milestone 6 (release) is merged into `main`, not yet deployed. Production still runs milestone 5. 484 unit tests, 91 Playwright e2e, svelte-check clean.
+All six milestones of the roadmap are merged into `main` and deployed (M6 on 2026-10-20). 484 unit tests, 91 Playwright e2e, svelte-check clean.
 - M6: sort and filter the folder view by frontmatter from the URL (members and public links), email over SMTP (off unless configured), sign-in by email link, invitations by email, the opt-in daily digest with one-click unsubscribe, Dockerfile and compose example, README, MIT licence. Migration `005-email`.
 - M3–M5 (files, agents, collaboration) are deployed since 2026-10-20. Plans: `docs/plans/`; order of the rest: `docs/plans/roadmap.md`.
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 
-## In production (phase A, milestone 5)
-- Checkout `~/inkmesh-app` on `main` (`cccdf1d`), data `/home/hermes/inkmesh-data` (migrations 001–004 applied), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel`. URL: `scripts/tunnel-url.sh`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
-- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Pre-M5 backup: `~/inkmesh-backups/20261020T024132Z-pre-m5`.
+## In production (phase A, milestone 6)
+- Checkout `~/inkmesh-app` on `main` (`6807534`), data `/home/hermes/inkmesh-data` (migrations 001–005 applied; the log says `email: off`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel`. URL: `scripts/tunnel-url.sh`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
+- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Latest backup: `~/inkmesh-backups/20261020T060452Z-pre-m6`.
 
 ## Next action
-1. Deploy M6 (owner's approval). Before: `sqlite3 ~/inkmesh-data/inkmesh.db "select slug from workspaces where slug = 'unsubscribe'"` returns nothing; back up the data; run migration `005-email` on a copy of the data first (the usual copy-and-start check). The production env sets no mail variable, so the log says `email: off` and the app behaves as in M5 apart from the folder query bar.
-2. Then the owner actions below.
+1. The owner actions below; nothing else is planned on the roadmap. New work starts with a spec and plan under `docs/plans/`.
 
 ## Owner actions (Jon)
 - Confirm the MIT licence (decision 2026-10-20).
