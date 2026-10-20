@@ -8,6 +8,7 @@ const SCRYPT: ScryptOptions = { N: 2 ** 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024
 const KEY_LENGTH = 64;
 const MIN_PASSWORD = 10;
 const SESSION_DAYS = 30;
+export const LOGIN_LINK_MINUTES = 15;
 const SQLITE_CONSTRAINT_UNIQUE = 2067;
 // Hash of a throwaway password: unknown emails still pay one scrypt, so timing does not reveal accounts.
 const DUMMY_HASH =
@@ -117,6 +118,7 @@ export async function setPassword(id: number, next: string): Promise<void> {
 		db().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
 		// A reset after a compromise must kill stolen sessions.
 		db().prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+		db().prepare('DELETE FROM login_links WHERE user_id = ?').run(id);
 	});
 }
 
@@ -149,6 +151,40 @@ export function sessionUser(token: string): User | null {
 
 export function deleteSession(token: string): void {
 	db().prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token));
+}
+
+export function createLoginLink(userId: number, next: string): string {
+	const token = newToken();
+	const now = new Date();
+	const expires = new Date(now.getTime() + LOGIN_LINK_MINUTES * 60 * 1000);
+	db().prepare('DELETE FROM login_links WHERE expires_at <= ?').run(now.toISOString());
+	db()
+		.prepare(
+			'INSERT INTO login_links (token_hash, user_id, next, expires_at, created_at) VALUES (?, ?, ?, ?, ?)'
+		)
+		.run(hashToken(token), userId, next, expires.toISOString(), now.toISOString());
+	return token;
+}
+
+/** The user of an unexpired link, without consuming it: the landing page is a GET. */
+export function loginLinkUser(token: string): User | null {
+	return toUser(
+		db()
+			.prepare(
+				'SELECT u.id, u.email, u.name, u.admin FROM login_links l JOIN users u ON u.id = l.user_id WHERE l.token_hash = ? AND l.expires_at > ?'
+			)
+			.get(hashToken(token), new Date().toISOString()) as Row | undefined
+	);
+}
+
+// One statement deletes and reads, so two concurrent consumes cannot both win.
+export function consumeLoginLink(token: string): { user: User; next: string } | null {
+	const row = db()
+		.prepare('DELETE FROM login_links WHERE token_hash = ? RETURNING user_id, next, expires_at')
+		.get(hashToken(token)) as { user_id: number; next: string; expires_at: string } | undefined;
+	if (!row || row.expires_at <= new Date().toISOString()) return null;
+	const user = userById(row.user_id);
+	return user && { user, next: row.next };
 }
 
 // shortcut: in-memory, per process and lost on restart; move to SQLite if the app ever runs several processes.
