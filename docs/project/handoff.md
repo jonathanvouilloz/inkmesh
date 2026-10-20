@@ -2,26 +2,22 @@
 Updated: 2026-10-20
 
 ## Where we are
-All six milestones of the roadmap are merged into `main` and deployed (M6 on 2026-10-20). 484 unit tests, 91 Playwright e2e, svelte-check clean.
-- M6: sort and filter the folder view by frontmatter from the URL (members and public links), email over SMTP (off unless configured), sign-in by email link, invitations by email, the opt-in daily digest with one-click unsubscribe, Dockerfile and compose example, README, MIT licence. Migration `005-email`.
-- UX polish after first real use (`docs/plans/2026-10-20-ux-polish.md`) deployed 2026-10-20: invited email prefilled (migration `006-invitation-email`), "+ New workspace" in the switcher, pages 1040px / documents 760px, members page reordered; the switcher and home split "My workspaces" / "Shared with me". Admins: both of Jon's accounts (flag set by hand in the database on 2026-10-20: the admin CLI has no promote command).
-- M3–M5 (files, agents, collaboration) are deployed since 2026-10-20. Plans: `docs/plans/`; order of the rest: `docs/plans/roadmap.md`.
+All six roadmap milestones and the UX polish after first real use are merged into `main` and deployed. 488 unit tests, 95 Playwright e2e, svelte-check clean. Jon validated this version on 2026-10-20.
+- Since M6: production on `https://inkmesh.ch` with email on (Resend); invited email prefilled at sign-up (migration `006-invitation-email`); "+ New workspace" in the switcher for admins; switcher and home split "My workspaces" / "Shared with me"; pages 1040px, documents 760px; members page reordered; hourly backup with an email alert on failure. Plan: `docs/plans/2026-10-20-ux-polish.md`.
+- Only instance admins create workspaces (decision 2026-10-18, confirmed by Jon 2026-10-20). Admins: both of Jon's accounts (the second flag was set by hand in the database: the admin CLI has no promote command).
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 
-## In production (phase B, https://inkmesh.ch)
-- Checkout `~/inkmesh-app` on `main` (`1ef267a`, UX polish and grouped workspace lists deployed 2026-10-20), data `/home/hermes/inkmesh-data` (migrations 001–006 applied; the log says `email: on (smtps)`, Resend, from `noreply@inkmesh.ch`; previous env kept as `env.bak-pre-email`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel` (named tunnel `inkmesh`, config `~/.cloudflared/inkmesh.yml`; zone `inkmesh.ch` in Jon's Cloudflare account, registered at Infomaniak). Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
-- Automatic backup: hourly, `docs/deploy.md` "Backup" (workspaces to private GitHub repositories `inkmesh-<slug>`, database snapshots in `~/inkmesh-backups/db/`).
-- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Latest backup: `~/inkmesh-backups/20261020T114823Z-pre-grouping`.
+## In production (https://inkmesh.ch)
+- Checkout `~/inkmesh-app` on `main`, data `/home/hermes/inkmesh-data` (migrations 001–006), env `~/.config/inkmesh/env` (SMTP through Resend from `noreply@inkmesh.ch`, `BACKUP_GITHUB_OWNER`), units `inkmesh`, `inkmesh-tunnel` (named tunnel `inkmesh`, `~/.cloudflared/inkmesh.yml`; zone in Jon's Cloudflare account, domain at Infomaniak), `inkmesh-backup.timer` (hourly) and `inkmesh-alert@.service`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main`. Guide, backup and restore: `docs/deploy.md`.
+- Backups: each workspace mirrored to a private GitHub repository `jonathanvouilloz/inkmesh-<slug>`; database snapshots in `~/inkmesh-backups/db/` (14 days, VPS only); a failed run emails the admins.
+- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first.
 
 ## Next action
-1. The owner actions below; nothing else is planned on the roadmap. New work starts with a spec and plan under `docs/plans/`.
+1. Publish the repository on GitHub (Jon tests it first), replace the `git clone <this repository>` placeholder in `README.md`, then announce it as open source. Nothing else is planned; new work starts with a spec and plan under `docs/plans/`.
 
 ## Owner actions (Jon)
-- Say OK for a first real email (a sign-in link to his own address) to check delivery from Resend.
-- Test the real clients from the Connect page (Claude web connector, Claude Code `claude mcp add`, ChatGPT developer mode, Cursor `mcp.json`): connected, consent shows the right host, `list_workspaces`, `create_document`, `search` and `add_comment` work, commits read "Jon via <agent>". Fix any recipe wording that no longer matches the vendor menus.
-- Publish the repository and replace the `git clone <this repository>` placeholder in `README.md`.
+- Test the published repository from a clean clone (README install path).
 - Rename the dev folder when no session runs in it.
-- Re-add MCP clients configured on the old `trycloudflare.com` URL with `https://inkmesh.ch/mcp` (tokens stay valid; OAuth clients authorise again).
 
 ## Known limits
 Deliberate, ledgered in reviews: `docs/project/known-limits.md`.

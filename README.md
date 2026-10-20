@@ -94,6 +94,7 @@ Open a workspace, then "Connect an agent" in the sidebar. Pick the tool and name
 Everything lives in the data directory: `inkmesh.db` and `workspaces/`, where each workspace is an ordinary git repository you can clone or read without inkmesh.
 
 - **Backup:** copy the data directory while inkmesh is stopped. With Docker: `docker compose stop && docker compose cp inkmesh:/data ./inkmesh-backup && docker compose start`. To back up while running, copy `workspaces/` and snapshot the database with Node's built-in SQLite (the image has no `sqlite3`): `docker compose exec inkmesh node -e "const s = require('node:sqlite'); s.backup(new s.DatabaseSync('/data/inkmesh.db'), '/data/inkmesh-backup.db')"`, then `docker compose cp inkmesh:/data/inkmesh-backup.db .`. Without Docker, run the same `node -e` with your data directory's paths.
+- **Scheduled backup (optional, without Docker):** `scripts/backup.sh` mirrors every workspace to a private GitHub repository `<BACKUP_GITHUB_OWNER>/inkmesh-<slug>` through the `gh` CLI and keeps daily database snapshots in `~/inkmesh-backups/db/` (14 days). `deploy/inkmesh-backup.timer` runs it every hour, and `deploy/inkmesh-alert@.service` emails the instance admins when it fails (email must be configured).
 - **Upgrade:** pull, rebuild, restart. With Docker: `git pull && docker compose up -d --build`. Without: `git pull && npm ci && npm run build`, then restart `node build`. Database migrations run at start and only go forward, so take a backup first if you may want to go back.
 
 ## Privacy
