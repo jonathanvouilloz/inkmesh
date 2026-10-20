@@ -179,6 +179,32 @@ test('an owner emails an invitation link', async ({ page }) => {
 		.map((name) => fs.readFileSync(path.join(MAIL, name), 'utf8').replace(/=\r?\n/g, ''))
 		.find((raw) => raw.includes(`To: ${emailed}`));
 	expect(mail).toContain('http://localhost:4173/invite/' + token);
+	// The invitee's sign-up form starts with that address, still editable.
+	const invitee = await fresh(page.context().browser()!);
+	const visit = await invitee.newPage();
+	await visit.goto('/invite/' + token, { waitUntil: 'networkidle' });
+	const field = visit.getByLabel('Email');
+	await expect(field).toHaveValue(emailed);
+	await expect(field).toBeEditable();
+	// A refused sign-up keeps what was typed, not the invitation's address.
+	await field.fill('ann.other@example.ch');
+	await visit.getByLabel('Name').fill('Ann');
+	await visit.getByLabel('Password').fill('short');
+	await visit.getByLabel('Password').evaluate((input: HTMLInputElement) => (input.form!.noValidate = true));
+	await visit.getByRole('button', { name: 'Create account' }).click();
+	await expect(visit.getByText('At least 10 characters', { exact: false })).toHaveClass(/error/);
+	await expect(field).toHaveValue('ann.other@example.ch');
+	await invitee.close();
+});
+
+test('a link-only invitation leaves the email field empty', async ({ page, browser }) => {
+	emailed = 'none'; // revokes the link afterwards
+	const link = await newLink(page, 'Reader');
+	const invitee = await fresh(browser);
+	const visit = await invitee.newPage();
+	await visit.goto(link, { waitUntil: 'networkidle' });
+	await expect(visit.getByLabel('Email')).toHaveValue('');
+	await invitee.close();
 });
 
 test('a refused address keeps the field and creates no link', async ({ page }) => {

@@ -174,6 +174,13 @@ describe('access', () => {
 		expect(days).toBeLessThanOrEqual(7);
 	});
 
+	it('an invitation keeps the address it was mailed to', async () => {
+		const jon = await user('jon');
+		await createWorkspace('team', 'Team', jon);
+		expect(invitation(createInvitation('team', 'reader', jon, 'ann@example.ch'))?.email).toBe('ann@example.ch');
+		expect(invitation(createInvitation('team', 'reader', jon))?.email).toBeNull();
+	});
+
 	it('an invitation accepts once', async () => {
 		const owner = await user('jon');
 		const bob = await user('bob');

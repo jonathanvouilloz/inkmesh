@@ -89,6 +89,11 @@ CREATE TABLE login_links (token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL 
 CREATE TABLE instance_keys (name TEXT PRIMARY KEY, key BLOB NOT NULL);
 INSERT INTO instance_keys (name, key) VALUES ('unsubscribe', randomblob(32));
 `
+	},
+	{
+		id: '006-invitation-email',
+		// The address the link was mailed to, prefilled at sign-up; null for link-only invitations.
+		sql: 'ALTER TABLE invitations ADD COLUMN email TEXT;'
 	}
 ];
 

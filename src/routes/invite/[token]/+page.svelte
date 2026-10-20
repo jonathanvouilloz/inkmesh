@@ -23,7 +23,13 @@
 			<h1>{t('invite.title', locale, vars)}</h1>
 			{#if !data.user}<p>{t('invite.terms', locale, vars)}</p>{/if}
 		</div>
-		<SignupForm {locale} {form} signedIn={!!data.user} joinLabel={t('invite.join', locale, vars)} />
+		<SignupForm
+			{locale}
+			{form}
+			email={data.invitation?.email}
+			signedIn={!!data.user}
+			joinLabel={t('invite.join', locale, vars)}
+		/>
 	{:else}
 		<div>
 			<h1>{t('invite.invalid', locale)}</h1>

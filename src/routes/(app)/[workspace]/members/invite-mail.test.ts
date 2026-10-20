@@ -4,8 +4,9 @@ import path from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { acceptInvitation, createInvitation, createWorkspace, pendingInvitations } from '#lib/core/access.ts';
 import { createUser, loginSucceeded, type User } from '#lib/core/accounts.ts';
-import { closeDb, db } from '#lib/core/db.ts';
+import { closeDb } from '#lib/core/db.ts';
 import * as mail from '#lib/core/mail.ts';
+import { load as invitationLoad } from '../../../invite/[token]/+page.server.ts';
 import { actions, load } from './+page.server.ts';
 
 const VARS = { SMTP_URL: 'memory:', MAIL_FROM: 'inkmesh <noreply@inkmesh.local>', INKMESH_URL: 'https://inkmesh.example' };
@@ -59,9 +60,19 @@ it('an editor emails an invitation', async () => {
 	expect(sent.text).toContain('https://inkmesh.example/invite/' + String(result.link).split('/').pop());
 	expect(sent.text).toContain('as reader');
 	expect(sent.text).not.toContain('evil.example');
-	const tables = db().prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[];
-	for (const { name } of tables)
-		expect(JSON.stringify(db().prepare(`SELECT * FROM "${name}"`).all())).not.toContain('ann@example.ch');
+});
+
+// The invitation page prefills the sign-up form with the address the link was mailed to.
+const invitePage = (link: unknown) =>
+	invitationLoad({
+		params: { token: String(link).split('/').pop() },
+		locals: { user: null },
+		url: new URL('http://x/invite/t')
+	} as never) as { invitation: { email: string | null } };
+
+it('the mailed invitation carries its address, a link-only one none', async () => {
+	expect(invitePage((await invite({ email: ' ann@example.ch ' })).link).invitation.email).toBe('ann@example.ch');
+	expect(invitePage((await invite({})).link).invitation.email).toBeNull();
 });
 
 it('a failed email keeps the link', async () => {
