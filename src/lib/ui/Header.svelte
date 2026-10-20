@@ -306,8 +306,20 @@
 			display: none;
 		}
 		header {
+			position: relative;
 			gap: 8px;
 			padding: 0 12px;
+		}
+		/* The switcher spans the bar, inside the viewport, whatever its trigger's position. */
+		details:not(.user) {
+			position: static;
+		}
+		details:not(.user) ul {
+			left: 12px;
+			right: 12px;
+			min-width: 0;
+			white-space: normal;
+			overflow-wrap: anywhere;
 		}
 		nav {
 			gap: 8px;
