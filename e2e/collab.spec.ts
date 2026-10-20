@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -47,6 +48,24 @@ test('comment, resolve and reopen', async ({ page }) => {
 	await expect(comments.getByText('1 resolved')).toHaveCount(0);
 	await expect(comments.getByRole('listitem')).toContainText('The second table needs a total.');
 	await expect(comments.getByRole('button', { name: 'Resolve' })).toBeVisible();
+});
+
+test('a hand-edited thread with two comments sharing an id still loads', async ({ page }) => {
+	const doc = 'e2e-collab/twins.md';
+	await newDocument(page, doc);
+	const heading = '## Ann · 2026-01-02T03:04:05.000Z';
+	const thread = path.join(root, '.inkmesh/comments', doc);
+	fs.mkdirSync(path.dirname(thread), { recursive: true });
+	fs.writeFileSync(thread, `${heading}\n\nFirst\n\n${heading}\n\nSecond\n`);
+	const errors: string[] = [];
+	page.on('pageerror', (err) => errors.push(err.message));
+	await page.goto(`/demo/${doc}`, { waitUntil: 'networkidle' });
+	const comments = page.getByRole('region', { name: 'Comments' });
+	await expect(comments.getByRole('listitem')).toHaveText([/First/, /Second/]);
+	await comments.getByLabel('Add a comment').fill('Third');
+	await comments.getByRole('button', { name: 'Comment' }).click();
+	await expect(comments.getByRole('listitem')).toHaveCount(3);
+	expect(errors).toEqual([]);
 });
 
 test.describe('without JavaScript', () => {

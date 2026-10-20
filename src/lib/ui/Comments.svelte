@@ -41,11 +41,12 @@
 	</li>
 {/snippet}
 
+<!-- Unkeyed: a hand-edited thread may repeat an id, and a duplicate key would break the page. -->
 <section id="comments" aria-labelledby="comments-title">
 	<h2 id="comments-title" tabindex="-1" bind:this={heading}>{t('comments.title', locale)}</h2>
 	{#if open.length}
 		<ol>
-			{#each open as c (c.id)}{@render item(c, true)}{/each}
+			{#each open as c}{@render item(c, true)}{/each}
 		</ol>
 	{:else}
 		<p class="empty">{t('comments.empty', locale)}</p>
@@ -54,7 +55,7 @@
 		<details>
 			<summary>{t('comments.resolved', locale, { count: String(resolved.length) })}</summary>
 			<ol>
-				{#each resolved as c (c.id)}{@render item(c, false)}{/each}
+				{#each resolved as c}{@render item(c, false)}{/each}
 			</ol>
 		</details>
 	{/if}
