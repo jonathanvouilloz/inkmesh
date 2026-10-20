@@ -82,6 +82,7 @@ describe('mail', () => {
 		const files = fs.readdirSync(dir);
 		expect(files).toHaveLength(1);
 		expect(files[0]).toMatch(/^\d+-[0-9a-f]{8}\.eml$/);
+		expect(fs.statSync(path.join(dir, files[0])).mode & 0o777).toBe(0o600);
 		const eml = fs.readFileSync(path.join(dir, files[0]), 'utf8');
 		expect(eml).toContain('To: ann@example.ch');
 		expect(eml).toContain('From: inkmesh <noreply@inkmesh.local>');

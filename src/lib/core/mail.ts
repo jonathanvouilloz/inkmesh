@@ -96,9 +96,8 @@ export async function sendMail(mail: Mail): Promise<void> {
 		const dir = path.join(dataDir(), 'mail');
 		fs.mkdirSync(dir, { recursive: true });
 		const name = `${Date.now()}-${randomBytes(4).toString('hex')}.eml`;
-		fs.writeFileSync(path.join(dir, name), info.message as Buffer, {
-			flag: 'wx'
-		});
+		// The files hold live sign-in links: readable by the server's user only.
+		fs.writeFileSync(path.join(dir, name), info.message as Buffer, { flag: 'wx', mode: 0o600 });
 		return;
 	}
 	await smtpTransport(smtp).sendMail(message);
