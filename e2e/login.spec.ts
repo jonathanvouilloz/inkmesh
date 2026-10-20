@@ -36,3 +36,18 @@ test('logout returns to login', async ({ page }) => {
 	await page.goto('/logout');
 	await expect(page).toHaveURL(/\/login\?next=%2F$/);
 });
+
+test('what a visitor types before the page hydrates survives hydration', async ({ page }) => {
+	// Hold the client scripts, as a slow network would, so the typing lands on the server-rendered form.
+	let release = () => {};
+	const held = new Promise<void>((resolve) => (release = resolve));
+	await page.route('**/_app/immutable/**/*.js', async (route) => {
+		await held;
+		await route.continue();
+	});
+	await page.goto('/login', { waitUntil: 'commit' });
+	await page.getByLabel('Email').fill('owner@inkmesh.local');
+	release();
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByLabel('Email')).toHaveValue('owner@inkmesh.local');
+});

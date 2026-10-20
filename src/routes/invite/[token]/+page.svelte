@@ -29,7 +29,7 @@
 			<form method="POST" action="?/signup">
 				<label>
 					{t('invite.name', locale)}
-					<input name="name" autocomplete="name" required maxlength="80" value={form?.name ?? ''} />
+					<input name="name" autocomplete="name" required maxlength="80" defaultValue={form?.name ?? ''} />
 				</label>
 				<label>
 					{t('login.email', locale)}
@@ -39,7 +39,7 @@
 						type="email"
 						autocomplete="email"
 						required
-						value={form?.email ?? ''}
+						defaultValue={form?.email ?? ''}
 						aria-invalid={fieldError === 'email' ? 'true' : undefined}
 						aria-describedby={fieldError === 'email' ? 'invite-error' : undefined}
 					/>
