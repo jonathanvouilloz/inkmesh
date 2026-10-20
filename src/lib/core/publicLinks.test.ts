@@ -18,6 +18,7 @@ import {
 	revokePublicLink,
 	setSignupRole,
 	sharedDocument,
+	sharedFolderFields,
 	sharedFile,
 	sharedScope,
 	sharedTree
@@ -112,6 +113,15 @@ describe('public links', () => {
 		await expect(sharedFile(t, '../other/x.md')).rejects.toBeInstanceOf(InvalidPath);
 		await expect(sharedScope('unknown')).toBeNull();
 		await expect(sharedTree('unknown')).rejects.toBeInstanceOf(Forbidden);
+	});
+
+	it("shared folder fields follow the link's scope", async () => {
+		const t = await createPublicLink('demo', null, null, jon);
+		expect(await sharedFolderFields(t, 'notes')).toEqual({ 'notes/a.md': {}, 'notes/b.md': {} });
+		const d = await createPublicLink('demo', 'notes/a.md', null, jon);
+		await expect(sharedFolderFields(d, 'notes')).rejects.toBeInstanceOf(Forbidden);
+		revokePublicLink('demo', publicLinks('demo', jon).find((l) => l.path === null)!.id, jon);
+		await expect(sharedFolderFields(t, 'notes')).rejects.toBeInstanceOf(Forbidden);
 	});
 
 	it('stores only the token hash', async () => {

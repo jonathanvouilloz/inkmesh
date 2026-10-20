@@ -3,6 +3,7 @@ import { structuredPatch } from 'diff';
 import { describe, expect, it } from 'vitest';
 import {
 	frontmatterEntries,
+	frontmatterFields,
 	imageUrls,
 	patchMarkdown,
 	processor,
@@ -49,6 +50,16 @@ describe('frontmatterEntries', () => {
 			['title', 'Q3'],
 			['tags', '[a, b]']
 		]);
+	});
+});
+
+describe('frontmatterFields', () => {
+	it('reads frontmatter fields', () => {
+		const source = '---\ndate: 2026-01-05\nstatus: "draft"\ntags: [q3, "big ops"]\nauthors:\n  - Ann\n  - \'Jon\'\nempty:\nstatus: done\n---\n';
+		const fields = { date: ['2026-01-05'], status: ['draft'], tags: ['q3', 'big ops'], authors: ['Ann', 'Jon'] };
+		expect(frontmatterFields(source)).toEqual(fields);
+		expect(frontmatterFields(source.replaceAll('\n', '\r\n'))).toEqual(fields);
+		expect(frontmatterFields('')).toEqual({});
 	});
 });
 
