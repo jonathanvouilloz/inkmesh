@@ -7,6 +7,8 @@ export type FolderListing = FolderQuery & {
 	fields: string[];
 	values: Record<string, string[]>;
 	shown: string | null;
+	/** Each listed document's values of the sorted field, by path: the only frontmatter a folder page receives. */
+	shownValues: Record<string, string>;
 	documents: number;
 	clear: string;
 };
@@ -64,6 +66,9 @@ export function queryFolder(nodes: TreeNode[], fields: Record<string, Fields>, p
 		fields: names,
 		values: Object.fromEntries(names.map((k) => [k, [...values.get(k)!].sort(compare).slice(0, MAX_VALUES)])),
 		shown,
+		shownValues: Object.fromEntries(
+			shown ? shownDocs.flatMap((d) => (get(d, shown) ? [[d.path, get(d, shown)!.join(', ')]] : [])) : []
+		),
 		documents: docs.length,
 		clear: queryString({ sort, order, filters: [] })
 	};

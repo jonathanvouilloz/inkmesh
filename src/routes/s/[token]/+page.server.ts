@@ -2,7 +2,6 @@ import { redirect } from '@sveltejs/kit';
 import { sharedFolderFields, sharedTree } from '#lib/core/publicLinks.ts';
 import { canonicalQuery, queryFolder } from '#lib/ui/folderQuery.ts';
 import { docHref } from '#lib/ui/href.ts';
-import { shownValues } from '#lib/ui/shown.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, parent }) => {
@@ -13,5 +12,5 @@ export const load: PageServerLoad = async ({ params, url, parent }) => {
 	const nodes = await sharedTree(params.token);
 	const fields = await sharedFolderFields(params.token, '');
 	const query = queryFolder(nodes, fields, url.searchParams);
-	return { nodes, query, shown: shownValues(query, fields) };
+	return { nodes, query };
 };

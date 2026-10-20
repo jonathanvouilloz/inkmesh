@@ -4,7 +4,6 @@ import { Conflict, InvalidContent, InvalidPath } from '#lib/core/paths.ts';
 import { requireRole } from '#lib/server/guard.ts';
 import { canonicalQuery, queryFolder } from '#lib/ui/folderQuery.ts';
 import { docHref } from '#lib/ui/href.ts';
-import { shownValues } from '#lib/ui/shown.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export type ImportResult = {
@@ -19,7 +18,7 @@ export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 	const { tree } = await parent();
 	const fields = await folderFields(params.workspace, '', locals.actor!);
 	const query = queryFolder(tree, fields, url.searchParams);
-	return { query, shown: shownValues(query, fields) };
+	return { query };
 };
 
 const isMissing = (err: unknown) => (err as { code?: unknown }).code === 'ENOENT';

@@ -64,7 +64,10 @@ it('the root and a folder load a sorted, filtered list', async () => {
 	const root = await load('?sort=date&order=desc');
 	expect(paths(root)).toEqual(['f', 'b.md', 'a.md']);
 	// Only the sorted field's values reach the page, not each document's frontmatter.
-	expect((root as unknown as { shown: unknown }).shown).toEqual({ 'b.md': '2026-03-01', 'a.md': '2026-01-05' });
+	expect((root as unknown as { query: { shownValues: unknown } }).query.shownValues).toEqual({
+		'b.md': '2026-03-01',
+		'a.md': '2026-01-05'
+	});
 	expect(root).not.toHaveProperty('fields');
 	expect(paths(await load('?status=draft', owner, 'f'))).toEqual(['f/x.md', 'f/z.md']);
 	expect(paths(await load('', owner, 'f'))).toEqual(['f/sub', 'f/x.md', 'f/y.md', 'f/z.md']);

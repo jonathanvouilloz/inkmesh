@@ -18,8 +18,7 @@
 		locale,
 		name,
 		folders = [],
-		query,
-		shown
+		query
 	}: {
 		workspace: string;
 		/** '' is the workspace root. */
@@ -33,8 +32,6 @@
 		folders?: string[];
 		/** The listing sorted and filtered from the URL; `nodes` stays the whole folder. */
 		query: FolderListing;
-		/** Each listed document's values of the sorted field, by path. */
-		shown: Record<string, string>;
 	} = $props();
 
 	const documents = (ns: TreeNode[]): number =>
@@ -185,7 +182,7 @@
 					{:else}
 						<a href={docHref(workspace, node.path)}>{node.title}</a>
 						{#if query.shown}
-							<span class="file">{shown[node.path]}</span>
+							<span class="file">{query.shownValues[node.path]}</span>
 						{:else}
 							<span class="file">{node.name}</span>
 						{/if}

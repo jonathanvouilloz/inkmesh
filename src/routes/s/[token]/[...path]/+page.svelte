@@ -63,7 +63,6 @@
 		path={data.docPath}
 		nodes={data.nodes}
 		query={data.query}
-		shown={data.shown}
 		role="reader"
 		locale={data.locale}
 		name={segments.at(-1)!}

@@ -16,7 +16,6 @@ import { endSession } from '#lib/core/sessions.ts';
 import { isNotFound, notFoundOn, requireRole } from '#lib/server/guard.ts';
 import { canonicalQuery, queryFolder } from '#lib/ui/folderQuery.ts';
 import { docHref } from '#lib/ui/href.ts';
-import { shownValues } from '#lib/ui/shown.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 
@@ -33,7 +32,7 @@ export const load: PageServerLoad = async ({ params, url, locals, parent }) => {
 		if (!nodes) error(404);
 		const fields = await folderFields(params.workspace, params.path, actor);
 		const query = queryFolder(nodes, fields, url.searchParams);
-		return { kind: 'folder' as const, path: params.path, nodes, query, shown: shownValues(query, fields) };
+		return { kind: 'folder' as const, path: params.path, nodes, query };
 	}
 	const commit = url.searchParams.get('v');
 	if (commit !== null) {

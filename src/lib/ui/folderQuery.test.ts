@@ -22,6 +22,7 @@ it("keeps today's order without parameters", () => {
 	expect(names('')).toEqual(['sub', 'a', 'b', 'c']);
 	const q = queryFolder(nodes, fields, new URLSearchParams());
 	expect(q.shown).toBeNull();
+	expect(q.shownValues).toEqual({});
 	expect(q.documents).toBe(3);
 	expect(q.clear).toBe('');
 });
@@ -30,6 +31,10 @@ it('sorts by a field both ways', () => {
 	expect(names('sort=date')).toEqual(['sub', 'a', 'c', 'b']);
 	expect(names('sort=date&order=desc')).toEqual(['sub', 'b', 'c', 'a']);
 	expect(queryFolder(nodes, fields, new URLSearchParams('sort=date')).shown).toBe('date');
+	// Only the listed documents that have the field, lists joined.
+	expect(queryFolder(nodes, fields, new URLSearchParams('sort=tags&status=draft')).shownValues).toEqual({
+		'a.md': 'q3, ops'
+	});
 });
 
 it('puts documents without the field last, ties by name', () => {
