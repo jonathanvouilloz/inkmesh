@@ -7,18 +7,19 @@ All six milestones of the roadmap are merged into `main` and deployed (M6 on 202
 - M3–M5 (files, agents, collaboration) are deployed since 2026-10-20. Plans: `docs/plans/`; order of the rest: `docs/plans/roadmap.md`.
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 
-## In production (phase A, milestone 6)
-- Checkout `~/inkmesh-app` on `main` (`6807534`), data `/home/hermes/inkmesh-data` (migrations 001–005 applied; the log says `email: off`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel`. URL: `scripts/tunnel-url.sh`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
+## In production (phase B, https://inkmesh.ch)
+- Checkout `~/inkmesh-app` on `main` (`beed15a`), data `/home/hermes/inkmesh-data` (migrations 001–005 applied; the log says `email: off`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel` (named tunnel `inkmesh`, config `~/.cloudflared/inkmesh.yml`; zone `inkmesh.ch` in Jon's Cloudflare account, registered at Infomaniak). Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
 - Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Latest backup: `~/inkmesh-backups/20261020T060452Z-pre-m6`.
 
 ## Next action
 1. The owner actions below; nothing else is planned on the roadmap. New work starts with a spec and plan under `docs/plans/`.
 
 ## Owner actions (Jon)
-- Choose an SMTP provider and, once `inkmesh.ch` exists (phase B of `docs/deploy.md`), set `SMTP_URL`, `MAIL_FROM` and `INKMESH_URL` in `~/.config/inkmesh/env`. Email stays off in production until then. Sending a real email needs his approval.
+- Email via Resend: verify `inkmesh.ch` in Resend (its DNS lines go into Cloudflare by hand: the server's Cloudflare API token cannot edit this zone) and hand over a sending API key. Then set `SMTP_URL=smtps://resend:<key>@smtp.resend.com:465`, `MAIL_FROM=inkmesh <noreply@inkmesh.ch>`, `INKMESH_URL=https://inkmesh.ch` in `~/.config/inkmesh/env` and restart. Sending a real email needs his approval.
 - Test the real clients from the Connect page (Claude web connector, Claude Code `claude mcp add`, ChatGPT developer mode, Cursor `mcp.json`): connected, consent shows the right host, `list_workspaces`, `create_document`, `search` and `add_comment` work, commits read "Jon via <agent>". Fix any recipe wording that no longer matches the vendor menus.
 - Publish the repository and replace the `git clone <this repository>` placeholder in `README.md`.
-- Rename the dev folder when no session runs in it; register `inkmesh.ch` (phase B).
+- Rename the dev folder when no session runs in it.
+- Re-add MCP clients configured on the old `trycloudflare.com` URL with `https://inkmesh.ch/mcp` (tokens stay valid; OAuth clients authorise again).
 
 ## Known limits
 Deliberate, ledgered in reviews: `docs/project/known-limits.md`.
