@@ -195,14 +195,21 @@ export function acceptInvitationAsNewUser(
 
 export function pendingInvitations(
 	slug: string
-): { id: string; role: Role; createdBy: string; createdById: number; expiresAt: string }[] {
+): { id: string; role: Role; createdBy: string; createdById: number; expiresAt: string; email: string | null }[] {
 	return db()
 		.prepare(
-			`SELECT i.token_hash AS id, i.role, u.name AS createdBy, i.created_by AS createdById, i.expires_at AS expiresAt FROM invitations i
+			`SELECT i.token_hash AS id, i.role, u.name AS createdBy, i.created_by AS createdById, i.expires_at AS expiresAt, i.email FROM invitations i
 			 JOIN users u ON u.id = i.created_by
 			 WHERE i.workspace = ? AND i.used_at IS NULL AND i.expires_at > ? ORDER BY i.created_at`
 		)
-		.all(slug, now()) as { id: string; role: Role; createdBy: string; createdById: number; expiresAt: string }[];
+		.all(slug, now()) as {
+		id: string;
+		role: Role;
+		createdBy: string;
+		createdById: number;
+		expiresAt: string;
+		email: string | null;
+	}[];
 }
 
 export function revokeInvitation(slug: string, id: string, by: Actor): void {

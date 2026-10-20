@@ -199,6 +199,8 @@ describe('access', () => {
 		createInvitation('team', 'reader', jon); // any new invitation clears expired addresses
 		expect(email(expired)).toBeNull();
 		expect(email(live)).toBe('eve@example.ch');
+		// The owner's pending list shows it while it lasts.
+		expect(pendingInvitations('team').map((i) => i.email)).toContain('eve@example.ch');
 	});
 
 	it('an invitation accepts once', async () => {
