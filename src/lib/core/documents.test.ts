@@ -769,6 +769,12 @@ describe('documents', () => {
 			'g/y.md': {},
 			'g/z.md': { tags: ['[a,'] }
 		});
+		// A BOM before the frontmatter still gives its fields; an unreadable file gives none.
+		fs.writeFileSync(path.join(dir, 'z.md'), '\uFEFF---\nstatus: draft\n---\n');
+		fs.writeFileSync(path.join(dir, 'w.md'), '---\nstatus: draft\n---\n', { mode: 0 });
+		const fields = await folderFields('demo', 'g', actor);
+		expect(fields['g/w.md']).toEqual({});
+		expect(fields['g/z.md']).toEqual({ status: ['draft'] });
 	});
 
 	describe('events', () => {

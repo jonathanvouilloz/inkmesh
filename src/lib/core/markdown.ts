@@ -45,21 +45,24 @@ const unquote = (value: string) => /^(["'])(.*)\1$/s.exec(value)?.[2] ?? value;
  * Each top-level key's values: `[a, "b c"]` and indented `- item` lines under an empty key are lists,
  * matching quotes are dropped, empty values give no entry, the first occurrence of a key wins.
  */
-// shortcut: anchors, multi-line strings, nested maps and commas inside quoted list items are not understood; upgrade to a YAML parser if users need them
+// shortcut: anchors, multi-line strings, nested maps, commas inside quoted list items and inline `# note` comments (kept in the value) are not understood; upgrade to a YAML parser if users need them
 export function frontmatterFields(frontmatter: string): Fields {
 	const fields = new Map<string, string[]>();
 	let list: string[] | null = null;
 	for (const line of frontmatter.split(/\r?\n/)) {
-		const item = /^\s+-(?:\s+(.*))?$/.exec(line);
-		if (list && item) {
-			list.push(unquote((item[1] ?? '').trim()));
-			continue;
+		if (list) {
+			// Block list items, indented or at column 0; blank and comment lines keep the list open.
+			const item = /^\s*-(?:\s+(.*))?$/.exec(line);
+			if (item) list.push(unquote((item[1] ?? '').trim()));
+			if (item || /^\s*(#.*)?$/.test(line)) continue;
+			list = null;
 		}
-		list = null;
 		const match = KEY.exec(line);
 		const key = match?.[1].trim();
 		if (!match || !key || fields.has(key)) continue;
 		const value = match[2].trim();
+		// Block scalars, anchors and aliases (`|`, `>`, `&`, `*`) are not understood: no value.
+		if (/^[|>&*]/.test(value)) continue;
 		const values = !value
 			? (list = [])
 			: /^\[.*\]$/.test(value)

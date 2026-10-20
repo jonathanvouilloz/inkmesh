@@ -214,8 +214,10 @@ export async function readFolderFields(slug: string, folder: string): Promise<Re
 	for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
 		if (entry.name.startsWith('.') || !entry.isFile() || !entry.name.endsWith('.md')) continue;
 		const p = rel ? `${rel}/${entry.name}` : entry.name;
-		const read = await readText(join(dir, entry.name));
-		fields[p] = read ? frontmatterFields(splitFrontmatter(read.text).frontmatter) : {};
+		// A file removed or unreadable since readdir has no fields, like a non-UTF-8 one.
+		const read = await readText(join(dir, entry.name)).catch(() => null);
+		// readText keeps a BOM, which would hide the frontmatter from splitFrontmatter.
+		fields[p] = read ? frontmatterFields(splitFrontmatter(read.text.replace(/^\uFEFF/, '')).frontmatter) : {};
 	}
 	return fields;
 }
