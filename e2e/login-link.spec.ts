@@ -11,7 +11,7 @@ function newestLink(to: string): string | null {
 	if (!fs.existsSync(MAIL)) return null;
 	for (const name of fs.readdirSync(MAIL).sort().reverse()) {
 		const raw = fs.readFileSync(path.join(MAIL, name), 'utf8').replace(/=\r?\n/g, '').replace(/=3D/g, '=');
-		if (!new RegExp(`^To: ${to}$`, 'm').test(raw)) continue;
+		if (!raw.split(/\r?\n/).includes(`To: ${to}`)) continue;
 		return /http:\/\/localhost:4173\/login\/link\/[A-Za-z0-9_-]{43}/.exec(raw)?.[0] ?? null;
 	}
 	return null;
