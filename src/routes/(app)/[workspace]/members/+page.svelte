@@ -122,8 +122,9 @@
 		</table>
 	{/if}
 
-	<h2>{t('members.invite', locale)}</h2>
-	<form class="invite" method="POST" action="?/invite">
+	<!-- The fragment brings the answer back into view, on a phone too. -->
+	<h2 id="invite">{t('members.invite', locale)}</h2>
+	<form class="invite" method="POST" action="?/invite#invite">
 		<label>
 			{t('members.newRole', locale)}
 			<select name="role">
@@ -135,7 +136,8 @@
 		{#if data.mail}
 			<label class="to">
 				{t('members.sendTo', locale)}
-				<!-- Kept after a refusal, so the address can be corrected rather than typed again. -->
+				<!-- Kept and focused after a refusal, so the address can be corrected rather than typed again. -->
+				<!-- svelte-ignore a11y_autofocus -->
 				<input
 					type="email"
 					name="email"
@@ -143,6 +145,7 @@
 					autocomplete="off"
 					spellcheck="false"
 					defaultValue={form?.email ?? ''}
+					autofocus={!!form?.mailError}
 					aria-invalid={form?.mailError === 'email'}
 					aria-describedby={form?.mailError ? 'invite-mail' : undefined}
 				/>
@@ -155,7 +158,7 @@
 	{/if}
 	{#if form?.mailed}
 		{@const [before, after] = t('members.mailed', locale).split('{email}')}
-		<p role="status">{before}<span class="mono">{form.mailed}</span>{after}</p>
+		<p class="ok" role="status">{before}<span class="mono">{form.mailed}</span>{after}</p>
 	{:else if form?.mailError}
 		<p id="invite-mail" class="error" role="alert">{t(mailErrors[form.mailError], locale)}</p>
 	{/if}
@@ -395,6 +398,9 @@
 	}
 	.error {
 		color: var(--error);
+	}
+	.ok {
+		color: var(--ok);
 	}
 	h2:focus {
 		outline: none;

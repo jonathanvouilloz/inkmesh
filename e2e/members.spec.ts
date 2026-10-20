@@ -193,6 +193,7 @@ test('a refused address keeps the field and creates no link', async ({ page }) =
 	await page.getByRole('button', { name: 'Create link' }).click();
 	await expect(page.getByRole('alert')).toHaveText('Enter a single valid email address, or leave the field empty.');
 	await expect(field).toHaveValue(emailed);
+	await expect(field).toBeFocused();
 	await expect(field).toHaveAttribute('aria-invalid', 'true');
 	await expect(page.getByLabel('Invitation link')).toHaveCount(0);
 	await expect(pending).toHaveCount(before);
