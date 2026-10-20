@@ -33,6 +33,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'login.useLink': 'Recevoir plutôt un lien de connexion par e-mail',
 	'login.usePassword': 'Utiliser plutôt un mot de passe',
 	'login.sendLink': 'M’envoyer un lien',
+	'login.otherAddress': 'Utiliser une autre adresse',
 	'login.linkSent': 'Si un compte utilise {email}, un lien de connexion vient d’y être envoyé. Il n’est valable qu’une fois, pendant 15 minutes.',
 	'loginLink.continue': 'Continuer en tant que {email}.',
 	'loginLink.expired': 'Ce lien de connexion a expiré ou a déjà servi',

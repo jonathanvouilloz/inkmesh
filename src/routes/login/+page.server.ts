@@ -54,8 +54,10 @@ export const actions: Actions = {
 		if (!mailEnabled()) error(404);
 		const form = await request.formData();
 		const email = form.get('email');
-		if (typeof email !== 'string' || !validEmail(email.trim()))
-			return fail(400, { error: 'invite.email' as const, method: 'link' as const });
+		if (typeof email !== 'string') return fail(400, { error: 'invite.email' as const, method: 'link' as const });
+		// Kept, so a typo is corrected rather than typed again.
+		if (!validEmail(email.trim()))
+			return fail(400, { error: 'invite.email' as const, method: 'link' as const, email: email.slice(0, MAX) });
 		const ipKey = 'link-ip|' + getClientAddress();
 		const emailKey = 'link-email|' + normalize(email);
 		if (!loginAllowed(ipKey) || !loginAllowed(emailKey, 3))

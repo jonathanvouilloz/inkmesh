@@ -26,6 +26,9 @@ test('sign in with an emailed link', async ({ page }) => {
 	await expect(page.getByRole('status')).toContainText('owner@inkmesh.local');
 	let link: string | null = null;
 	await expect.poll(() => (link = newestLink('owner@inkmesh.local'))).not.toBe(before);
+	// A typo is not a dead end: the sent page leads back to the form.
+	await page.getByRole('link', { name: 'Use another address' }).click();
+	await expect(page.getByRole('button', { name: 'Email me a link' })).toBeVisible();
 	await page.goto(link!);
 	await expect(page.getByText('Continue as owner@inkmesh.local.')).toBeVisible();
 	await page.getByRole('button', { name: 'Sign in' }).click();

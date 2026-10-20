@@ -22,6 +22,7 @@
 	{#if form?.sent}
 		{@const [before, after] = t('login.linkSent', data.locale).split('{email}')}
 		<p role="status">{before}<span class="mono">{form.email}</span>{after}</p>
+		<a href={query(true)}>{t('login.otherAddress', data.locale)}</a>
 	{:else}
 		<!-- `next` travels in the action's query string. -->
 		<form method="POST" action={action(method)}>

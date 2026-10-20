@@ -130,7 +130,7 @@ it('requests are throttled per address and per IP', async () => {
 it('a bad address is refused', async () => {
 	expect(await ask('not an address', '203.0.113.70')).toMatchObject({
 		status: 400,
-		data: { error: 'invite.email', method: 'link' }
+		data: { error: 'invite.email', method: 'link', email: 'not an address' }
 	});
 	for (const email of ['a@' + 'b'.repeat(253), '@', 'jon@example.ch, a@x.ch', 'jon@example.ch\r\nBcc: a@x.ch'])
 		expect(await ask(email, '203.0.113.70')).toMatchObject({ status: 400 });

@@ -31,6 +31,7 @@ export const en = {
 	'login.useLink': 'Email me a sign-in link instead',
 	'login.usePassword': 'Use a password instead',
 	'login.sendLink': 'Email me a link',
+	'login.otherAddress': 'Use another address',
 	'login.linkSent': 'If an account uses {email}, a sign-in link is on its way. It works once, for 15 minutes.',
 	'loginLink.continue': 'Continue as {email}.',
 	'loginLink.expired': 'This sign-in link has expired or was already used',
