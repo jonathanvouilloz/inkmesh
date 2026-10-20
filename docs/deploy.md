@@ -47,3 +47,14 @@ Logs: `journalctl --user -u inkmesh -f`, `journalctl --user -u inkmesh-tunnel -f
 6. Env: nothing to change. The origin keeps coming from the proxy headers (`PROTOCOL_HEADER`, `HOST_HEADER`); adapter-node 6 does not read an `ORIGIN` variable (a fixed origin would be the build-time `paths.origin` option, not needed here).
 7. Tunnel switch: in `deploy/inkmesh-tunnel.service`, comment the quick tunnel `ExecStart` and uncomment the `tunnel run` one; commit on `main` and run `scripts/deploy.sh` so the prod clone carries it.
 8. Restart both: `systemctl --user daemon-reload && systemctl --user restart inkmesh inkmesh-tunnel`. Sessions survive (cookie name and path unchanged). Check `https://inkmesh.ch/login`.
+
+## Backup
+
+`scripts/backup.sh`, run every hour by `deploy/inkmesh-backup.timer`, mirrors each workspace's git repository to a private GitHub repository `<BACKUP_GITHUB_OWNER>/inkmesh-<slug>` (created on first run through the `gh` login of `hermes`) and refreshes a daily snapshot of `inkmesh.db` in `~/inkmesh-backups/db/`, kept 14 days. The database never leaves the VPS. Logs: `journalctl --user -u inkmesh-backup`; a failed push or snapshot makes the run fail.
+
+1. Env: add `BACKUP_GITHUB_OWNER=jonathanvouilloz` to `~/.config/inkmesh/env`.
+2. Units, linked from the prod clone: `ln -sf ~/inkmesh-app/deploy/inkmesh-backup.service ~/inkmesh-app/deploy/inkmesh-backup.timer ~/.config/systemd/user/ && systemctl --user daemon-reload`.
+3. First run, by the owner (it sends the documents to GitHub): `systemctl --user start inkmesh-backup && journalctl --user -u inkmesh-backup -n 20 --no-pager`.
+4. Every hour from then on: `systemctl --user enable --now inkmesh-backup.timer`.
+
+Restore a workspace: `git clone https://github.com/<owner>/inkmesh-<slug>.git $INKMESH_DATA/workspaces/<slug>` with the app stopped; restore the database by copying a snapshot over `inkmesh.db` (app stopped, remove `inkmesh.db-wal` and `inkmesh.db-shm`).

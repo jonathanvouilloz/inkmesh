@@ -10,6 +10,7 @@ All six milestones of the roadmap are merged into `main` and deployed (M6 on 202
 
 ## In production (phase B, https://inkmesh.ch)
 - Checkout `~/inkmesh-app` on `main` (`1ef267a`, UX polish and grouped workspace lists deployed 2026-10-20), data `/home/hermes/inkmesh-data` (migrations 001–006 applied; the log says `email: on (smtps)`, Resend, from `noreply@inkmesh.ch`; previous env kept as `env.bak-pre-email`), env `~/.config/inkmesh/env`, units `inkmesh` and `inkmesh-tunnel` (named tunnel `inkmesh`, config `~/.cloudflared/inkmesh.yml`; zone `inkmesh.ch` in Jon's Cloudflare account, registered at Infomaniak). Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main` (its origin is the dev repo). Guide: `docs/deploy.md`.
+- Automatic backup: hourly, `docs/deploy.md` "Backup" (workspaces to private GitHub repositories `inkmesh-<slug>`, database snapshots in `~/inkmesh-backups/db/`).
 - Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first. Latest backup: `~/inkmesh-backups/20261020T114823Z-pre-grouping`.
 
 ## Next action

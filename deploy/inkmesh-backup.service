@@ -1,0 +1,9 @@
+[Unit]
+Description=inkmesh backup: workspaces to GitHub, daily database snapshot
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/inkmesh-app
+EnvironmentFile=%h/.config/inkmesh/env
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env bash scripts/backup.sh

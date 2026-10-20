@@ -290,3 +290,9 @@
 - Rejected: not storing it (the invitee retyped an address we already had).
 - Why: Jon's request after first real use.
 - Reopen if: invitations must be addressed beyond sign-up (resend, expiry reminders), or the address must outlive the link.
+
+## 2026-10-20 — Hourly off-site backup: workspaces to private GitHub repositories, database stays local
+- Choice: `scripts/backup.sh` under a systemd timer, every hour: `git push --mirror` of each workspace to a private repository `inkmesh-<slug>` on Jon's GitHub account, pushed by URL so the workspace's `.git` is never written; a daily `node:sqlite` snapshot of the database in `~/inkmesh-backups/db/`, 14 days kept.
+- Rejected: nightly only (up to a day of work lost with the VPS); pushing the database to GitHub (it holds emails and password hashes); a named remote in each workspace (writes `.git/config` outside `core`); managing remotes inside inkmesh (decision 2026-10-18 keeps v1 free of remotes).
+- Why: everything lived on one VPS with only manual copies before deploys.
+- Reopen if: the database must survive the loss of the VPS (then an encrypted off-site copy), or a workspace grows past what a GitHub repository should hold.
