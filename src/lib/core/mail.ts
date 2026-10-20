@@ -15,12 +15,21 @@ export const outbox: Mail[] = [];
 /** Reads the environment on every call; a partial or invalid configuration throws (and stops the start). */
 export function mailConfig(): { smtp: URL; from: string; appUrl: string } | null {
 	const { SMTP_URL, MAIL_FROM, INKMESH_URL } = process.env;
-	const set = [SMTP_URL, MAIL_FROM, INKMESH_URL].filter(Boolean).length;
-	if (set === 0) return null;
-	if (set < 3) throw new Error('SMTP_URL, MAIL_FROM and INKMESH_URL must be set together');
+	const unset = Object.entries({ SMTP_URL, MAIL_FROM, INKMESH_URL }).flatMap(([k, v]) => (v ? [] : [k]));
+	if (unset.length === 3) return null;
+	if (unset.length) throw new Error(`${unset.join(' and ')} must be set too: SMTP_URL, MAIL_FROM and INKMESH_URL go together`);
 	const smtp = URL.parse(SMTP_URL!);
 	if (!smtp || !['smtp:', 'smtps:', 'memory:', 'file:'].includes(smtp.protocol))
 		throw new Error('SMTP_URL must start with smtp://, smtps://, memory: or file:');
+	if (smtp.protocol.startsWith('smtp')) {
+		// `smtp:///` would silently go to localhost.
+		if (!smtp.hostname) throw new Error('SMTP_URL must name the server, such as smtp://user:pass@smtp.example');
+		try {
+			decodeURIComponent(smtp.username + smtp.password);
+		} catch {
+			throw new Error('SMTP_URL has a badly percent-encoded user or password');
+		}
+	}
 	const app = URL.parse(INKMESH_URL!);
 	if (!app || !['http:', 'https:'].includes(app.protocol) || app.pathname !== '/' || app.search || app.hash)
 		throw new Error('INKMESH_URL must be an origin such as https://inkmesh.example');

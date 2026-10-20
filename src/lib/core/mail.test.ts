@@ -39,16 +39,22 @@ describe('mail', () => {
 
 	it('refuses a partial configuration', () => {
 		process.env.SMTP_URL = 'memory:';
-		expect(() => mailConfig()).toThrow('SMTP_URL, MAIL_FROM and INKMESH_URL must be set together');
+		expect(() => mailConfig()).toThrow(/^MAIL_FROM and INKMESH_URL must be set too/);
 		delete process.env.SMTP_URL;
 		process.env.MAIL_FROM = FROM;
 		process.env.INKMESH_URL = 'https://a.example';
-		expect(() => mailConfig()).toThrow('SMTP_URL, MAIL_FROM and INKMESH_URL must be set together');
+		expect(() => mailConfig()).toThrow(/^SMTP_URL must be set too/);
 	});
 
 	it('refuses a bad scheme or URL', () => {
 		configure('http://x');
 		expect(() => mailConfig()).toThrow('SMTP_URL must start with smtp://, smtps://, memory: or file:');
+		configure('smtp:///');
+		expect(() => mailConfig()).toThrow('SMTP_URL must name the server');
+		configure('smtps://user:50%zz@smtp.example');
+		expect(() => mailConfig()).toThrow('SMTP_URL has a badly percent-encoded user or password');
+		configure('smtps://user:50%25@smtp.example');
+		expect(mailEnabled()).toBe(true);
 		for (const url of ['https://a.example/app', 'ftp://a', 'not a url']) {
 			configure('memory:', url);
 			expect(() => mailConfig()).toThrow('INKMESH_URL must be an origin such as https://inkmesh.example');
