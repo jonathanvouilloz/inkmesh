@@ -199,7 +199,7 @@ describe('digest', () => {
 		const [m] = outbox;
 		expect(m.subject).toBe('inkmesh: 53 changes in your workspaces');
 		expect(m.text.split('\n').filter((l) => l.endsWith(' · Demo'))).toHaveLength(50);
-		expect(m.text).toContain('3 more in your inbox.');
+		expect(m.text).toContain('3 more changes in your inbox.');
 		expect(await runDigests(SLOT)).toBe(0);
 	});
 

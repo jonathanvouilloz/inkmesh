@@ -9,7 +9,8 @@ const list = (page: Page) => page.locator('section > ul a');
 const files = [
 	['a.md', '---\ndate: 2026-01-05\nstatus: draft\ntags: [q3, ops]\n---\n# Alpha\n'],
 	['b.md', '---\ndate: 2026-03-01\nstatus: done\ntags: [q3]\n---\n# Beta\n'],
-	['c.md', '---\ndate: 2026-02-10\nstatus: draft\n---\n# Gamma\n']
+	// `value` is a query parameter's name: sortable, never offered as a filter.
+	['c.md', '---\ndate: 2026-02-10\nstatus: draft\nvalue: x\n---\n# Gamma\n']
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -42,6 +43,10 @@ test('sort and filter by URL', async ({ page }) => {
 	await expect(list(page)).toHaveText(['Beta', 'Gamma', 'Alpha']);
 	// Sorting by a field shows its value in place of the file name.
 	await expect(page.locator('section > ul .file')).toHaveText(['2026-03-01', '2026-02-10', '2026-01-05']);
+	// A document without the field sorts last, with a dash for its value.
+	await page.goto('/demo/e2e-query?sort=tags');
+	await expect(page.locator('section > ul .file')).toHaveText(['q3, ops', 'q3', '—']);
+	await expect(page.getByLabel('Add a filter').locator('option')).toHaveText(['Choose a field', 'date', 'status', 'tags']);
 	await page.goto('/demo/e2e-query?status=draft&sort=date');
 	await expect(list(page)).toHaveText(['Alpha', 'Gamma']);
 	await expect(page.getByText('Showing documents where status is draft.')).toBeVisible();

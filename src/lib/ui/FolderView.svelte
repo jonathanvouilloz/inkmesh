@@ -39,7 +39,7 @@
 	let picker = $state<HTMLInputElement>()!;
 	// Public pages render this view outside the workspace layout that sets the context (readers only).
 	const drops = hasDrops() ? getDrops() : undefined;
-	// The field picked for a new filter, back to "No filter" with each new query (the form is keyed on it too).
+	// The field picked for a new filter, back to "Choose a field" with each new query (the form is keyed on it too).
 	let field: string = $derived(page.url.search && '');
 	// A field named like a built-in shadows it, so it is not offered twice.
 	const sortFields = $derived(query.fields.filter((f) => f !== 'title' && f !== 'modified'));
