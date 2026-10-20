@@ -152,11 +152,12 @@ export const ops = {
 		try {
 			return { comment: await addComment(ws, path, body, actor) };
 		} catch (err) {
-			if (!(err instanceof InvalidContent)) throw err;
 			// toApiError's messages speak of documents; these speak of the comment.
-			throw err.message === 'too-large'
-				? new ApiError(413, 'payload_too_large', `the comment is longer than ${MAX_COMMENT_CHARS} characters`)
-				: new ApiError(400, 'bad_request', 'the comment is empty');
+			if (err instanceof InvalidContent && err.message === 'too-large')
+				throw new ApiError(413, 'payload_too_large', `the comment is longer than ${MAX_COMMENT_CHARS} characters`);
+			if (err instanceof InvalidContent && err.message === 'empty')
+				throw new ApiError(400, 'bad_request', 'the comment is empty');
+			throw err;
 		}
 	}
 };
