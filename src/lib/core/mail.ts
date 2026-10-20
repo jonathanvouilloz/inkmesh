@@ -76,19 +76,26 @@ function smtpTransport(smtp: URL): Transporter {
 	return transport;
 }
 
-export async function sendMail(mail: Mail): Promise<void> {
+/** False when the send failed; the log names the sender and the user, never the error's message. */
+export async function sendMail(mail: Mail, label: string, userId: number): Promise<boolean> {
 	const { smtp, from } = config();
+	try {
+		await deliver(mail, smtp, from);
+		return true;
+	} catch (err) {
+		// The message can quote the address (SMTP replies): log its codes only.
+		const e = err as { code?: string; responseCode?: number } | undefined;
+		console.error(`${label}: send failed for user ${userId}`, e?.code, e?.responseCode);
+		return false;
+	}
+}
+
+async function deliver(mail: Mail, smtp: URL, from: string): Promise<void> {
 	if (smtp.protocol === 'memory:') {
 		outbox.push(mail);
 		return;
 	}
-	const message = {
-		from,
-		to: mail.to,
-		subject: mail.subject,
-		text: mail.text,
-		headers: mail.headers
-	};
+	const message = { from, to: mail.to, subject: mail.subject, text: mail.text, headers: mail.headers };
 	if (smtp.protocol === 'file:') {
 		const info = await nodemailer
 			.createTransport({ streamTransport: true, buffer: true, newline: 'unix' })

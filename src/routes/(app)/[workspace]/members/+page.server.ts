@@ -93,15 +93,9 @@ export const actions: Actions = {
 		if (!email) return { link };
 		loginFailed(key);
 		const name = workspace(params.workspace)!.name;
-		try {
-			// The emailed link starts with INKMESH_URL, never the request's host.
-			await sendMail(invitationMail(email, locals.actor!.name, name, wanted, appUrl() + '/invite/' + token, locals.locale));
-		} catch (err) {
-			// The error's message can quote the address (SMTP replies): log its codes only.
-			const e = err as { code?: string; responseCode?: number } | undefined;
-			console.error('invitation: send failed for user', locals.actor!.id, e?.code, e?.responseCode);
-			return { link, mailError: 'failed' as const, email };
-		}
+		// The emailed link starts with INKMESH_URL, never the request's host.
+		const mail = invitationMail(email, locals.actor!.name, name, wanted, appUrl() + '/invite/' + token, locals.locale);
+		if (!(await sendMail(mail, 'invitation', locals.actor!.id))) return { link, mailError: 'failed' as const, email };
 		return { link, mailed: email };
 	},
 	revoke: async ({ params, locals, request }) => {

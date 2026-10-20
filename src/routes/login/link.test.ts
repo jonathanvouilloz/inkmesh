@@ -139,12 +139,14 @@ it('a failed send changes nothing for the visitor', async () => {
 	const dan = await accounts.createUser({ email: 'dan@example.ch', name: 'Dan', password: 'long enough 1' });
 	// SMTP replies often quote the recipient: the message must never reach the log.
 	const failure = Object.assign(new Error('550 <dan@example.ch> rejected'), { code: 'EENVELOPE', responseCode: 550 });
-	vi.spyOn(mail, 'sendMail').mockRejectedValue(failure);
+	vi.spyOn(mail.outbox, 'push').mockImplementation(() => {
+		throw failure;
+	});
 	const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 	expect(await ask('dan@example.ch', '203.0.113.80')).toEqual({ sent: true, email: 'dan@example.ch', method: 'link' });
 	await vi.waitFor(() => expect(logged).toHaveBeenCalledOnce());
 	const text = JSON.stringify(logged.mock.calls[0]);
-	expect(logged.mock.calls[0]).toContain(dan.id);
+	expect(logged.mock.calls[0][0]).toBe(`login link: send failed for user ${dan.id}`);
 	expect(text).not.toContain('dan@example.ch');
 	expect(text).not.toContain('/login/link/');
 	expect(text).toContain('EENVELOPE');

@@ -75,14 +75,7 @@ export async function runDigests(slot: Date): Promise<number> {
 		const { items, total, lastId } = pendingDigest(user.id, user.digest_last_id, until);
 		if (total === 0) continue;
 		const urls = { inbox: appUrl() + '/inbox', unsubscribe: appUrl() + '/unsubscribe/' + unsubscribeToken(user.id) };
-		try {
-			await sendMail(digestMail(user.email, items, total, urls, user.locale));
-		} catch (err) {
-			// Never the message: it may carry the address.
-			const e = err as { code?: string; responseCode?: number } | undefined;
-			console.error(`digest: send failed for user ${user.id}`, e?.code, e?.responseCode);
-			continue;
-		}
+		if (!(await sendMail(digestMail(user.email, items, total, urls, user.locale), 'digest', user.id))) continue;
 		// max: turning the digest off and on during the send already moved the cursor further.
 		db()
 			.prepare('UPDATE users SET digest_last_id = max(digest_last_id, ?), digest_sent_at = ? WHERE id = ?')

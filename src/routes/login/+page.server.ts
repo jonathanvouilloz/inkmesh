@@ -67,10 +67,7 @@ export const actions: Actions = {
 		if (user) {
 			const token = createLoginLink(user.id, safeNext(form.get('next')));
 			// Not awaited: the answer time must not tell whether an email went out.
-			// The error's message can quote the address (SMTP replies): log its codes only.
-			void sendMail(loginLinkMail(user, appUrl() + '/login/link/' + token, locals.locale)).catch((err) =>
-				console.error('login link: send failed for user', user.id, err?.code, err?.responseCode)
-			);
+			void sendMail(loginLinkMail(user, appUrl() + '/login/link/' + token, locals.locale), 'login link', user.id);
 		}
 		return { sent: true as const, email, method: 'link' as const };
 	}

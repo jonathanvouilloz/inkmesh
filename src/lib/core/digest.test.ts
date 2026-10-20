@@ -155,7 +155,10 @@ describe('digest', () => {
 		const state = () => db().prepare('SELECT digest_last_id, digest_sent_at FROM users WHERE id = ?').get(jon.id);
 		const before = state();
 		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-		vi.spyOn(mail, 'sendMail').mockRejectedValueOnce(Object.assign(new Error('to jon@example.ch'), { code: 'ECONNECTION' }));
+		const failure = Object.assign(new Error('to jon@example.ch'), { code: 'ECONNECTION' });
+		vi.spyOn(mail.outbox, 'push').mockImplementationOnce(() => {
+			throw failure;
+		});
 		at(HOUR);
 		expect(await runDigests(SLOT)).toBe(0);
 		expect(state()).toEqual(before);

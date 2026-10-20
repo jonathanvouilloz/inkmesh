@@ -65,12 +65,14 @@ it('an editor emails an invitation', async () => {
 });
 
 it('a failed email keeps the link', async () => {
-	vi.spyOn(mail, 'sendMail').mockRejectedValue(Object.assign(new Error('to ann@example.ch'), { code: 'ECONNECTION' }));
+	vi.spyOn(mail.outbox, 'push').mockImplementation(() => {
+		throw Object.assign(new Error('to ann@example.ch'), { code: 'ECONNECTION' });
+	});
 	const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 	expect(await invite({ email: 'ann@example.ch' })).toEqual({ link, mailError: 'failed', email: 'ann@example.ch' });
 	expect(readerLinks()).toBe(1);
 	expect(JSON.stringify(log.mock.calls)).not.toContain('ann@example.ch');
-	expect(log.mock.calls[0]).toContain(jon.id);
+	expect(log.mock.calls[0]).toEqual([`invitation: send failed for user ${jon.id}`, 'ECONNECTION', undefined]);
 });
 
 it('a bad address creates no link', async () => {

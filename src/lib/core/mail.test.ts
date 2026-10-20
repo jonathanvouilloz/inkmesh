@@ -32,7 +32,7 @@ describe('mail', () => {
 	it('email is off without configuration', async () => {
 		expect(mailConfig()).toBeNull();
 		expect(mailEnabled()).toBe(false);
-		await expect(sendMail({ to: 'ann@example.ch', subject: 's', text: 't' })).rejects.toThrow(
+		await expect(sendMail({ to: 'ann@example.ch', subject: 's', text: 't' }, 'test', 1)).rejects.toThrow(
 			'email is not configured'
 		);
 	});
@@ -67,17 +67,14 @@ describe('mail', () => {
 	it('the memory transport keeps the message', async () => {
 		configure('memory:');
 		const mail = { to: 'ann@example.ch', subject: 'Hello', text: 'Body' };
-		await sendMail(mail);
+		expect(await sendMail(mail, 'test', 1)).toBe(true);
 		expect(outbox).toEqual([mail]);
 	});
 
 	it('the file transport writes inside the data directory', async () => {
 		configure('file:');
-		await sendMail({
-			to: 'ann@example.ch',
-			subject: 'Votre lien de connexion à inkmesh',
-			text: 'Hello Ann'
-		});
+		const mail = { to: 'ann@example.ch', subject: 'Votre lien de connexion à inkmesh', text: 'Hello Ann' };
+		expect(await sendMail(mail, 'test', 1)).toBe(true);
 		const dir = path.join(process.env.INKMESH_DATA!, 'mail');
 		const files = fs.readdirSync(dir);
 		expect(files).toHaveLength(1);
@@ -122,11 +119,8 @@ describe('mail', () => {
 		try {
 			const { port } = server.address() as net.AddressInfo;
 			configure(`smtp://127.0.0.1:${port}`);
-			await sendMail({
-				to: 'ann@example.ch',
-				subject: 'Fake server test',
-				text: 'Hello Ann'
-			});
+			const mail = { to: 'ann@example.ch', subject: 'Fake server test', text: 'Hello Ann' };
+			expect(await sendMail(mail, 'test', 1)).toBe(true);
 			expect(seen.some((line) => line.startsWith('MAIL FROM:<noreply@inkmesh.local>'))).toBe(true);
 			expect(seen).toContain('RCPT TO:<ann@example.ch>');
 			expect(seen).toContain('Subject: Fake server test');
