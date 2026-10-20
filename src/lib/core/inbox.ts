@@ -14,12 +14,11 @@ const MINE = `FROM events e JOIN memberships m ON m.workspace = e.workspace AND 
 	JOIN workspaces w ON w.slug = e.workspace WHERE NOT (e.user_id IS ? AND e.agent IS NULL)`;
 const LAST_READ = '(SELECT last_read FROM inbox_cursors WHERE user_id = ?)';
 
-export function inbox(userId: number, limit = 50): InboxItem[] {
+export function inbox(userId: number): InboxItem[] {
 	db().prepare(START).run(userId);
-	// SQLite reads LIMIT -1 as no limit.
 	const rows = db()
-		.prepare(`SELECT e.*, w.name AS workspace_name, e.id > ${LAST_READ} AS unread ${MINE} ORDER BY e.id DESC LIMIT ?`)
-		.all(userId, userId, userId, Math.min(50, Math.max(1, Math.trunc(limit) || 1))) as Record<string, unknown>[];
+		.prepare(`SELECT e.*, w.name AS workspace_name, e.id > ${LAST_READ} AS unread ${MINE} ORDER BY e.id DESC LIMIT 50`)
+		.all(userId, userId, userId) as Record<string, unknown>[];
 	return rows.map((r) => ({
 		...eventFromRow(r),
 		workspace: r.workspace as string,

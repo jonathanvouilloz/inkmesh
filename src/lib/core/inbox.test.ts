@@ -98,14 +98,6 @@ describe('inbox', () => {
 		expect(inbox(jon.id)[0].path).toBe('149.md');
 	});
 
-	it('clamps the limit to 1..50', () => {
-		unreadCount(jon.id);
-		for (let i = 0; i < 60; i++) appendEvent('demo', ann, { type: 'create', path: `${i}.md` });
-		expect(inbox(jon.id, -1)).toHaveLength(1);
-		expect(inbox(jon.id, 0)).toHaveLength(1);
-		expect(inbox(jon.id, 1000)).toHaveLength(50);
-	});
-
 	it('leaving a workspace hides its events', async () => {
 		await createWorkspace('team', 'Team', ann);
 		db().prepare("INSERT INTO memberships (workspace, user_id, role) VALUES ('team', ?, 'reader')").run(jon.id);
