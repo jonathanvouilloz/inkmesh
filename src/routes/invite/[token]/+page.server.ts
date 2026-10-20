@@ -7,7 +7,9 @@ import type { Actions, PageServerLoad } from './$types';
 // Never returns the token: it stays in the URL. An invalid token renders the "no longer valid" state.
 export const load: PageServerLoad = ({ params, locals, url }) => {
 	if (url.searchParams.has('signin')) redirect(303, '/login?next=' + encodeURIComponent(url.pathname));
-	return { invitation: invitation(params.token), user: locals.user };
+	const found = invitation(params.token);
+	// The invited address only prefills sign-up; a signed-in visitor joins as themselves and never sees it.
+	return { invitation: found && locals.user ? { ...found, email: null } : found, user: locals.user };
 };
 
 function accept(token: string, userId: number) {

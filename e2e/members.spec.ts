@@ -190,6 +190,10 @@ test('an owner emails an invitation link', async ({ page }) => {
 		.map((name) => fs.readFileSync(path.join(MAIL, name), 'utf8').replace(/=\r?\n/g, ''))
 		.find((raw) => raw.includes(`To: ${emailed}`));
 	expect(mail).toContain('http://localhost:4173/invite/' + token);
+	// A signed-in visitor joins as themselves: the page data never carries the invited address.
+	const signedIn = await page.request.get('/invite/' + token + '/__data.json');
+	expect(signedIn.ok()).toBe(true);
+	expect(await signedIn.text()).not.toContain(emailed);
 	// The invitee's sign-up form starts with that address, still editable.
 	const invitee = await fresh(page.context().browser()!);
 	const visit = await invitee.newPage();
