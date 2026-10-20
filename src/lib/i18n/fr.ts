@@ -70,7 +70,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'members.once': 'Ce lien ne sera plus affiché : copiez-le maintenant.',
 	'members.copy': 'Copier',
 	'members.copied': 'Copié',
-	'members.expires': 'Expire le',
+	'members.expires': 'Expire',
 	'members.by': 'Créé par',
 	'members.revoke': 'Révoquer',
 	'members.save': 'Enregistrer',

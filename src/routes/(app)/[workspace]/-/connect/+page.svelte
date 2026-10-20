@@ -5,6 +5,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import type { Agent } from '#lib/core/agents.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { ago } from '#lib/ui/time.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -144,13 +145,11 @@
 							<span class="kind">{t(a.oauth ? 'connect.oauth' : 'connect.token', locale)}</span>
 						</td>
 						<td class="mono created">
-							<time datetime={a.createdAt}>{new Date(a.createdAt).toLocaleDateString(locale)}</time>
+							<time datetime={a.createdAt} title={a.createdAt}>{ago(a.createdAt, locale)}</time>
 						</td>
 						<td>
 							{#if a.lastUsedAt}
-								<time class="mono" datetime={a.lastUsedAt}
-									>{new Date(a.lastUsedAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}</time
-								>
+								<time class="mono" datetime={a.lastUsedAt} title={a.lastUsedAt}>{ago(a.lastUsedAt, locale)}</time>
 							{:else}
 								<span class="muted">{t('connect.notYet', locale)}</span>
 							{/if}

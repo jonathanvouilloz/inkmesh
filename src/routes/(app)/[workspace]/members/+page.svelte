@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
+	import { ago } from '#lib/ui/time.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -100,7 +101,7 @@
 						<td>{t(`role.${p.role}`, locale)}</td>
 						<td>{p.createdBy}</td>
 						<td class="mono">
-							<time datetime={p.expiresAt}>{new Date(p.expiresAt).toLocaleDateString(locale)}</time>
+							<time datetime={p.expiresAt} title={p.expiresAt}>{ago(p.expiresAt, locale)}</time>
 						</td>
 						<td class="end">
 							{#if p.canRevoke}
@@ -163,9 +164,7 @@
 							</td>
 							<td class="created">
 								{l.createdBy ?? ''}
-								<time class="mono email" datetime={l.createdAt}
-									>{new Date(l.createdAt).toLocaleDateString(locale)}</time
-								>
+								<time class="mono email" datetime={l.createdAt} title={l.createdAt}>{ago(l.createdAt, locale)}</time>
 							</td>
 							<td class="end">
 								<form method="POST" action="?/shareRevoke#public-links">
