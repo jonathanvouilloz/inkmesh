@@ -10,3 +10,5 @@ e2e
 tests
 *.env
 .env*
+.superpowers
+.impeccable

@@ -1,4 +1,4 @@
-# Self-hosting image: `docker compose up -d` with compose.yaml, or see docs/deploy.md.
+# Self-hosting image: `docker compose up -d` with compose.yaml; see "Run with Docker" in README.md.
 FROM node:24-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
