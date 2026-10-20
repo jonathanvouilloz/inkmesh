@@ -1,0 +1,13 @@
+# Copy deploy/docker.env.example to inkmesh.env first. Serve 127.0.0.1:3000 through a TLS reverse proxy that sets
+# X-Forwarded-Proto and X-Forwarded-For: with that env file, a request without them cannot sign in.
+services:
+  inkmesh:
+    build: .
+    image: inkmesh:local
+    env_file: inkmesh.env
+    ports: ["127.0.0.1:3000:3000"]
+    volumes: [inkmesh-data:/data]
+    restart: unless-stopped
+
+volumes:
+  inkmesh-data:

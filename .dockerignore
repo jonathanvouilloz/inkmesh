@@ -1,0 +1,12 @@
+node_modules
+build
+.svelte-kit
+.data*
+.git
+test-results
+design
+docs
+e2e
+tests
+*.env
+.env*
