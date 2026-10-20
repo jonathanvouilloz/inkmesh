@@ -98,7 +98,7 @@ Everything lives in the data directory: `inkmesh.db` and `workspaces/`, where ea
 
 ## Privacy
 
-inkmesh keeps, for each account: name, email address, password hash, sessions, agent tokens (hashed) and the events behind the inbox. Git history keeps the display name of whoever made each change. When email is on, the SMTP provider receives what each message holds: the recipient's address, and the workspace names, document paths and people's names that invitations and digests contain. inkmesh has no analytics and sends nothing anywhere else.
+inkmesh keeps, for each account: name, email address, password hash, sessions, agent tokens (hashed) and the events behind the inbox. Git history keeps the display name of whoever made each change. When email is on, the SMTP provider receives what each message holds: the recipient's address, and the workspace names, document paths and people's names that invitations and digests contain. An invitation sent by email keeps the recipient's address until it is used; once it has expired, the next invitation created erases it. inkmesh has no analytics and sends nothing anywhere else.
 
 ## Development
 
