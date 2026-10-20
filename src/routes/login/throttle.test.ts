@@ -25,6 +25,7 @@ function login(email: string, password: string, address: string) {
 	form.set('password', password);
 	const event = {
 		request: new Request('http://localhost/login', { method: 'POST', body: form }),
+		url: new URL('http://localhost/login?/password'),
 		cookies: { set: () => {} },
 		getClientAddress: () => address
 	};

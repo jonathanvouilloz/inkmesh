@@ -31,11 +31,12 @@ afterEach(() => {
 function ask(email: string, ip: string, opts: { next?: string; host?: string; locale?: 'en' | 'fr' } = {}) {
 	const form = new FormData();
 	form.set('email', email);
-	if (opts.next !== undefined) form.set('next', opts.next);
 	const host = opts.host ?? 'localhost';
+	// The form's action carries `next` in its query string.
+	const target = `http://${host}/login?/link` + (opts.next === undefined ? '' : '&next=' + encodeURIComponent(opts.next));
 	const event = {
-		request: new Request(`http://${host}/login?/link`, { method: 'POST', body: form, headers: { host } }),
-		url: new URL(`http://${host}/login?/link`),
+		request: new Request(target, { method: 'POST', body: form, headers: { host } }),
+		url: new URL(target),
 		locals: { user: null, actor: null, locale: opts.locale ?? 'en' },
 		cookies: { set: () => {} },
 		getClientAddress: () => ip

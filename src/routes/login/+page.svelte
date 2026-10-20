@@ -22,33 +22,9 @@
 	{#if form?.sent}
 		{@const [before, after] = t('login.linkSent', data.locale).split('{email}')}
 		<p role="status">{before}<span class="mono">{form.email}</span>{after}</p>
-	{:else if method === 'link'}
-		<form method="POST" action={action('link')}>
-			<input type="hidden" name="next" value={data.next} />
-			<label>
-				{t('login.email', data.locale)}
-				<!-- svelte-ignore a11y_autofocus -->
-				<input
-					class="mono"
-					name="email"
-					type="email"
-					autocomplete="email"
-					required
-					autofocus={!!form?.error}
-					defaultValue={form?.email ?? ''}
-					aria-invalid={form?.error ? 'true' : undefined}
-					aria-describedby={form?.error ? 'login-error' : undefined}
-				/>
-			</label>
-			{#if form?.error}
-				<p id="login-error" class="error" role="alert">{t(form.error, data.locale)}</p>
-			{/if}
-			<button>{t('login.sendLink', data.locale)}</button>
-			<a href={query(false)}>{t('login.usePassword', data.locale)}</a>
-		</form>
 	{:else}
-		<form method="POST" action={action('password')}>
-			<input type="hidden" name="next" value={data.next} />
+		<!-- `next` travels in the action's query string. -->
+		<form method="POST" action={action(method)}>
 			<label>
 				{t('login.email', data.locale)}
 				<!-- The form is the whole page; after a failed attempt focus goes back to its first field. -->
@@ -65,22 +41,28 @@
 					aria-describedby={form?.error ? 'login-error' : undefined}
 				/>
 			</label>
-			<label>
-				{t('login.password', data.locale)}
-				<input
-					name="password"
-					type="password"
-					autocomplete="current-password"
-					required
-					aria-invalid={form?.error ? 'true' : undefined}
-					aria-describedby={form?.error ? 'login-error' : undefined}
-				/>
-			</label>
+			{#if method === 'password'}
+				<label>
+					{t('login.password', data.locale)}
+					<input
+						name="password"
+						type="password"
+						autocomplete="current-password"
+						required
+						aria-invalid={form?.error ? 'true' : undefined}
+						aria-describedby={form?.error ? 'login-error' : undefined}
+					/>
+				</label>
+			{/if}
 			{#if form?.error}
 				<p id="login-error" class="error" role="alert">{t(form.error, data.locale)}</p>
 			{/if}
-			<button>{t('login.submit', data.locale)}</button>
-			{#if data.mail}<a href={query(true)}>{t('login.useLink', data.locale)}</a>{/if}
+			<button>{t(method === 'link' ? 'login.sendLink' : 'login.submit', data.locale)}</button>
+			{#if method === 'link'}
+				<a href={query(false)}>{t('login.usePassword', data.locale)}</a>
+			{:else if data.mail}
+				<a href={query(true)}>{t('login.useLink', data.locale)}</a>
+			{/if}
 		</form>
 	{/if}
 </main>

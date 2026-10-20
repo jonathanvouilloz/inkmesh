@@ -28,7 +28,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 };
 
 export const actions: Actions = {
-	password: async ({ request, cookies, getClientAddress }) => {
+	password: async ({ request, url, cookies, getClientAddress }) => {
 		const form = await request.formData();
 		const email = form.get('email');
 		const password = form.get('password');
@@ -48,9 +48,9 @@ export const actions: Actions = {
 		loginSucceeded(emailKey);
 		loginUndo(ipKey);
 		startSession(cookies, user.id);
-		redirect(303, safeNext(form.get('next')));
+		redirect(303, safeNext(url.searchParams.get('next')));
 	},
-	link: async ({ request, locals, getClientAddress }) => {
+	link: async ({ request, url, locals, getClientAddress }) => {
 		if (!mailEnabled()) error(404);
 		const form = await request.formData();
 		const email = form.get('email');
@@ -65,7 +65,7 @@ export const actions: Actions = {
 		loginFailed(emailKey);
 		const user = userByEmail(email);
 		if (user) {
-			const token = createLoginLink(user.id, safeNext(form.get('next')));
+			const token = createLoginLink(user.id, safeNext(url.searchParams.get('next')));
 			// Not awaited: the answer time must not tell whether an email went out.
 			void sendMail(loginLinkMail(user, appUrl() + '/login/link/' + token, locals.locale), 'login link', user.id);
 		}
