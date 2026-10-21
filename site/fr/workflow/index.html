@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment fonctionne inkmesh</title>
+<meta name="description" content="Comment fonctionne inkmesh, du navigateur et de l’agent IA jusqu’aux fichiers Markdown et aux commits git sur votre serveur.">
+<link rel="icon" href="../../assets/logo.svg" type="image/svg+xml">
+<link rel="alternate" hreflang="en" href="../../workflow/index.html">
+<link rel="alternate" hreflang="fr" href="index.html">
+<link rel="preload" href="../../assets/fonts/general-sans-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="drop"><path d="M50 8C59 24 78 41 78 62A28 28 0 0 1 22 62C22 41 41 24 50 8Z"/></clipPath></defs><symbol id="logo" viewBox="0 0 100 100"><g clip-path="url(#drop)" fill="currentColor"><rect y="8" width="100" height="8"/><rect y="22" width="100" height="8"/><rect y="36" width="100" height="8"/><rect y="50" width="100" height="8"/><rect y="64" width="100" height="8"/><rect y="78" width="100" height="14"/></g></symbol></svg>
+
+<header class="nav">
+	<div class="frame">
+		<a class="brand" href="../index.html" aria-label="inkmesh, accueil"><svg aria-hidden="true"><use href="#logo"/></svg>inkmesh</a>
+		<nav aria-label="Rubriques">
+			<ul>
+				<li><a href="../index.html#problem">Pourquoi</a></li>
+				<li><a href="index.html" aria-current="page">Fonctionnement</a></li>
+				<li><a href="../index.html#features">Fonctionnalités</a></li>
+				<li><a href="../index.html#agents">Agents</a></li>
+				<li><a href="../index.html#faq">FAQ</a></li>
+				<li><a href="../index.html#about">À propos</a></li>
+			</ul>
+		</nav>
+		<div class="end">
+			<div class="lang"><a href="../../workflow/index.html" hreflang="en" lang="en">EN</a>/<a href="index.html" aria-current="page" hreflang="fr">FR</a></div>
+			<a class="btn btn-secondary btn-small" href="https://github.com/jonathanvouilloz/inkmesh">GitHub</a>
+		</div>
+	</div>
+</header>
+
+<main id="main">
+	<section class="frame hero">
+		<div>
+			<h1 data-reveal>Comment fonctionne inkmesh</h1>
+		</div>
+		<div>
+			<p class="lead" data-reveal style="--i:1">Un seul programme sur votre serveur, derrière votre propre sous-domaine. Les personnes dans le navigateur et les agents IA via MCP ou l’API passent par le même code. Il écrit les documents en fichiers Markdown dans des dépôts git et garde tout le reste dans un fichier SQLite.</p>
+		</div>
+	</section>
+
+	<figure class="frame flow" data-reveal style="--i:2">
+		<svg class="flow-wide" viewBox="0 0 1100 840" role="img" aria-labelledby="flow-cap flow-desc">
+			<defs>
+				<marker id="ah-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10Z"/></marker>
+				<marker id="ah-wa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head accent" d="M0 0L10 5L0 10Z"/></marker>
+			</defs>
+
+			<rect class="box" x="40" y="20" width="260" height="80" rx="6"/>
+			<text class="t" x="170" y="54">Vous et votre équipe</text>
+			<text class="s" x="170" y="80">navigateur · éditeur</text>
+			<rect class="box" x="330" y="20" width="260" height="80" rx="6"/>
+			<text class="t" x="460" y="54">Vos clients</text>
+			<text class="s" x="460" y="80">navigateur · compte ou lien</text>
+			<rect class="box" x="640" y="20" width="420" height="80" rx="6"/>
+			<text class="t" x="850" y="54">Agents IA</text>
+			<text class="s" x="850" y="80">Claude, Claude Code, ChatGPT, Cursor, scripts</text>
+
+			<path class="wire" marker-end="url(#ah-w)" d="M170 100V188"/>
+			<text class="l" x="182" y="140">HTTPS</text><text class="l" x="182" y="158">cookie de session</text>
+			<path class="wire" marker-end="url(#ah-w)" d="M460 100V188"/>
+			<text class="l" x="472" y="140">HTTPS</text><text class="l" x="472" y="158">ou lien /s/&lt;token&gt;</text>
+			<path class="wire" marker-end="url(#ah-w)" d="M750 100V188"/>
+			<text class="l end" x="738" y="140">API HTTP</text><text class="l end" x="738" y="158">jeton bearer</text>
+			<path class="wire accent" marker-end="url(#ah-wa)" d="M950 100V188"/>
+			<text class="l" x="962" y="140">MCP</text><text class="l" x="962" y="158">OAuth</text>
+
+			<rect class="box" x="40" y="190" width="1020" height="56" rx="6"/>
+			<text class="m" x="315" y="214">docs.votre-entreprise.ch</text>
+			<text class="s" x="315" y="234">proxy inverse HTTPS</text>
+			<text class="s" x="605" y="223">TLS s’arrête ici · HTTP en local</text>
+
+			<rect class="zone" x="40" y="290" width="1020" height="250" rx="6"/>
+			<path class="wire" marker-end="url(#ah-w)" d="M170 246V336"/>
+			<path class="wire" marker-end="url(#ah-w)" d="M460 246V336"/>
+			<path class="wire" marker-end="url(#ah-w)" d="M750 246V336"/>
+			<path class="wire accent" marker-end="url(#ah-wa)" d="M950 246V336"/>
+			<text class="t" x="315" y="320">inkmesh · un processus Node</text>
+			<text class="s" x="605" y="320">SvelteKit, adapter-node</text>
+
+			<rect class="box" x="70" y="338" width="480" height="60" rx="6"/>
+			<text class="m" x="310" y="363">routes/</text>
+			<text class="s" x="310" y="384">pages, éditeur, liens publics</text>
+			<rect class="box" x="650" y="338" width="200" height="60" rx="6"/>
+			<text class="m" x="750" y="363">api/v1/</text>
+			<text class="s" x="750" y="384">API HTTP</text>
+			<rect class="box" x="870" y="338" width="160" height="60" rx="6"/>
+			<text class="m" x="950" y="363">mcp/</text>
+			<text class="s" x="950" y="384">serveur MCP</text>
+
+			<path class="wire" marker-end="url(#ah-w)" d="M310 398V438"/>
+			<path class="wire" marker-end="url(#ah-w)" d="M750 398V438"/>
+			<path class="wire accent" marker-end="url(#ah-wa)" d="M950 398V438"/>
+			<text class="l" x="322" y="424">mêmes fonctions</text>
+
+			<rect class="box core" x="70" y="440" width="960" height="76" rx="6"/>
+			<text class="m" x="550" y="470">core/ · seul accès au disque, à git et à la base</text>
+			<text class="s" x="550" y="496">rôle vérifié pour chaque acteur · une écriture à la fois par espace · un événement par écriture</text>
+
+			<path class="wire" marker-end="url(#ah-w)" d="M220 516V668"/>
+			<text class="l" x="232" y="590">lignes, événements</text>
+			<path class="wire accent" marker-end="url(#ah-wa)" d="M545 516V668"/>
+			<text class="l" x="557" y="584">écrit le .md</text><text class="l" x="557" y="602">git commit</text>
+			<path class="wire" marker-end="url(#ah-w)" d="M920 516V618"/>
+			<text class="l" x="932" y="590">e-mail</text>
+
+			<rect class="zone" x="40" y="620" width="680" height="200" rx="6"/>
+			<text class="m start" x="60" y="648">$INKMESH_DATA/</text>
+			<rect class="box" x="70" y="670" width="300" height="130" rx="6"/>
+			<text class="m" x="220" y="696">inkmesh.db</text>
+			<text class="s" x="220" y="716">SQLite</text>
+			<text class="s" x="220" y="742">comptes, rôles, sessions,</text>
+			<text class="s" x="220" y="760">jetons hachés, événements,</text>
+			<text class="s" x="220" y="778">liens, index de recherche</text>
+			<rect class="box" x="400" y="670" width="290" height="130" rx="6"/>
+			<text class="m" x="545" y="696">workspaces/&lt;slug&gt;/</text>
+			<text class="s" x="545" y="716">un dépôt git chacun</text>
+			<text class="s" x="545" y="742">fichiers Markdown (.md)</text>
+			<text class="s" x="545" y="760">images à côté</text>
+			<text class="s" x="545" y="778">.inkmesh/comments/</text>
+
+			<rect class="box" x="780" y="620" width="280" height="80" rx="6"/>
+			<text class="m" x="920" y="652">votre serveur SMTP</text>
+			<text class="s" x="920" y="676">invitations, connexion, résumé</text>
+			<path class="wire" marker-end="url(#ah-w)" d="M690 780H778"/>
+			<rect class="box" x="780" y="740" width="280" height="80" rx="6"/>
+			<text class="m" x="920" y="772">dépôts GitHub privés</text>
+			<text class="s" x="920" y="796">facultatif · git push horaire</text>
+		</svg>
+
+		<svg class="flow-tall" viewBox="0 0 360 990" role="img" aria-labelledby="flow-cap flow-desc">
+			<defs>
+				<marker id="ah-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10Z"/></marker>
+				<marker id="ah-ta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head accent" d="M0 0L10 5L0 10Z"/></marker>
+			</defs>
+
+			<rect class="box" x="24" y="10" width="160" height="80" rx="6"/>
+			<text class="t" x="104" y="38">Personnes</text>
+			<text class="s" x="104" y="60">vous, l’équipe,</text>
+			<text class="s" x="104" y="77">vos clients</text>
+			<rect class="box" x="194" y="10" width="160" height="80" rx="6"/>
+			<text class="t" x="274" y="38">Agents IA</text>
+			<text class="s" x="274" y="60">Claude, ChatGPT,</text>
+			<text class="s" x="274" y="77">Cursor, scripts</text>
+
+			<path class="wire" marker-end="url(#ah-t)" d="M104 90V168"/>
+			<text class="l" x="112" y="134">HTTPS</text>
+			<path class="wire" marker-end="url(#ah-t)" d="M239 90V168"/>
+			<text class="l" x="247" y="134">API</text>
+			<path class="wire accent" marker-end="url(#ah-ta)" d="M314 90V168"/>
+			<text class="l" x="322" y="134">MCP</text>
+
+			<rect class="box" x="24" y="170" width="330" height="56" rx="6"/>
+			<text class="m" x="189" y="194">docs.votre-entreprise.ch</text>
+			<text class="s" x="189" y="214">proxy inverse HTTPS</text>
+
+			<rect class="zone" x="24" y="270" width="330" height="280" rx="6"/>
+			<path class="wire" marker-end="url(#ah-t)" d="M104 226V328"/>
+			<path class="wire" marker-end="url(#ah-t)" d="M239 226V328"/>
+			<path class="wire accent" marker-end="url(#ah-ta)" d="M314 226V328"/>
+			<text class="t" x="171" y="296">inkmesh</text>
+			<text class="s" x="171" y="314">processus Node</text>
+
+			<rect class="box" x="36" y="330" width="136" height="54" rx="6"/>
+			<text class="m" x="104" y="353">routes/</text>
+			<text class="s" x="104" y="372">pages, liens</text>
+			<rect class="box" x="206" y="330" width="66" height="54" rx="6"/>
+			<text class="m" x="239" y="353">api/v1/</text>
+			<text class="s" x="239" y="372">HTTP</text>
+			<rect class="box" x="281" y="330" width="66" height="54" rx="6"/>
+			<text class="m" x="314" y="353">mcp/</text>
+			<text class="s" x="314" y="372">MCP</text>
+
+			<path class="wire" marker-end="url(#ah-t)" d="M104 384V420"/>
+			<path class="wire" marker-end="url(#ah-t)" d="M239 384V420"/>
+			<path class="wire accent" marker-end="url(#ah-ta)" d="M314 384V420"/>
+
+			<rect class="box core" x="36" y="422" width="306" height="104" rx="6"/>
+			<text class="m" x="189" y="448">core/</text>
+			<text class="s" x="189" y="470">rôle vérifié par acteur</text>
+			<text class="s" x="189" y="488">une écriture à la fois</text>
+			<text class="s" x="189" y="506">un événement par écriture</text>
+
+			<path class="wire" marker-end="url(#ah-t)" d="M110 526V644"/>
+			<text class="l" x="118" y="576">lignes,</text><text class="l" x="118" y="594">événements</text>
+			<path class="wire accent" marker-end="url(#ah-ta)" d="M268 526V644"/>
+			<text class="l" x="276" y="584">git commit</text>
+
+			<rect class="zone" x="24" y="610" width="330" height="230" rx="6"/>
+			<rect class="box" x="36" y="646" width="148" height="160" rx="6"/>
+			<text class="m" x="110" y="672">inkmesh.db</text>
+			<text class="s" x="110" y="692">SQLite</text>
+			<text class="s" x="110" y="716">comptes, rôles,</text>
+			<text class="s" x="110" y="734">sessions, jetons,</text>
+			<text class="s" x="110" y="752">événements, liens,</text>
+			<text class="s" x="110" y="770">index de recherche</text>
+			<rect class="box" x="194" y="646" width="148" height="160" rx="6"/>
+			<text class="m" x="268" y="672">workspaces/</text>
+			<text class="s" x="268" y="692">un dépôt git chacun</text>
+			<text class="s" x="268" y="716">fichiers .md</text>
+			<text class="s" x="268" y="734">images</text>
+			<text class="s" x="268" y="752">.inkmesh/</text>
+			<text class="s" x="268" y="770">comments/</text>
+			<text class="m start" x="36" y="828">$INKMESH_DATA/</text>
+
+			<path class="wire" marker-end="url(#ah-t)" d="M36 500H12V932H22"/>
+			<path class="wire" marker-end="url(#ah-t)" d="M268 806V888"/>
+			<rect class="box" x="24" y="890" width="148" height="84" rx="6"/>
+			<text class="m" x="98" y="916">serveur SMTP</text>
+			<text class="s" x="98" y="938">invitations,</text>
+			<text class="s" x="98" y="956">résumé · facultatif</text>
+			<rect class="box" x="194" y="890" width="148" height="84" rx="6"/>
+			<text class="m" x="268" y="916">miroir GitHub</text>
+			<text class="s" x="268" y="938">git push horaire</text>
+			<text class="s" x="268" y="956">facultatif</text>
+		</svg>
+
+		<figcaption id="flow-cap">Tout tourne dans un seul processus sur votre serveur. Le chemin bleu montre un agent qui écrit un document.</figcaption>
+		<p class="sr-only" id="flow-desc">Trois sortes d’utilisateurs arrivent sur inkmesh par votre sous-domaine et son proxy inverse HTTPS : vous et votre équipe dans le navigateur, vos clients dans le navigateur avec un compte ou un lien public, et les agents IA par l’API HTTP avec un jeton bearer ou par le serveur MCP avec OAuth. Dans un seul processus Node, les routes du navigateur, l’API HTTP et le serveur MCP appellent la même couche core. Elle vérifie le rôle de chaque acteur, fait une seule écriture à la fois par espace de travail et enregistre un événement par écriture. Le core écrit les fichiers Markdown et les committe dans un dépôt git par espace de travail. Il garde les comptes, les rôles, les sessions, les jetons d’agent hachés, les événements, les liens publics et l’index de recherche dans un fichier SQLite. Les deux se trouvent dans le dossier de données. Deux choses seulement quittent le serveur : les e-mails, par votre serveur SMTP si vous en configurez un, et un git push horaire facultatif de chaque espace vers un dépôt GitHub privé.</p>
+	</figure>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split" id="life">
+		<div>
+			<h2 data-reveal>La vie d’un document</h2>
+			<p class="lead" data-reveal style="--i:1">Un agent dépose un rapport hebdomadaire, un client le lit, un collègue corrige un paragraphe et l’agent récupère les retours.</p>
+		</div>
+		<ol class="steps">
+			<li data-reveal style="--i:1"><span>Claude Code appelle <code>create_document</code> via MCP.</span></li>
+			<li data-reveal style="--i:2"><span>Le core vérifie que Jon, qui a connecté l’agent, est éditeur ou propriétaire de l’espace.</span></li>
+			<li data-reveal style="--i:3"><span>Le fichier est écrit dans <code>workspaces/studio/reports/weekly.md</code>.</span></li>
+			<li data-reveal style="--i:4"><span>Git le committe tout de suite, avec l’auteur « Jon via claude-code ».</span></li>
+			<li data-reveal style="--i:5"><span>Un événement arrive dans la boîte de réception des membres, et dans l’e-mail quotidien de ceux qui l’ont activé.</span></li>
+			<li data-reveal style="--i:6"><span>Votre client ouvre la page dans son navigateur, avec un compte ou un lien public.</span></li>
+			<li data-reveal style="--i:7"><span>Un collègue modifie un paragraphe. L’éditeur enregistre deux secondes après la dernière frappe.</span></li>
+			<li data-reveal style="--i:8"><span>La session d’édition devient un seul commit quand il quitte la page, après une minute sans frappe, ou quand quelqu’un d’autre écrit le fichier.</span></li>
+			<li data-reveal style="--i:9"><span>Au passage suivant, l’agent lit les commentaires laissés sur la page avec <code>read_comments</code>.</span></li>
+		</ol>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame with-cells" id="where">
+		<header class="split">
+			<h2 data-reveal>Ce qui est stocké où</h2>
+			<p class="lead" data-reveal style="--i:1">Un seul dossier de données contient tout. Copiez-le et vous avez une sauvegarde.</p>
+		</header>
+		<div class="cells">
+			<div data-reveal style="--i:0"><h3>La base de données</h3><p>Comptes, sessions, rôles, invitations, jetons d’agent (stockés hachés), liens publics et événements. Aussi l’index de recherche, reconstruit à partir des fichiers à chaque démarrage.</p><span class="tag">inkmesh.db</span></div>
+			<div data-reveal style="--i:1"><h3>Les dépôts git</h3><p>Un par espace de travail : les fichiers Markdown, leurs images et les fils de commentaires dans <code>.inkmesh/comments/</code>. Vous pouvez les cloner et les lire sans inkmesh.</p><span class="tag">workspaces/&lt;slug&gt;/</span></div>
+			<div data-reveal style="--i:2"><h3>Ce qui quitte le serveur</h3><p>Les e-mails, par votre propre serveur SMTP, seulement si vous en configurez un. Le script de sauvegarde facultatif pousse chaque espace vers un dépôt GitHub privé. Aucune mesure d’audience.</p><span class="tag">SMTP_URL</span></div>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame closing">
+		<h2 data-reveal>Aller plus loin</h2>
+		<div class="cells">
+			<div data-reveal style="--i:1"><p><strong>L’installer.</strong> Le README explique Docker, le proxy inverse, les e-mails et les sauvegardes.</p><a class="btn btn-primary" href="https://github.com/jonathanvouilloz/inkmesh#readme">Lire le README <span class="arrow" aria-hidden="true">→</span></a></div>
+			<div data-reveal style="--i:2"><p><strong>Le voir en action.</strong> L’éditeur, les agents et le partage, sur la page d’accueil.</p><a class="btn btn-secondary" href="../index.html">Retour à l’accueil</a></div>
+		</div>
+	</section>
+</main>
+
+<footer>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+	<div class="frame">
+		<div>
+			<a class="brand" href="../index.html"><svg aria-hidden="true"><use href="#logo"/></svg>inkmesh</a>
+			<p>Un espace partagé pour vos agents IA et vos clients.</p>
+			<p class="tag">MIT · SvelteKit, SQLite, git · FR / EN</p>
+		</div>
+		<ul>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh">GitHub</a></li>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh#readme">README</a></li>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh/blob/main/LICENSE">Licence MIT</a></li>
+			<li><a href="../../workflow/index.html" hreflang="en" lang="en">English</a></li>
+		</ul>
+	</div>
+</footer>
+
+</body>
+</html>

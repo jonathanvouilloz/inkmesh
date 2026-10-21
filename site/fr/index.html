@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>inkmesh · Un espace partagé pour vos agents IA et vos clients</title>
+<meta name="description" content="Des docs open source, sur votre serveur. Chaque page est un fichier Markdown dans git, modifié par l’équipe dans le navigateur et par vos agents IA via MCP.">
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<link rel="canonical" href="https://inkmesh.ch/fr/">
+<link rel="alternate" hreflang="en" href="https://inkmesh.ch/">
+<link rel="alternate" hreflang="fr" href="https://inkmesh.ch/fr/">
+<link rel="preload" href="../assets/fonts/general-sans-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="drop"><path d="M50 8C59 24 78 41 78 62A28 28 0 0 1 22 62C22 41 41 24 50 8Z"/></clipPath></defs><symbol id="logo" viewBox="0 0 100 100"><g clip-path="url(#drop)" fill="currentColor"><rect y="8" width="100" height="8"/><rect y="22" width="100" height="8"/><rect y="36" width="100" height="8"/><rect y="50" width="100" height="8"/><rect y="64" width="100" height="8"/><rect y="78" width="100" height="14"/></g></symbol></svg>
+
+<header class="nav">
+	<div class="frame">
+		<a class="brand" href="index.html" aria-label="inkmesh, accueil"><svg aria-hidden="true"><use href="#logo"/></svg>inkmesh</a>
+		<nav aria-label="Rubriques">
+			<ul>
+				<li><a href="#problem">Pourquoi</a></li>
+				<li><a href="workflow/index.html">Fonctionnement</a></li>
+				<li><a href="#features">Fonctionnalités</a></li>
+				<li><a href="#agents">Agents</a></li>
+				<li><a href="#faq">FAQ</a></li>
+				<li><a href="#about">À propos</a></li>
+			</ul>
+		</nav>
+		<div class="end">
+			<div class="lang"><a href="../index.html" hreflang="en" lang="en">EN</a>/<a href="index.html" aria-current="page" hreflang="fr">FR</a></div>
+			<a class="btn btn-secondary btn-small" href="https://github.com/jonathanvouilloz/inkmesh">GitHub</a>
+		</div>
+	</div>
+</header>
+
+<main id="main">
+	<section class="frame hero">
+		<div>
+			<h1 data-reveal>Un espace partagé pour vos agents IA et vos clients</h1>
+			<div class="actions" data-reveal style="--i:2">
+				<a class="btn btn-primary" href="https://github.com/jonathanvouilloz/inkmesh">Voir sur GitHub <span class="arrow" aria-hidden="true">→</span></a>
+				<a class="btn btn-secondary" href="#how">Comment ça marche</a>
+			</div>
+		</div>
+		<div>
+			<p class="lead" data-reveal style="--i:1">Vos agents IA produisent du Markdown illisible pour vos clients. Avec <strong>inkmesh</strong>, ils publient directement de vraies pages web dans un espace partagé, accessible à vos clients et aux agents de toute votre équipe.</p>
+		</div>
+	</section>
+
+	<div class="frame stage" data-reveal style="--i:3">
+		<svg class="mesh" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path pathLength="1" style="--d:0" d="M70 110L250 50"/><path pathLength="1" style="--d:1" d="M250 50L410 170"/><path pathLength="1" style="--d:2" d="M70 110L150 320"/><path pathLength="1" style="--d:3" d="M150 320L320 420"/><path pathLength="1" style="--d:4" d="M410 170L320 420"/><path pathLength="1" style="--d:5" d="M250 50L600 40"/><path pathLength="1" style="--d:6" d="M1130 110L950 50"/><path pathLength="1" style="--d:7" d="M950 50L790 170"/><path pathLength="1" style="--d:0" d="M1130 110L1050 320"/><path pathLength="1" style="--d:1" d="M1050 320L880 420"/><path pathLength="1" style="--d:2" d="M790 170L880 420"/><path pathLength="1" style="--d:3" d="M950 50L600 40"/><path pathLength="1" style="--d:4" d="M150 320L40 500"/><path pathLength="1" style="--d:5" d="M1050 320L1160 500"/><path pathLength="1" style="--d:6" d="M410 170L150 320"/><path pathLength="1" style="--d:7" d="M790 170L1050 320"/><circle style="--d:0" cx="70" cy="110" r="3.5"/><circle style="--d:1" cx="250" cy="50" r="3.5"/><circle class="ink" style="--d:2" cx="410" cy="170" r="4"/><circle style="--d:3" cx="150" cy="320" r="3.5"/><circle style="--d:4" cx="320" cy="420" r="3.5"/><circle style="--d:5" cx="600" cy="40" r="3.5"/><circle style="--d:6" cx="1130" cy="110" r="3.5"/><circle style="--d:7" cx="950" cy="50" r="3.5"/><circle class="ink" style="--d:0" cx="790" cy="170" r="4"/><circle style="--d:1" cx="1050" cy="320" r="3.5"/><circle style="--d:2" cx="880" cy="420" r="3.5"/><circle style="--d:3" cx="40" cy="500" r="3.5"/><circle style="--d:4" cx="1160" cy="500" r="3.5"/></svg>
+		<div class="window">
+			<div class="bar">
+				<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+				<span class="url">votre-serveur/atelier/rapports/2026-10-21-hebdo.md</span>
+				<div class="toggle" role="group" aria-label="Affichage">
+					<button type="button" data-show="doc" aria-pressed="true">Éditeur</button>
+					<button type="button" data-show="raw" aria-pressed="false">Brut</button>
+				</div>
+			</div>
+			<div class="screens">
+				<img data-view="doc" src="../assets/shots/doc-fr.webp" width="2560" height="1600" alt="L’éditeur inkmesh avec un rapport écrit par un agent : les dossiers à gauche, le document au centre, ses métadonnées et son historique à droite.">
+				<img data-view="raw" src="../assets/shots/raw-fr.webp" width="2560" height="1600" alt="Le même rapport en mode brut, avec sa source Markdown." hidden loading="lazy">
+			</div>
+		</div>
+	</div>
+	<p class="frame caption">Contenu de démo, interface réelle.</p>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split" id="problem">
+		<h2 data-reveal>Partager du Markdown, c’est pénible</h2>
+		<div>
+			<p class="lead" data-reveal style="--i:1">Les agents IA écrivent en Markdown : rapports, cahiers des charges, notes de projet. Pour les faire lire à un client, on exporte un PDF, on colle dans Google Docs ou on joint un fichier à un e-mail. À chaque mise à jour, on recommence.</p>
+			<p class="lead" data-reveal style="--i:2">inkmesh supprime cette étape. L’agent écrit dans votre espace, le client ouvre un lien et lit une page propre. Un Notion plus simple, pensé pour le Markdown et les agents IA.</p>
+		</div>
+	</section>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame with-cells" id="benefits">
+		<header class="split">
+			<h2 data-reveal>Ce que vous y gagnez</h2>
+			<p class="lead" data-reveal style="--i:1">Moins de copier-coller, et des documents que vos clients ouvrent vraiment.</p>
+		</header>
+		<div class="cells">
+			<div data-reveal style="--i:0"><h3>Du temps</h3><p>Votre agent publie en écrivant. Le client voit la dernière version, sans export de votre part.</p><span class="tag">agent → page</span></div>
+			<div data-reveal style="--i:1"><h3>Tout au même endroit</h3><p>Tous vos documents dans un seul espace, chaque modification synchronisée avec git.</p><span class="tag">git log</span></div>
+			<div data-reveal style="--i:2"><h3>Votre serveur, vos données</h3><p>Tout tourne sur votre serveur, sous votre propre sous-domaine, comme <code>docs.votre-entreprise.ch</code>. Pas chez Notion, pas chez Google.</p><span class="tag">/data/workspaces</span></div>
+			<div data-reveal style="--i:0"><h3>Branché sur vos outils IA</h3><p>Claude Code, Cursor, ChatGPT ou un script se connectent via MCP ou une API, en deux minutes.</p><span class="tag">mcp</span></div>
+			<div data-reveal style="--i:1"><h3>Partage sécurisé</h3><p>Invitez un client en lecture seule, ou envoyez un lien public que vous pouvez révoquer.</p><span class="tag">role: reader</span></div>
+			<div data-reveal style="--i:2"><h3>Tout type de document</h3><p>Suivis de projet, questionnaires, cahiers des charges, comptes rendus : si ça tient en Markdown, ça marche.</p><span class="tag">*.md</span></div>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split" id="how">
+		<div>
+			<h2 data-reveal>De votre agent à votre client</h2>
+			<ol class="steps">
+				<li data-reveal style="--i:1"><span>Un agent écrit <code>rapports/2026-10-21-hebdo.md</code> via MCP.</span></li>
+				<li data-reveal style="--i:2"><span>Votre client ouvre le lien et lit une page propre. L’équipe peut la modifier dans le navigateur.</span></li>
+				<li data-reveal style="--i:3"><span>Git enregistre les deux changements avec leur auteur. À son prochain passage, l’agent lit les commentaires.</span></li>
+			</ol>
+		</div>
+		<div class="card" data-reveal style="--i:2">
+			<div class="bar"><span>atelier · git</span></div>
+<pre><span class="c">$ git log --format='%an · %s' rapports/2026-10-21-hebdo.md</span>
+Jon · Replace rapports/2026-10-21-hebdo.md
+Jon <span class="a">via claude-code</span> · Import rapports/2026-10-21-hebdo.md
+
+<span class="c">$ cat .inkmesh/comments/rapports/2026-10-21-hebdo.md</span>
+Jon: Tu peux ajouter le taux de départ la semaine prochaine ?</pre>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame with-cells features" id="features">
+		<header class="split">
+			<h2 data-reveal>Ce que ça fait</h2>
+			<p class="lead" data-reveal style="--i:1">Un dossier de fichiers Markdown, avec un navigateur par-dessus.</p>
+		</header>
+		<div class="cells" style="--cols:4">
+			<div data-reveal><h3>Éditeur et mode brut</h3><p>Tableaux, images, code. Ce que vous ne touchez pas reste identique, octet pour octet.</p><span class="tag">wysiwyg ⇄ raw</span></div>
+			<div data-reveal style="--i:1"><h3>Historique et restauration</h3><p>Chaque enregistrement est un commit. Restaurez n’importe quelle version, ou un fichier supprimé.</p><span class="tag">git restore</span></div>
+			<div data-reveal style="--i:2"><h3>Commentaires</h3><p>Un fil par document, stocké dans un fichier que les agents lisent.</p><span class="tag">.inkmesh/comments/</span></div>
+			<div data-reveal style="--i:3"><h3>Recherche</h3><p>Retrouvez n’importe quel document en tapant un mot qu’il contient.</p><span class="tag">search?q=</span></div>
+			<div data-reveal><h3>Espaces et rôles</h3><p>Propriétaire, éditeur, lecteur. On entre sur invitation ou par lien.</p><span class="tag">owner · editor · reader</span></div>
+			<div data-reveal style="--i:1"><h3>Vue des dossiers</h3><p>La vraie arborescence. Triez et filtrez par n’importe quel champ de l’en-tête.</p><span class="tag">frontmatter</span></div>
+			<div data-reveal style="--i:2"><h3>Liens publics</h3><p>En lecture seule, vers une page ou un espace. Révocables à tout moment.</p><span class="tag">/s/…</span></div>
+			<div data-reveal style="--i:3"><h3>Boîte de réception</h3><p>Commentaires et changements au même endroit, et un e-mail quotidien si vous voulez.</p><span class="tag">inbox</span></div>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame agents" id="agents">
+		<div>
+			<h2 data-reveal>Connecter un agent en deux minutes</h2>
+			<p class="lead" data-reveal style="--i:1">Choisissez votre outil et collez ce que la page vous donne. Ça marche avec Claude, ChatGPT, Cursor, tout client MCP ou un script.</p>
+			<div class="card" data-reveal style="--i:2">
+				<div class="bar"><span>Claude Code</span><button class="copy" type="button" data-done="Copié" data-fail="Sélectionnez et copiez">Copier</button></div>
+<pre><span class="c">$ </span>claude mcp add --transport http --scope user inkmesh https://votre-serveur/mcp</pre>
+			</div>
+			<p class="endpoints" data-reveal style="--i:3"><span><b>MCP</b> /mcp</span><span><b>HTTP API</b> /api/v1</span></p>
+		</div>
+		<div class="shot" data-reveal style="--i:2">
+			<img src="../assets/shots/connect-fr.webp" width="1980" height="900" loading="lazy" alt="La page Connecter un agent : choisir un outil et copier l’URL du serveur, avec les étapes à suivre.">
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split faq" id="faq">
+		<h2 data-reveal>Questions fréquentes</h2>
+		<div data-reveal style="--i:1">
+			<details><summary>Est-ce que c’est payant ?</summary><p>Non. Licence MIT, sur votre serveur.</p></details>
+			<details><summary>Mon équipe doit-elle connaître le Markdown ?</summary><p>Non. Elle voit un éditeur normal. Le Markdown brut reste derrière un bouton.</p></details>
+			<details><summary>Où sont mes fichiers ?</summary><p>Sur votre serveur, dans des dépôts git ordinaires. Clonez-les, sauvegardez-les, ouvrez-les sans inkmesh.</p></details>
+			<details><summary>Quels agents fonctionnent avec ?</summary><p>Claude, Claude Code, ChatGPT, Cursor, tout client MCP, et n’importe quel script avec un jeton d’API.</p></details>
+			<details><summary>Deux personnes peuvent-elles modifier un document en même temps ?</summary><p>Pas en direct. Le dernier enregistrement l’emporte, git garde les deux versions et l’éditeur vous prévient si le fichier a changé.</p></details>
+			<details><summary>Des données partent-elles ailleurs ?</summary><p>Aucune mesure d’audience. L’e-mail reste coupé tant que vous ne l’activez pas.</p></details>
+			<details><summary>Comment l’installer ?</summary><p>Avec Docker, sur votre serveur et votre propre sous-domaine. Le guide est dans le <a href="https://github.com/jonathanvouilloz/inkmesh#run-with-docker">README sur GitHub</a>.</p></details>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame creator" id="about">
+		<h2 data-reveal>Qui l’a fait</h2>
+		<div class="who" data-reveal style="--i:1">
+			<img src="../assets/jon.webp" width="320" height="320" alt="Jon, qui a créé inkmesh" loading="lazy">
+			<div>
+				<p class="lead">Je m’appelle Jon, développeur web à Genève. Je crée des sites et des agents IA pour des PME de Suisse romande. Mes agents écrivaient des documents en Markdown pour mes clients, et les leur faire parvenir était une corvée. inkmesh, c’est l’outil que je voulais à la place.</p>
+				<a class="link" href="https://jonlabs.ch">jonlabs.ch <span aria-hidden="true">→</span></a>
+			</div>
+		</div>
+	</section>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame closing">
+		<h2 data-reveal>Essayez-le sur votre serveur</h2>
+		<div class="cells">
+			<div data-reveal style="--i:1"><p><strong>L’installer.</strong> Docker et quatre commandes. Le guide est dans le README.</p><a class="btn btn-primary" href="https://github.com/jonathanvouilloz/inkmesh#run-with-docker">Guide d’installation <span class="arrow" aria-hidden="true">→</span></a></div>
+			<div data-reveal style="--i:2"><p><strong>Lire le code.</strong> Licence MIT, sur GitHub.</p><a class="btn btn-secondary" href="https://github.com/jonathanvouilloz/inkmesh">Code source sur GitHub</a></div>
+		</div>
+	</section>
+</main>
+
+<footer>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+	<div class="frame">
+		<div>
+			<a class="brand" href="index.html"><svg aria-hidden="true"><use href="#logo"/></svg>inkmesh</a>
+			<p>Un espace partagé pour vos agents IA et vos clients.</p>
+			<p class="tag">MIT · SvelteKit, SQLite, git · FR / EN</p>
+		</div>
+		<ul>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh">GitHub</a></li>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh#readme">README</a></li>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh/blob/main/LICENSE">Licence MIT</a></li>
+			<li><a href="../index.html" hreflang="en" lang="en">English</a></li>
+		</ul>
+	</div>
+</footer>
+
+</body>
+</html>

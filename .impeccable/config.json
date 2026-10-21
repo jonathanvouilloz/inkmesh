@@ -1,0 +1,56 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "general sans",
+        "createdAt": "2026-10-21T17:47:51.718Z",
+        "reason": "user confirmed: Jon asked for landing font tests with Valley Sans, General Sans and Fragment Mono (2026-10-21)"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "valley sans",
+        "createdAt": "2026-10-21T17:47:51.731Z",
+        "reason": "user confirmed: Jon asked for landing font tests with Valley Sans, General Sans and Fragment Mono (2026-10-21)"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "site/index.html"
+        ],
+        "createdAt": "2026-10-21T18:00:35.092Z",
+        "reason": "model triage: 1px-gap hairline grid (padding on children) and edge-to-edge screenshot window, flagged by static scan; verified in browser captures 2026-10-21"
+      },
+      {
+        "rule": "buried-raster",
+        "value": "*",
+        "files": [
+          "site/index.html"
+        ],
+        "createdAt": "2026-10-21T18:00:35.107Z",
+        "reason": "model triage: second screenshot hidden at opacity 0 for the Editor/Raw crossfade toggle, shown on click"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "site/fr/index.html"
+        ],
+        "createdAt": "2026-10-21T18:00:35.120Z",
+        "reason": "model triage: 1px-gap hairline grid (padding on children) and edge-to-edge screenshot window, flagged by static scan; verified in browser captures 2026-10-21"
+      },
+      {
+        "rule": "buried-raster",
+        "value": "*",
+        "files": [
+          "site/fr/index.html"
+        ],
+        "createdAt": "2026-10-21T18:00:35.136Z",
+        "reason": "model triage: second screenshot hidden at opacity 0 for the Editor/Raw crossfade toggle, shown on click"
+      }
+    ]
+  }
+}

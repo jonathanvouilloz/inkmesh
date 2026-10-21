@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>inkmesh · The shared workspace for people and AI agents</title>
+<meta name="description" content="Self-hosted, open-source docs. Every page is a Markdown file in git, edited by your team in the browser and by AI agents through MCP.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="canonical" href="https://inkmesh.ch/">
+<link rel="alternate" hreflang="en" href="https://inkmesh.ch/">
+<link rel="alternate" hreflang="fr" href="https://inkmesh.ch/fr/">
+<link rel="preload" href="assets/fonts/general-sans-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="drop"><path d="M50 8C59 24 78 41 78 62A28 28 0 0 1 22 62C22 41 41 24 50 8Z"/></clipPath></defs><symbol id="logo" viewBox="0 0 100 100"><g clip-path="url(#drop)" fill="currentColor"><rect y="8" width="100" height="8"/><rect y="22" width="100" height="8"/><rect y="36" width="100" height="8"/><rect y="50" width="100" height="8"/><rect y="64" width="100" height="8"/><rect y="78" width="100" height="14"/></g></symbol></svg>
+
+<header class="nav">
+	<div class="frame">
+		<a class="brand" href="index.html" aria-label="inkmesh, home"><svg aria-hidden="true"><use href="#logo"/></svg>inkmesh</a>
+		<nav aria-label="Sections">
+			<ul>
+				<li><a href="#problem">Why</a></li>
+				<li><a href="workflow/index.html">Workflow</a></li>
+				<li><a href="#features">Features</a></li>
+				<li><a href="#agents">Agents</a></li>
+				<li><a href="#faq">FAQ</a></li>
+				<li><a href="#about">About</a></li>
+			</ul>
+		</nav>
+		<div class="end">
+			<div class="lang"><a href="index.html" aria-current="page" hreflang="en">EN</a>/<a href="fr/index.html" hreflang="fr" lang="fr">FR</a></div>
+			<a class="btn btn-secondary btn-small" href="https://github.com/jonathanvouilloz/inkmesh">GitHub</a>
+		</div>
+	</div>
+</header>
+
+<main id="main">
+	<section class="frame hero">
+		<div>
+			<h1 data-reveal>The shared workspace for people and AI agents</h1>
+			<div class="actions" data-reveal style="--i:2">
+				<a class="btn btn-primary" href="https://github.com/jonathanvouilloz/inkmesh">See it on GitHub <span class="arrow" aria-hidden="true">→</span></a>
+				<a class="btn btn-secondary" href="#how">How it works</a>
+			</div>
+		</div>
+		<div>
+			<p class="lead" data-reveal style="--i:1">Your AI agents produce Markdown your clients can’t read. With <strong>inkmesh</strong>, they publish real web pages straight to a shared space, open to your clients and to every agent on your team.</p>
+		</div>
+	</section>
+
+	<div class="frame stage" data-reveal style="--i:3">
+		<svg class="mesh" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path pathLength="1" style="--d:0" d="M70 110L250 50"/><path pathLength="1" style="--d:1" d="M250 50L410 170"/><path pathLength="1" style="--d:2" d="M70 110L150 320"/><path pathLength="1" style="--d:3" d="M150 320L320 420"/><path pathLength="1" style="--d:4" d="M410 170L320 420"/><path pathLength="1" style="--d:5" d="M250 50L600 40"/><path pathLength="1" style="--d:6" d="M1130 110L950 50"/><path pathLength="1" style="--d:7" d="M950 50L790 170"/><path pathLength="1" style="--d:0" d="M1130 110L1050 320"/><path pathLength="1" style="--d:1" d="M1050 320L880 420"/><path pathLength="1" style="--d:2" d="M790 170L880 420"/><path pathLength="1" style="--d:3" d="M950 50L600 40"/><path pathLength="1" style="--d:4" d="M150 320L40 500"/><path pathLength="1" style="--d:5" d="M1050 320L1160 500"/><path pathLength="1" style="--d:6" d="M410 170L150 320"/><path pathLength="1" style="--d:7" d="M790 170L1050 320"/><circle style="--d:0" cx="70" cy="110" r="3.5"/><circle style="--d:1" cx="250" cy="50" r="3.5"/><circle class="ink" style="--d:2" cx="410" cy="170" r="4"/><circle style="--d:3" cx="150" cy="320" r="3.5"/><circle style="--d:4" cx="320" cy="420" r="3.5"/><circle style="--d:5" cx="600" cy="40" r="3.5"/><circle style="--d:6" cx="1130" cy="110" r="3.5"/><circle style="--d:7" cx="950" cy="50" r="3.5"/><circle class="ink" style="--d:0" cx="790" cy="170" r="4"/><circle style="--d:1" cx="1050" cy="320" r="3.5"/><circle style="--d:2" cx="880" cy="420" r="3.5"/><circle style="--d:3" cx="40" cy="500" r="3.5"/><circle style="--d:4" cx="1160" cy="500" r="3.5"/></svg>
+		<div class="window">
+			<div class="bar">
+				<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+				<span class="url">your-host/studio/reports/2026-10-21-weekly.md</span>
+				<div class="toggle" role="group" aria-label="View">
+					<button type="button" data-show="doc" aria-pressed="true">Editor</button>
+					<button type="button" data-show="raw" aria-pressed="false">Raw</button>
+				</div>
+			</div>
+			<div class="screens">
+				<img data-view="doc" src="assets/shots/doc-en.webp" width="2560" height="1600" alt="The inkmesh editor showing a weekly report written by an agent: folder tree on the left, the document with a table and a task list in the middle, its frontmatter and history on the right.">
+				<img data-view="raw" src="assets/shots/raw-en.webp" width="2560" height="1600" alt="The same weekly report in raw mode, showing its Markdown source." hidden loading="lazy">
+			</div>
+		</div>
+	</div>
+	<p class="frame caption">Demo content, real interface.</p>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split" id="problem">
+		<h2 data-reveal>Sharing Markdown is a pain</h2>
+		<div>
+			<p class="lead" data-reveal style="--i:1">AI agents write in Markdown: reports, specs, project notes. To get them to a client, you export a PDF, paste into Google Docs or attach a file to an email. Every update means doing it again.</p>
+			<p class="lead" data-reveal style="--i:2">inkmesh skips that step. The agent writes to your space, the client opens a link and reads a clean page. Think of a simpler Notion, built for Markdown and AI agents.</p>
+		</div>
+	</section>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame with-cells" id="benefits">
+		<header class="split">
+			<h2 data-reveal>What you get</h2>
+			<p class="lead" data-reveal style="--i:1">Less copy-pasting, and documents your clients actually open.</p>
+		</header>
+		<div class="cells">
+			<div data-reveal style="--i:0"><h3>Time back</h3><p>Your agent publishes as it writes. The client sees the latest version, without you exporting anything.</p><span class="tag">agent → page</span></div>
+			<div data-reveal style="--i:1"><h3>Everything in one place</h3><p>All your documents in one space, every change synced to git.</p><span class="tag">git log</span></div>
+			<div data-reveal style="--i:2"><h3>Your server, your data</h3><p>It runs on your server, under your own subdomain like <code>docs.yourcompany.com</code>. Not in Notion, not in Google Docs.</p><span class="tag">/data/workspaces</span></div>
+			<div data-reveal style="--i:0"><h3>Plugs into your AI setup</h3><p>Claude Code, Cursor, ChatGPT or a script connect through MCP or an API, in two minutes.</p><span class="tag">mcp</span></div>
+			<div data-reveal style="--i:1"><h3>Safe sharing with clients</h3><p>Invite a client as a reader, or send a read-only link you can revoke.</p><span class="tag">role: reader</span></div>
+			<div data-reveal style="--i:2"><h3>Any document</h3><p>Project updates, questionnaires, specs, meeting notes: if it fits in Markdown, it works.</p><span class="tag">*.md</span></div>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split" id="how">
+		<div>
+			<h2 data-reveal>From your agent to your client</h2>
+			<ol class="steps">
+				<li data-reveal style="--i:1"><span>An agent writes <code>reports/2026-10-21-weekly.md</code> through MCP.</span></li>
+				<li data-reveal style="--i:2"><span>Your client opens the link and reads a clean page. Your team can edit it in the browser.</span></li>
+				<li data-reveal style="--i:3"><span>Git records both changes with their author. On its next run, the agent reads the comments.</span></li>
+			</ol>
+		</div>
+		<div class="card" data-reveal style="--i:2">
+			<div class="bar"><span>studio · git</span></div>
+<pre><span class="c">$ git log --format='%an · %s' reports/2026-10-21-weekly.md</span>
+Jon · Replace reports/2026-10-21-weekly.md
+Jon <span class="a">via claude-code</span> · Import reports/2026-10-21-weekly.md
+
+<span class="c">$ cat .inkmesh/comments/reports/2026-10-21-weekly.md</span>
+Jon: Can you add the churn numbers next week?</pre>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame with-cells features" id="features">
+		<header class="split">
+			<h2 data-reveal>What it does</h2>
+			<p class="lead" data-reveal style="--i:1">A folder of Markdown files, with a browser on top.</p>
+		</header>
+		<div class="cells" style="--cols:4">
+			<div data-reveal><h3>Editor and raw mode</h3><p>Tables, images, code. What you don’t touch stays byte for byte.</p><span class="tag">wysiwyg ⇄ raw</span></div>
+			<div data-reveal style="--i:1"><h3>History and restore</h3><p>Every save is a commit. Restore any version, or a deleted file.</p><span class="tag">git restore</span></div>
+			<div data-reveal style="--i:2"><h3>Comments</h3><p>One thread per document, stored as a file agents can read.</p><span class="tag">.inkmesh/comments/</span></div>
+			<div data-reveal style="--i:3"><h3>Search</h3><p>Find any document by typing a word from it.</p><span class="tag">search?q=</span></div>
+			<div data-reveal><h3>Workspaces and roles</h3><p>Owner, editor, reader. People join by invitation or by link.</p><span class="tag">owner · editor · reader</span></div>
+			<div data-reveal style="--i:1"><h3>Folder view</h3><p>The real folder tree. Sort and filter by any frontmatter field.</p><span class="tag">frontmatter</span></div>
+			<div data-reveal style="--i:2"><h3>Public links</h3><p>Read-only links to a page or a workspace. Revoke them anytime.</p><span class="tag">/s/…</span></div>
+			<div data-reveal style="--i:3"><h3>Inbox and digest</h3><p>Comments and changes in one inbox, plus an optional daily email.</p><span class="tag">inbox</span></div>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame agents" id="agents">
+		<div>
+			<h2 data-reveal>Connect an agent in two minutes</h2>
+			<p class="lead" data-reveal style="--i:1">Pick your tool and paste what the page gives you. Works with Claude, ChatGPT, Cursor, any MCP client or a script.</p>
+			<div class="card" data-reveal style="--i:2">
+				<div class="bar"><span>Claude Code</span><button class="copy" type="button" data-done="Copied" data-fail="Select and copy">Copy</button></div>
+<pre><span class="c">$ </span>claude mcp add --transport http --scope user inkmesh https://your-host/mcp</pre>
+			</div>
+			<p class="endpoints" data-reveal style="--i:3"><span><b>MCP</b> /mcp</span><span><b>HTTP API</b> /api/v1</span></p>
+		</div>
+		<div class="shot" data-reveal style="--i:2">
+			<img src="assets/shots/connect-en.webp" width="1980" height="900" loading="lazy" alt="The Connect an agent page: pick a tool (Claude, Claude Code, ChatGPT, Cursor, other MCP client, script) and copy the server URL, with step-by-step instructions.">
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame split faq" id="faq">
+		<h2 data-reveal>FAQ</h2>
+		<div data-reveal style="--i:1">
+			<details><summary>Does it cost anything?</summary><p>No. MIT licence, on your own server.</p></details>
+			<details><summary>Do my teammates need to know Markdown?</summary><p>No. They see a normal editor. Raw Markdown stays behind a toggle.</p></details>
+			<details><summary>Where are my files?</summary><p>On your server, in plain git repos. Clone them, back them up, open them without inkmesh.</p></details>
+			<details><summary>Which agents work with it?</summary><p>Claude, Claude Code, ChatGPT, Cursor, any MCP client, and any script with an API token.</p></details>
+			<details><summary>Can two people edit the same document at once?</summary><p>Not live. The last save wins, git keeps both versions, and the editor warns you if the file changed.</p></details>
+			<details><summary>Does it send data anywhere?</summary><p>No analytics. Email stays off until you turn it on.</p></details>
+			<details><summary>How do I install it?</summary><p>With Docker, on your server and your own subdomain. The guide is in the <a href="https://github.com/jonathanvouilloz/inkmesh#run-with-docker">README on GitHub</a>.</p></details>
+		</div>
+	</section>
+
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame creator" id="about">
+		<h2 data-reveal>Who made it</h2>
+		<div class="who" data-reveal style="--i:1">
+			<img src="assets/jon.webp" width="320" height="320" alt="Jon, who made inkmesh" loading="lazy">
+			<div>
+				<p class="lead">I’m Jon, a web developer in Geneva. I build websites and AI agents for small businesses in French-speaking Switzerland. My agents wrote Markdown documents for my clients, and getting those to them was a chore. inkmesh is the tool I wanted instead.</p>
+				<a class="link" href="https://jonlabs.ch">jonlabs.ch <span aria-hidden="true">→</span></a>
+			</div>
+		</div>
+	</section>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+
+	<section class="frame closing">
+		<h2 data-reveal>Try it on your own server</h2>
+		<div class="cells">
+			<div data-reveal style="--i:1"><p><strong>Install it.</strong> Docker and four commands. The guide is in the README.</p><a class="btn btn-primary" href="https://github.com/jonathanvouilloz/inkmesh#run-with-docker">Install guide <span class="arrow" aria-hidden="true">→</span></a></div>
+			<div data-reveal style="--i:2"><p><strong>Read the code.</strong> MIT licence, on GitHub.</p><a class="btn btn-secondary" href="https://github.com/jonathanvouilloz/inkmesh">Source on GitHub</a></div>
+		</div>
+	</section>
+</main>
+
+<footer>
+	<div class="band" aria-hidden="true"><div class="frame"></div></div>
+	<div class="frame">
+		<div>
+			<a class="brand" href="index.html"><svg aria-hidden="true"><use href="#logo"/></svg>inkmesh</a>
+			<p>The shared workspace for people and AI agents.</p>
+			<p class="tag">MIT · SvelteKit, SQLite, git · EN / FR</p>
+		</div>
+		<ul>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh">GitHub</a></li>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh#readme">README</a></li>
+			<li><a href="https://github.com/jonathanvouilloz/inkmesh/blob/main/LICENSE">MIT licence</a></li>
+			<li><a href="fr/index.html" hreflang="fr" lang="fr">Français</a></li>
+		</ul>
+	</div>
+</footer>
+
+</body>
+</html>

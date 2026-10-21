@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>inkmesh, pistes de logo</title>
+<style>
+@font-face { font-family: 'Fragment Mono'; src: url('../../site/assets/fonts/fragment-mono.woff2') format('woff2'); }
+@font-face { font-family: 'General Sans'; src: url('../../site/assets/fonts/general-sans-500.woff2') format('woff2'); font-weight: 500; }
+:root { --ground: #FBFBFA; --panel: #F3F3F0; --hairline: #E4E4E0; --ink: #1C1C1A; --muted: #6E6E68; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 14px/1.5 'General Sans', system-ui, sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 48px 16px; }
+h1 { font-weight: 500; font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; }
+p.lead { color: var(--muted); margin: 0 0 40px; max-width: 60ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); border-top: 1px solid var(--hairline); border-left: 1px solid var(--hairline); }
+article { border-right: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding: 24px; }
+.big { display: grid; place-items: center; height: 200px; background: var(--panel); border-radius: 6px; }
+.big svg { width: 120px; height: 120px; transition: transform 300ms cubic-bezier(.2,.7,.2,1); }
+article:hover .big svg { transform: scale(1.06); }
+.sizes { display: flex; align-items: center; gap: 16px; margin: 16px 0; }
+.sizes svg { flex-shrink: 0; }
+.sizes svg:nth-child(1) { width: 32px; height: 32px; }
+.sizes svg:nth-child(2) { width: 16px; height: 16px; }
+.lockup { display: flex; align-items: center; gap: 8px; font-family: 'Fragment Mono', monospace; font-size: 18px; }
+.lockup svg { width: 22px; height: 22px; }
+.dark { background: var(--ink); color: var(--ground); padding: 4px 8px; border-radius: 6px; }
+h2 { font-family: 'Fragment Mono', monospace; font-weight: 400; font-size: 13px; color: var(--muted); margin: 16px 0 4px; }
+article p { margin: 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>inkmesh, six pistes de logo</h1>
+<p class="lead">Monochrome, une seule couleur (<code>currentColor</code>), lisible à 16 px. Chaque piste montre le symbole en grand, à 32 et 16 px, puis à côté du nom. Piste retenue : 02.</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 01: # (Markdown heading, a grid) with an ink drop in the centre cell -->
+    <symbol id="l1" viewBox="0 0 100 100">
+      <g transform="skewX(-8) translate(7 0)" stroke="currentColor" stroke-width="8" stroke-linecap="round" fill="none">
+        <path d="M33 12V88M67 12V88M12 33H88M12 67H88"/>
+      </g>
+      <path fill="currentColor" d="M50 38C54 43 59 47 59 54A9 9 0 0 1 41 54C41 47 46 43 50 38Z"/>
+    </symbol>
+    <!-- 02: drop cut into horizontal lines, text lines in ink -->
+    <symbol id="l2" viewBox="0 0 100 100">
+      <clipPath id="drop2"><path d="M50 8C59 24 78 41 78 62A28 28 0 0 1 22 62C22 41 41 24 50 8Z"/></clipPath>
+      <g clip-path="url(#drop2)" fill="currentColor">
+        <rect x="0" y="8" width="100" height="8"/><rect x="0" y="22" width="100" height="8"/><rect x="0" y="36" width="100" height="8"/>
+        <rect x="0" y="50" width="100" height="8"/><rect x="0" y="64" width="100" height="8"/><rect x="0" y="78" width="100" height="14"/>
+      </g>
+    </symbol>
+    <!-- 03: solid drop with a three-node mesh cut out -->
+    <symbol id="l3" viewBox="0 0 100 100">
+      <mask id="mesh3"><rect width="100" height="100" fill="#fff"/>
+        <g stroke="#000" stroke-width="4" stroke-linecap="round"><path d="M38 60L62 52L52 76Z" fill="none"/></g>
+        <g fill="#000"><circle cx="38" cy="60" r="6"/><circle cx="62" cy="52" r="6"/><circle cx="52" cy="76" r="6"/></g>
+      </mask>
+      <path mask="url(#mesh3)" fill="currentColor" d="M50 8C59 24 78 41 78 62A28 28 0 0 1 22 62C22 41 41 24 50 8Z"/>
+    </symbol>
+    <!-- 04: two users, one file (a person and an agent around the same document) -->
+    <symbol id="l4" viewBox="0 0 100 100">
+      <path d="M21 50H36M64 50H79" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="14" cy="50" r="8" fill="currentColor"/>
+      <circle cx="86" cy="50" r="8" fill="none" stroke="currentColor" stroke-width="5"/>
+      <rect x="36" y="30" width="28" height="40" rx="6" fill="currentColor"/>
+    </symbol>
+    <!-- 05: lowercase i, the tittle is an ink drop -->
+    <symbol id="l5" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 10C55 18 62 24 62 32A12 12 0 0 1 38 32C38 24 45 18 50 10Z"/>
+      <rect x="40" y="50" width="20" height="40" rx="10" fill="currentColor"/>
+    </symbol>
+    <!-- 06: 3 x 3 node grid, the centre node is a drop -->
+    <symbol id="l6" viewBox="0 0 100 100">
+      <g fill="currentColor">
+        <circle cx="22" cy="22" r="7"/><circle cx="50" cy="22" r="7"/><circle cx="78" cy="22" r="7"/>
+        <circle cx="22" cy="50" r="7"/><circle cx="78" cy="50" r="7"/>
+        <circle cx="22" cy="78" r="7"/><circle cx="50" cy="78" r="7"/><circle cx="78" cy="78" r="7"/>
+        <path d="M50 34C55 41 61 46 61 53A11 11 0 0 1 39 53C39 46 45 41 50 34Z"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="grid">
+  <article><div class="big"><svg><use href="#l1"/></svg></div>
+    <div class="sizes"><svg><use href="#l1"/></svg><svg><use href="#l1"/></svg><span class="lockup"><svg><use href="#l1"/></svg>inkmesh</span><span class="lockup dark"><svg><use href="#l1"/></svg>inkmesh</span></div>
+    <h2>01 · # + goutte</h2><p>Le dièse du titre Markdown, qui est aussi une grille (le « mesh ») ; une goutte d’encre dans la case du milieu. Le seul symbole qui dit Markdown, réseau et encre à la fois.</p></article>
+  <article><div class="big"><svg><use href="#l2"/></svg></div>
+    <div class="sizes"><svg><use href="#l2"/></svg><svg><use href="#l2"/></svg><span class="lockup"><svg><use href="#l2"/></svg>inkmesh</span><span class="lockup dark"><svg><use href="#l2"/></svg>inkmesh</span></div>
+    <h2>02 · goutte en lignes</h2><p>Une goutte faite de lignes de texte : le document écrit à l’encre. Très lisible en petit, plus « tech » que les autres.</p></article>
+  <article><div class="big"><svg><use href="#l3"/></svg></div>
+    <div class="sizes"><svg><use href="#l3"/></svg><svg><use href="#l3"/></svg><span class="lockup"><svg><use href="#l3"/></svg>inkmesh</span><span class="lockup dark"><svg><use href="#l3"/></svg>inkmesh</span></div>
+    <h2>03 · goutte réseau</h2><p>Une goutte pleine avec trois nœuds reliés découpés dedans : l’équipe et ses agents dans la même encre. En 16 px, il ne reste que la goutte.</p></article>
+  <article><div class="big"><svg><use href="#l4"/></svg></div>
+    <div class="sizes"><svg><use href="#l4"/></svg><svg><use href="#l4"/></svg><span class="lockup"><svg><use href="#l4"/></svg>inkmesh</span><span class="lockup dark"><svg><use href="#l4"/></svg>inkmesh</span></div>
+    <h2>04 · deux nœuds, un fichier</h2><p>Une personne (plein) et un agent (contour) reliés au même fichier. C’est le principe du produit, dessiné littéralement ; ne parle pas d’encre.</p></article>
+  <article><div class="big"><svg><use href="#l5"/></svg></div>
+    <div class="sizes"><svg><use href="#l5"/></svg><svg><use href="#l5"/></svg><span class="lockup"><svg><use href="#l5"/></svg>inkmesh</span><span class="lockup dark"><svg><use href="#l5"/></svg>inkmesh</span></div>
+    <h2>05 · i goutte</h2><p>Le « i » d’inkmesh, avec une goutte pour point. Le plus simple ; il peut aussi remplacer le i dans le mot.</p></article>
+  <article><div class="big"><svg><use href="#l6"/></svg></div>
+    <div class="sizes"><svg><use href="#l6"/></svg><svg><use href="#l6"/></svg><span class="lockup"><svg><use href="#l6"/></svg>inkmesh</span><span class="lockup dark"><svg><use href="#l6"/></svg>inkmesh</span></div>
+    <h2>06 · grille de nœuds</h2><p>Huit points en grille, la goutte au centre. Joli en grand ; en 16 px les points se brouillent.</p></article>
+</div>
+</main>
+</body>
+</html>
