@@ -202,7 +202,7 @@ export const en = {
 	'connect.copy': 'Copy',
 	'connect.copied': 'Copied',
 	'connect.steps.claude':
-		'In Claude, open Customize → Connectors → “Add custom connector”.\nName it `inkmesh` and paste the server URL. If Claude asks how it identifies itself, choose “Register automatically”.\nClick “Add”, then “Connect”: inkmesh opens, name the agent and click “Allow”.\nThe Free plan allows one custom connector. On Team and Enterprise, an organisation Owner first adds it under Organization settings → Connectors → Add → Custom → Web, then each member clicks “Connect”.',
+		'In Claude, open Customize → Connectors → “Add custom connector”.\nName it `inkmesh` and paste the server URL. If Claude asks how it identifies itself, choose “Register automatically”.\nClick “Add”, then “Connect”: inkmesh opens, name the agent and click “Allow”.',
 	'connect.steps.claude-code':
 		'Copy this command and run it in your terminal.\nIn Claude Code, type `/mcp`, pick `inkmesh` and choose “Authenticate”.\nThe browser opens inkmesh: name the agent and click “Allow”.',
 	'connect.steps.chatgpt':
@@ -214,6 +214,8 @@ export const en = {
 	'connect.steps.script':
 		'Name the agent and create its token.\nPut the token in the `INKMESH_TOKEN` environment variable.\nDrop a Markdown file in `reports/` with one request, and read what changed in the workspace.',
 	'connect.chatgptNote': 'Menu names change between ChatGPT versions.',
+	'connect.claudeNote': 'The Free plan allows one custom connector. On Team and Enterprise, an organisation Owner first adds it under Organization settings → Connectors → Add → Custom → Web, then each member clicks “Connect”.',
+	'connect.mark': 'Mark step {n} as done',
 	'connect.name': 'Agent name',
 	'connect.create': 'Create token',
 	'connect.once': 'Copy it now: it will not be shown again.',

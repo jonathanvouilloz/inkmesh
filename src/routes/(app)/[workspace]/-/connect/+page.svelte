@@ -19,6 +19,12 @@
 	// Claude Code on a server reached over SSH cannot finish the browser sign-in: it takes a token instead.
 	let where = $state<'local' | 'ssh'>(sent === 'claude-code-ssh' ? 'ssh' : 'local');
 	const recipe = $derived<Recipe | undefined>(tool === 'claude-code' && where === 'ssh' ? 'claude-code-ssh' : tool);
+	// Ticks the visitor sets on each step, to see what is done; a new recipe starts unticked.
+	let ticked = $state<boolean[]>([]);
+	$effect(() => {
+		void recipe;
+		ticked = [];
+	});
 	const needsToken = $derived(recipe === 'claude-code-ssh' || recipe === 'mcp' || recipe === 'script');
 	const token = $derived(form?.token && form.kind === recipe ? form.token : undefined);
 
@@ -144,27 +150,32 @@
 	<h1>{t('connect.title', locale)}</h1>
 	<p>{t('connect.intro', locale, { user: data.user.name })}</p>
 
-	<h2 id="choose">{t('connect.choose', locale)}</h2>
-	<div class="tiles" role="radiogroup" aria-labelledby="choose">
-		{#each tools as value (value)}
-			<label class="tile"><input type="radio" name="tool" {value} bind:group={tool} />{t(`connect.tools.${value}`, locale)}</label>
-		{/each}
-	</div>
-
-	{#if tool === 'claude-code'}
-		<h2 id="where">{t('connect.where', locale)}</h2>
-		<div class="tiles" role="radiogroup" aria-labelledby="where">
-			{#each ['local', 'ssh'] as const as value (value)}
-				<label class="tile"><input type="radio" name="where" {value} bind:group={where} />{t(`connect.where.${value}`, locale)}</label>
+	<section class="step" class:done={tool}>
+		<span class="head"><span class="box" aria-hidden="true"></span><span class="number">{t('connect.step', locale, { n: '1' })}</span></span>
+		<h2 id="choose">{t('connect.choose', locale)}</h2>
+		<div class="tiles" role="radiogroup" aria-labelledby="choose">
+			{#each tools as value (value)}
+				<label class="tile"><input type="radio" name="tool" {value} bind:group={tool} />{t(`connect.tools.${value}`, locale)}</label>
 			{/each}
 		</div>
-	{/if}
+		{#if tool === 'claude-code'}
+			<h3 id="where">{t('connect.where', locale)}</h3>
+			<div class="tiles" role="radiogroup" aria-labelledby="where">
+				{#each ['local', 'ssh'] as const as value (value)}
+					<label class="tile"><input type="radio" name="where" {value} bind:group={where} />{t(`connect.where.${value}`, locale)}</label>
+				{/each}
+			</div>
+		{/if}
+	</section>
 
 	{#if recipe}
 		<ol class="steps">
 			{#each t(`connect.steps.${recipe}`, locale).split('\n') as step, i (i)}
-				<li>
-					<span class="number">{t('connect.step', locale, { n: String(i + 1) })}</span>
+				<li class="step" class:done={ticked[i]}>
+					<label class="head">
+						<input type="checkbox" bind:checked={ticked[i]} aria-label={t('connect.mark', locale, { n: String(i + 2) })} />
+						<span class="box" aria-hidden="true"></span><span class="number">{t('connect.step', locale, { n: String(i + 2) })}</span>
+					</label>
 					<!-- Backticks in a step mark a command or file name: it is never translated. -->
 					<p class="text">{#each step.split('`') as part, j (j)}{#if j % 2}<code>{part}</code>{:else}{part}{/if}{/each}</p>
 					{#if i === 0 && needsToken}
@@ -196,6 +207,7 @@
 			{/each}
 		</ol>
 		{#if recipe === 'chatgpt'}<p>{t('connect.chatgptNote', locale)}</p>{/if}
+		{#if recipe === 'claude'}<p>{t('connect.claudeNote', locale)}</p>{/if}
 		<p class="done">{t('connect.done', locale)}</p>
 	{/if}
 
@@ -360,11 +372,15 @@
 	}
 	.tiles {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 8px;
 	}
 	.tile {
 		position: relative;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
 		padding: 12px 14px;
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius);
@@ -373,6 +389,17 @@
 		cursor: pointer;
 		transition: border-color var(--ease), background-color var(--ease);
 	}
+	/* A radio dot, so the chosen tile reads at a glance. */
+	.tile::before {
+		content: '';
+		flex: none;
+		width: 14px;
+		height: 14px;
+		box-sizing: border-box;
+		border: 1px solid var(--muted);
+		border-radius: 50%;
+		background: var(--ground);
+	}
 	.tile:hover {
 		background: var(--panel);
 	}
@@ -380,12 +407,17 @@
 		border-color: var(--accent);
 		color: var(--accent);
 	}
-	.tile:has(input:focus-visible) {
+	.tile:has(input:checked)::before {
+		border: 4px solid var(--accent);
+	}
+	.tile:has(input:focus-visible),
+	.head:has(input:focus-visible) .box {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
-	/* The native radio, invisible, covers the whole tile: it takes clicks, keys and screen readers. */
-	.tile input {
+	/* The native input, invisible, covers its whole target: it takes clicks, keys and screen readers. */
+	.tile input,
+	.head input {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -393,6 +425,52 @@
 		margin: 0;
 		opacity: 0;
 		cursor: pointer;
+	}
+	.step {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.head {
+		position: relative;
+		align-self: flex-start;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		font-weight: 400;
+	}
+	/* A checkbox drawn in CSS: ticked when the step is done. */
+	.box {
+		width: 16px;
+		height: 16px;
+		box-sizing: border-box;
+		border: 1px solid var(--muted);
+		border-radius: 4px;
+		background: var(--ground);
+		display: grid;
+		place-items: center;
+	}
+	.done > .head .box {
+		border-color: var(--accent);
+		background: var(--accent);
+	}
+	.done > .head .box::after {
+		content: '';
+		width: 4px;
+		height: 8px;
+		margin-top: -2px;
+		border: solid #fff;
+		border-width: 0 2px 2px 0;
+		transform: rotate(45deg);
+	}
+	.step.done .text {
+		color: var(--muted);
+	}
+	h3 {
+		margin: 8px 0 0;
+		font-size: 13px;
+		font-weight: 600;
 	}
 	.steps {
 		margin: 8px 0 0;
@@ -403,9 +481,6 @@
 		border-top: 1px solid var(--hairline);
 	}
 	.steps li {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
 		padding: 16px 0;
 		border-bottom: 1px solid var(--hairline);
 	}
@@ -535,6 +610,9 @@
 	}
 	/* Phones keep the name, the last use and the actions; the creation date is the one to go. */
 	@media (max-width: 767px) {
+		.tiles {
+			grid-template-columns: minmax(0, 1fr);
+		}
 		.page {
 			padding: 24px 16px;
 		}

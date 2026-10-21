@@ -206,7 +206,7 @@ export const fr: Record<keyof typeof en, string> = {
 	'connect.copy': 'Copier',
 	'connect.copied': 'Copié',
 	'connect.steps.claude':
-		'Dans Claude, ouvrez Customize → Connectors → « Add custom connector ».\nNommez-le `inkmesh` et collez l’URL du serveur. Si Claude demande comment il s’identifie, choisissez « Register automatically ».\nCliquez sur « Add », puis sur « Connect » : inkmesh s’ouvre, nommez l’agent et cliquez sur « Autoriser ».\nL’offre Free permet un seul connecteur personnalisé. Sur Team et Enterprise, un Owner de l’organisation l’ajoute d’abord dans Organization settings → Connectors → Add → Custom → Web, puis chaque membre clique sur « Connect ».',
+		'Dans Claude, ouvrez Customize → Connectors → « Add custom connector ».\nNommez-le `inkmesh` et collez l’URL du serveur. Si Claude demande comment il s’identifie, choisissez « Register automatically ».\nCliquez sur « Add », puis sur « Connect » : inkmesh s’ouvre, nommez l’agent et cliquez sur « Autoriser ».',
 	'connect.steps.claude-code':
 		'Copiez cette commande et lancez-la dans votre terminal.\nDans Claude Code, tapez `/mcp`, choisissez `inkmesh` puis « Authenticate ».\nLe navigateur ouvre inkmesh : nommez l’agent et cliquez sur « Autoriser ».',
 	'connect.steps.chatgpt':
@@ -218,6 +218,8 @@ export const fr: Record<keyof typeof en, string> = {
 	'connect.steps.script':
 		'Nommez l’agent et créez son jeton.\nPlacez le jeton dans la variable d’environnement `INKMESH_TOKEN`.\nDéposez un fichier Markdown dans `reports/` en une requête, et lisez ce qui a changé dans l’espace.',
 	'connect.chatgptNote': 'Les noms des menus changent selon les versions de ChatGPT.',
+	'connect.claudeNote': 'L’offre Free permet un seul connecteur personnalisé. Sur Team et Enterprise, un Owner de l’organisation l’ajoute d’abord dans Organization settings → Connectors → Add → Custom → Web, puis chaque membre clique sur « Connect ».',
+	'connect.mark': 'Marquer l’étape {n} comme faite',
 	'connect.name': 'Nom de l’agent',
 	'connect.create': 'Créer le jeton',
 	'connect.once': 'Copiez-le maintenant : il ne sera plus affiché.',
