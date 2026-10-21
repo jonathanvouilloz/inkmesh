@@ -48,7 +48,18 @@ Logs: `journalctl --user -u inkmesh -f`, `journalctl --user -u inkmesh-tunnel -f
 7. Tunnel switch: in `deploy/inkmesh-tunnel.service`, comment the quick tunnel `ExecStart` and uncomment the `tunnel run` one; commit on `main` and run `scripts/deploy.sh` so the prod clone carries it.
 8. Restart both: `systemctl --user daemon-reload && systemctl --user restart inkmesh inkmesh-tunnel`. Sessions survive (cookie name and path unchanged). Check `https://inkmesh.ch/login`.
 
-## Backup
+## Landing page on inkmesh.ch, app on app.inkmesh.ch
+
+The static landing page (`site/`) is served by `deploy/landing.mjs` on `127.0.0.1:9311`; any path that is not a landing file gets a 308 to `https://app.inkmesh.ch` with the same path, so public links, invitations and `/mcp` sent before the move keep working (MCP clients should still be reconnected on the new URL).
+
+1. DNS: `~/.local/bin/cloudflared tunnel route dns inkmesh app.inkmesh.ch`.
+2. Config: `cp deploy/cloudflared.yml ~/.cloudflared/inkmesh.yml` and replace `<tunnel-id>`.
+3. Env: `INKMESH_URL=https://app.inkmesh.ch` in `~/.config/inkmesh/env` (email links).
+4. Unit: `systemctl --user enable --now ~/inkmesh-app/deploy/inkmesh-landing.service`.
+5. Restart: `systemctl --user restart inkmesh inkmesh-tunnel`. Sessions do not carry over to the new host: everyone signs in again once. Check `https://inkmesh.ch/`, `https://app.inkmesh.ch/login` and that `https://inkmesh.ch/login` redirects.
+
+The landing page updates with the prod checkout: `scripts/deploy.sh` pulls it; no restart needed for HTML changes.
+
 
 `scripts/backup.sh`, run every hour by `deploy/inkmesh-backup.timer`, mirrors each workspace's git repository to a private GitHub repository `<BACKUP_GITHUB_OWNER>/inkmesh-<slug>` (created on first run through the `gh` login of `hermes`) and refreshes a daily snapshot of `inkmesh.db` in `~/inkmesh-backups/db/`, kept 14 days. The database never leaves the VPS. Logs: `journalctl --user -u inkmesh-backup`; a failed push or snapshot makes the run fail, and systemd then starts `inkmesh-alert@inkmesh-backup.service`, which emails every instance admin the last log lines (`scripts/alert.ts`; nothing is sent when email is off).
 

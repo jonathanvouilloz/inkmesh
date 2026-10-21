@@ -1,0 +1,15 @@
+[Unit]
+Description=inkmesh landing page (static site, other paths redirected to the app)
+
+[Service]
+Type=simple
+WorkingDirectory=%h/inkmesh-app
+Environment=APP_ORIGIN=https://app.inkmesh.ch
+Environment=LANDING_PORT=9311
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node deploy/landing.mjs site
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -3,6 +3,9 @@ tunnel: inkmesh
 credentials-file: /home/hermes/.cloudflared/<tunnel-id>.json
 
 ingress:
-  - hostname: inkmesh.ch
+  - hostname: app.inkmesh.ch
     service: http://127.0.0.1:9310
+  # Landing page (deploy/landing.mjs); it sends every other path to app.inkmesh.ch.
+  - hostname: inkmesh.ch
+    service: http://127.0.0.1:9311
   - service: http_status:404
