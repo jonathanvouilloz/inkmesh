@@ -50,6 +50,24 @@
         ],
         "createdAt": "2026-10-21T18:00:35.136Z",
         "reason": "model triage: second screenshot hidden at opacity 0 for the Editor/Raw crossfade toggle, shown on click"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "site/workflow/index.html"
+        ],
+        "createdAt": "2026-10-21T19:29:39.407Z",
+        "reason": "model triage: 1px-gap hairline grid (.cells), padding sits on the children; verified in browser captures 2026-10-21"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "site/fr/workflow/index.html"
+        ],
+        "createdAt": "2026-10-21T19:29:39.426Z",
+        "reason": "model triage: 1px-gap hairline grid (.cells), padding sits on the children; verified in browser captures 2026-10-21"
       }
     ]
   }
