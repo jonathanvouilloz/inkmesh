@@ -1,22 +1,24 @@
 # Handoff — inkmesh
-Updated: 2026-10-20
+Updated: 2026-10-21
 
 ## Where we are
 All six roadmap milestones and the UX polish after first real use are merged into `main` and deployed. 488 unit tests, 95 Playwright e2e, svelte-check clean. Jon validated this version on 2026-10-20.
 - Since M6: production on `https://inkmesh.ch` with email on (Resend); invited email prefilled at sign-up (migration `006-invitation-email`); "+ New workspace" in the switcher for admins; switcher and home split "My workspaces" / "Shared with me"; pages 1040px, documents 760px; members page reordered; document tables with a visible grid, header row and editor handles; document body text in a softened ink (`--prose`) under heavier headings (500); hourly backup with an email alert on failure. Plan: `docs/plans/2026-10-20-ux-polish.md`.
 - Only instance admins create workspaces (decision 2026-10-18, confirmed by Jon 2026-10-20). Admins: both of Jon's accounts (the second flag was set by hand in the database: the admin CLI has no promote command).
+- 2026-10-21: open-source release. Public repository `https://github.com/jonathanvouilloz/inkmesh` (remote `github`; history rewritten to the GitHub noreply address, backups `~/inkmesh-backups/comd-before-rewrite*.bundle`). Landing page in `site/` (EN, FR, `/workflow` diagram) on `https://inkmesh.ch`; the app moved to `https://app.inkmesh.ch`.
 - The dev folder is still `comd` (symlink `~/personal-projects/inkmesh -> comd`).
 
-## In production (https://inkmesh.ch)
-- Checkout `~/inkmesh-app` on `main`, data `/home/hermes/inkmesh-data` (migrations 001–006), env `~/.config/inkmesh/env` (SMTP through Resend from `noreply@inkmesh.ch`, `BACKUP_GITHUB_OWNER`), units `inkmesh`, `inkmesh-tunnel` (named tunnel `inkmesh`, `~/.cloudflared/inkmesh.yml`; zone in Jon's Cloudflare account, domain at Infomaniak), `inkmesh-backup.timer` (hourly) and `inkmesh-alert@.service`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main`. Guide, backup and restore: `docs/deploy.md`.
+## In production (app https://app.inkmesh.ch, landing https://inkmesh.ch)
+- Checkout `~/inkmesh-app` on `main`, data `/home/hermes/inkmesh-data` (migrations 001–006), env `~/.config/inkmesh/env` (SMTP through Resend from `noreply@inkmesh.ch`, `BACKUP_GITHUB_OWNER`), units `inkmesh`, `inkmesh-landing` (`deploy/landing.mjs` on 9311: serves `site/`, 308 for every other path to the app), `inkmesh-tunnel` (named tunnel `inkmesh`, `~/.cloudflared/inkmesh.yml`; zone in Jon's Cloudflare account, domain at Infomaniak), `inkmesh-backup.timer` (hourly) and `inkmesh-alert@.service`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main`. Guide, backup and restore: `docs/deploy.md`.
 - Backups: each workspace mirrored to a private GitHub repository `jonathanvouilloz/inkmesh-<slug>`; database snapshots in `~/inkmesh-backups/db/` (14 days, VPS only); a failed run emails the admins.
 - Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/pre-deploy/<UTC>-<label>` (`chmod -R go-rwx`: it holds password hashes) and start `build/` on a copy of the data (another port) to run new migrations first.
 
 ## Next action
-1. Publish the repository on GitHub (Jon tests it first), replace the `git clone <this repository>` placeholder in `README.md`, then announce it as open source. Nothing else is planned; new work starts with a spec and plan under `docs/plans/`.
+1. Jon reconnects his agents from scratch on `https://app.inkmesh.ch/mcp` following the README ("Connect an agent"), then we test the whole path together. Nothing else is planned; new work starts with a spec and plan under `docs/plans/`.
 
 ## Owner actions (Jon)
 - Test the published repository from a clean clone (README install path).
+- After merging into `main`: `git push github main` as well as `scripts/deploy.sh`.
 - Rename the dev folder when no session runs in it.
 
 ## Known limits
