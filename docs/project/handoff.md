@@ -10,7 +10,7 @@ All six roadmap milestones and the UX polish after first real use are merged int
 ## In production (https://inkmesh.ch)
 - Checkout `~/inkmesh-app` on `main`, data `/home/hermes/inkmesh-data` (migrations 001–006), env `~/.config/inkmesh/env` (SMTP through Resend from `noreply@inkmesh.ch`, `BACKUP_GITHUB_OWNER`), units `inkmesh`, `inkmesh-tunnel` (named tunnel `inkmesh`, `~/.cloudflared/inkmesh.yml`; zone in Jon's Cloudflare account, domain at Infomaniak), `inkmesh-backup.timer` (hourly) and `inkmesh-alert@.service`. Deploy: `bash ~/inkmesh-app/scripts/deploy.sh` after merging into `main`. Guide, backup and restore: `docs/deploy.md`.
 - Backups: each workspace mirrored to a private GitHub repository `jonathanvouilloz/inkmesh-<slug>`; database snapshots in `~/inkmesh-backups/db/` (14 days, VPS only); a failed run emails the admins.
-- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/<UTC>-<label>` and start `build/` on a copy of the data (another port) to run new migrations first.
+- Before each deploy: copy `~/inkmesh-data` to `~/inkmesh-backups/pre-deploy/<UTC>-<label>` (`chmod -R go-rwx`: it holds password hashes) and start `build/` on a copy of the data (another port) to run new migrations first.
 
 ## Next action
 1. Publish the repository on GitHub (Jon tests it first), replace the `git clone <this repository>` placeholder in `README.md`, then announce it as open source. Nothing else is planned; new work starts with a spec and plan under `docs/plans/`.
