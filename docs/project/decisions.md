@@ -302,3 +302,10 @@
 - Rejected: a push notification service (one more account and secret); alerting from inside `backup.sh` (misses a crash of the script itself).
 - Why: the backup runs unattended; a silent failure would only show when a restore is needed.
 - Reopen if: more background jobs appear (reuse the template with `OnFailure=inkmesh-alert@%N.service`), or email is off on an instance that still needs alerts.
+
+## 2026-10-21 — Landing page: static HTML in `site/`, outside the app
+- Choice: two hand-written pages (`site/index.html` in English, `site/fr/index.html` in French) sharing `site/assets/site.css` and `site.js`; fonts self-hosted, screenshots taken from the real app on synthetic demo data. Relative links, so any static host works. Layout after the owner's reference (crystal-ai-v1.21st.app): framed column, hatched bands, hairline grids. Colours and buttons from `DESIGN.md`.
+- Rejected: a SvelteKit route in the app (every self-hosted instance would ship the marketing page); a site generator (two pages do not need one).
+- Why: the landing page presents the open-source project, not one instance.
+- Owner's picks (2026-10-21): General Sans 500 for headings, Fragment Mono for all other text; logo track 02 (drop cut into text lines, `design/logo/showcase.html`).
+- Open: headline wording, hosting and domain, GitHub URL (`jonathanvouilloz/inkmesh` assumed).
