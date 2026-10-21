@@ -57,6 +57,11 @@ it('create returns the token once', async () => {
 	expect(JSON.stringify(loaded)).not.toContain(result.token);
 });
 
+it('create answers with the recipe it was sent from', async () => {
+	expect(await act('create', { name: 'vps', kind: 'claude-code-ssh' })).toMatchObject({ kind: 'claude-code-ssh' });
+	expect(await act('create', { name: 'x', kind: 'claude' })).toMatchObject({ status: 400 });
+});
+
 it('a reader can create an agent', async () => {
 	const reader = await createUser({ email: 'reader@example.com', name: 'Reader', password: 'long-enough-1' });
 	acceptInvitation(createInvitation('demo', 'reader', owner), reader.id);

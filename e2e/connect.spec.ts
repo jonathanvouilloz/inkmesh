@@ -49,6 +49,21 @@ test('the Claude Code recipe holds the server URL', async ({ page }) => {
 	);
 });
 
+test('Claude Code over SSH gets a token in its command', async ({ page }) => {
+	await page.goto('/demo/-/connect', { waitUntil: 'networkidle' });
+	await page.getByRole('radio', { name: 'Claude Code' }).check();
+	await page.getByRole('radio', { name: 'On a server, over SSH' }).check();
+	await page.getByRole('textbox', { name: 'Agent name' }).fill('e2e-ssh');
+	await page.getByRole('button', { name: 'Create token' }).click();
+	await expect(page.getByLabel('Terminal')).toHaveValue(
+		/^claude mcp add --transport http --scope user inkmesh http:\/\/localhost:4173\/mcp --header "Authorization: Bearer ink_\S+"$/
+	);
+	// Leave no agent behind for the other specs.
+	await page.getByRole('row').filter({ hasText: 'e2e-ssh' }).getByRole('button', { name: 'Revoke' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Revoke' }).click();
+	await expect(page.getByRole('row').filter({ hasText: 'e2e-ssh' })).toHaveCount(0);
+});
+
 test('on a phone the connect link sits in the user menu', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/demo');

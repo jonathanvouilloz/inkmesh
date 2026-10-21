@@ -74,7 +74,7 @@ Set the environment from `deploy/env.example` and create the first admin with `n
 
 ## Connect an agent
 
-Open a workspace, then "Connect an agent". Pick the tool and name the agent; the page gives the connector URL, the command or the JSON to paste, and shows when the agent has connected. Tools that support it authorise through the browser (OAuth), so nobody copies a token by hand. For a script, the page issues a token for the HTTP API.
+Open a workspace, then "Connect an agent". Pick the tool and name the agent; the page gives the connector URL, the command or the JSON to paste, and shows when the agent has connected. Tools that support it authorise through the browser (OAuth), so nobody copies a token by hand. For Claude Code running on a server you reach over SSH, the browser cannot finish that sign-in: choose “On a server, over SSH” and the page gives a token and the matching command. For a script, the page issues a token for the HTTP API.
 
 - MCP server: `https://<your host>/mcp`
 - HTTP API: `https://<your host>/api/v1`, with the agent’s token as a bearer token.

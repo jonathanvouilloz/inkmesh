@@ -31,7 +31,7 @@ export const actions: Actions = {
 		requireRole(params.workspace, locals, 'reader');
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '');
-		const kind = (['mcp', 'script'] as const).find((k) => k === form.get('kind')) ?? error(400);
+		const kind = (['claude-code-ssh', 'mcp', 'script'] as const).find((k) => k === form.get('kind')) ?? error(400);
 		try {
 			return { token: createAgent(locals.actor!.id, name).token, kind };
 		} catch (err) {

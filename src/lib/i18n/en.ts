@@ -181,8 +181,13 @@ export const en = {
 	'connect.rename': 'Rename',
 	'connect.revoke': 'Revoke',
 	'connect.revokeConfirm': 'Revoke {name}? It loses access at once.',
-	'connect.add': 'Add an agent',
-	'connect.tool': 'Tool',
+	'connect.choose': 'Which tool do you use?',
+	'connect.where': 'Where does Claude Code run?',
+	'connect.where.local': 'On this computer',
+	'connect.where.ssh': 'On a server, over SSH',
+	'connect.step': 'Step {n}',
+	'connect.done': 'Once the agent connects, it appears in “Your agents” below.',
+	'connect.steps.claude-code-ssh': 'Name the agent and create its token.\nCopy this command and run it in a terminal on the server.\nRestart Claude Code: inkmesh shows in `/mcp`.',
 	'connect.tools.claude': 'Claude (web, Desktop, mobile)',
 	'connect.tools.claude-code': 'Claude Code',
 	'connect.tools.chatgpt': 'ChatGPT',
@@ -199,13 +204,13 @@ export const en = {
 	'connect.steps.claude':
 		'In Claude, open Customize → Connectors → “Add custom connector”.\nName it `inkmesh` and paste the server URL. If Claude asks how it identifies itself, choose “Register automatically”.\nClick “Add”, then “Connect”: inkmesh opens, name the agent and click “Allow”.\nThe Free plan allows one custom connector. On Team and Enterprise, an organisation Owner first adds it under Organization settings → Connectors → Add → Custom → Web, then each member clicks “Connect”.',
 	'connect.steps.claude-code':
-		'Run the command below in a terminal.\nIn Claude Code, type `/mcp`, pick `inkmesh` and choose “Authenticate” (or run `claude mcp login inkmesh`).\nThe browser opens inkmesh: name the agent and click “Allow”.\nOn a server reached over SSH, the browser cannot reach Claude Code: choose “Other MCP client” instead, which gives a token and the matching command.',
+		'Copy this command and run it in your terminal.\nIn Claude Code, type `/mcp`, pick `inkmesh` and choose “Authenticate”.\nThe browser opens inkmesh: name the agent and click “Allow”.',
 	'connect.steps.chatgpt':
 		'Paid plans only. In ChatGPT, open Settings → Apps → Advanced settings and turn on “Developer mode”.\nCreate an app: name it `inkmesh`, paste the server URL as “MCP server URL” and choose “OAuth” for authentication.\nConfirm, sign in to inkmesh and click “Allow”.',
 	'connect.steps.cursor':
 		'Open Cursor Settings → Tools & MCP → “Add custom MCP”: it opens `~/.cursor/mcp.json`.\nPaste the configuration below and save.\nClick “Connect” (or “Needs login”) next to inkmesh, then “Allow” in the browser.',
 	'connect.steps.mcp':
-		'Name the agent and create its token.\nPaste the configuration into your MCP client: it holds the server URL and the token.\nClaude Code takes the same in one command.',
+		'Name the agent and create its token.\nPaste the configuration below into your MCP client: it holds the server URL and the token.',
 	'connect.steps.script':
 		'Name the agent and create its token.\nPut the token in the `INKMESH_TOKEN` environment variable.\nDrop a Markdown file in `reports/` with one request, and read what changed in the workspace.',
 	'connect.chatgptNote': 'Menu names change between ChatGPT versions.',

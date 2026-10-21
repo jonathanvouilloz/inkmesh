@@ -12,42 +12,60 @@
 	const locale = $derived(data.locale);
 
 	const tools = ['claude', 'claude-code', 'chatgpt', 'cursor', 'mcp', 'script'] as const;
-	// Without JavaScript the create form reloads the page: come back to the tool it was sent from.
-	let tool = $state<(typeof tools)[number]>(untrack(() => form?.kind) ?? 'claude');
-	const token = $derived(form?.token && form.kind === tool ? form.token : undefined);
+	type Recipe = (typeof tools)[number] | 'claude-code-ssh';
+	// Without JavaScript the create form reloads the page: come back to the recipe it was sent from.
+	const sent = untrack(() => form?.kind) as Recipe | undefined;
+	let tool = $state<(typeof tools)[number] | undefined>(sent === 'claude-code-ssh' ? 'claude-code' : sent);
+	// Claude Code on a server reached over SSH cannot finish the browser sign-in: it takes a token instead.
+	let where = $state<'local' | 'ssh'>(sent === 'claude-code-ssh' ? 'ssh' : 'local');
+	const recipe = $derived<Recipe | undefined>(tool === 'claude-code' && where === 'ssh' ? 'claude-code-ssh' : tool);
+	const needsToken = $derived(recipe === 'claude-code-ssh' || recipe === 'mcp' || recipe === 'script');
+	const token = $derived(form?.token && form.kind === recipe ? form.token : undefined);
 
 	const bearer = (value: string) => `"Authorization: Bearer ${value}"`;
 	const api = $derived(`${data.apiUrl}/workspaces/${data.workspace}`);
-	// Each recipe's copyable blocks; the token-based ones exist only once a token is shown.
-	const blocks = $derived.by((): Array<{ label: string; value: string }> => {
+	// The copyable blocks of each step, by step index; token-based ones exist only once a token is shown.
+	const blocks = $derived.by((): Record<number, Array<{ label: string; value: string }>> => {
 		const url = data.mcpUrl;
-		if (tool === 'claude-code')
-			return [{ label: t('connect.terminal', locale), value: `claude mcp add --transport http --scope user inkmesh ${url}` }];
-		if (tool === 'cursor')
-			return [{ label: t('connect.config', locale), value: JSON.stringify({ mcpServers: { inkmesh: { url } } }, null, 2) }];
-		if (!token) return [];
-		if (tool === 'mcp')
-			return [
+		const server = { label: t('connect.url', locale), value: url };
+		if (recipe === 'claude' || recipe === 'chatgpt') return { 1: [server] };
+		if (recipe === 'claude-code')
+			return { 0: [{ label: t('connect.terminal', locale), value: `claude mcp add --transport http --scope user inkmesh ${url}` }] };
+		if (recipe === 'cursor')
+			return { 1: [{ label: t('connect.config', locale), value: JSON.stringify({ mcpServers: { inkmesh: { url } } }, null, 2) }] };
+		if (!token) return {};
+		if (recipe === 'claude-code-ssh')
+			return {
+				1: [
+					{
+						label: t('connect.terminal', locale),
+						value: `claude mcp add --transport http --scope user inkmesh ${url} --header ${bearer(token)}`
+					}
+				]
+			};
+		if (recipe === 'mcp')
+			return {
+				1: [
+					{
+						label: t('connect.config', locale),
+						value: JSON.stringify(
+							{ mcpServers: { inkmesh: { type: 'http', url, headers: { Authorization: `Bearer ${token}` } } } },
+							null,
+							2
+						)
+					}
+				]
+			};
+		return {
+			1: [{ label: t('connect.token', locale), value: token }],
+			2: [
 				{
-					label: t('connect.config', locale),
-					value: JSON.stringify(
-						{ mcpServers: { inkmesh: { type: 'http', url, headers: { Authorization: `Bearer ${token}` } } } },
-						null,
-						2
-					)
+					label: t('connect.drop', locale),
+					value: `curl -X PUT -H ${bearer('$INKMESH_TOKEN')} -H "Content-Type: text/markdown" --data-binary @report.md ${api}/documents/reports/report.md`
 				},
-				{
-					label: t('connect.tools.claude-code', locale),
-					value: `claude mcp add --transport http inkmesh ${url} --header ${bearer(token)}`
-				}
-			];
-		return [
-			{
-				label: t('connect.drop', locale),
-				value: `curl -X PUT -H ${bearer('$INKMESH_TOKEN')} -H "Content-Type: text/markdown" --data-binary @report.md ${api}/documents/reports/report.md`
-			},
-			{ label: t('connect.changes', locale), value: `curl -H ${bearer('$INKMESH_TOKEN')} ${api}/changes` }
-		];
+				{ label: t('connect.changes', locale), value: `curl -H ${bearer('$INKMESH_TOKEN')} ${api}/changes` }
+			]
+		};
 	});
 
 	let copied = $state('');
@@ -109,7 +127,7 @@
 	<div class="field">
 		<label for={id}>{label}</label>
 		<span class="row">
-			{#if value.length > 60 || id === 'token'}
+			{#if value.length > 60}
 				<textarea {id} class="mono" readonly rows="3" {value} onfocus={(e) => e.currentTarget.select()}></textarea>
 			{:else}
 				<input {id} class="mono" readonly {value} onfocus={(e) => e.currentTarget.select()} />
@@ -126,7 +144,62 @@
 	<h1>{t('connect.title', locale)}</h1>
 	<p>{t('connect.intro', locale, { user: data.user.name })}</p>
 
-	<h2 id="agents" tabindex="-1" bind:this={agentsHeading}>{t('connect.agents', locale)}</h2>
+	<h2 id="choose">{t('connect.choose', locale)}</h2>
+	<div class="tiles" role="radiogroup" aria-labelledby="choose">
+		{#each tools as value (value)}
+			<label class="tile"><input type="radio" name="tool" {value} bind:group={tool} />{t(`connect.tools.${value}`, locale)}</label>
+		{/each}
+	</div>
+
+	{#if tool === 'claude-code'}
+		<h2 id="where">{t('connect.where', locale)}</h2>
+		<div class="tiles" role="radiogroup" aria-labelledby="where">
+			{#each ['local', 'ssh'] as const as value (value)}
+				<label class="tile"><input type="radio" name="where" {value} bind:group={where} />{t(`connect.where.${value}`, locale)}</label>
+			{/each}
+		</div>
+	{/if}
+
+	{#if recipe}
+		<ol class="steps">
+			{#each t(`connect.steps.${recipe}`, locale).split('\n') as step, i (i)}
+				<li>
+					<span class="number">{t('connect.step', locale, { n: String(i + 1) })}</span>
+					<!-- Backticks in a step mark a command or file name: it is never translated. -->
+					<p class="text">{#each step.split('`') as part, j (j)}{#if j % 2}<code>{part}</code>{:else}{part}{/if}{/each}</p>
+					{#if i === 0 && needsToken}
+						<form class="create" method="POST" action="?/create" use:enhance>
+							<input type="hidden" name="kind" value={recipe} />
+							<label>
+								{t('connect.name', locale)}
+								<input
+									name="name"
+									class="mono"
+									required
+									maxlength="40"
+									defaultValue={form?.nameError ? form.name : ''}
+									aria-invalid={form?.nameError ? 'true' : undefined}
+									aria-describedby={form?.nameError ? 'name-error' : undefined}
+								/>
+							</label>
+							<button class="primary">{t('connect.create', locale)}</button>
+						</form>
+						{#if form?.nameError}
+							<p id="name-error" class="error" role="alert">{t(form.nameError, locale)}</p>
+						{/if}
+					{/if}
+					{#each blocks[i] ?? [] as block, k (block.label)}
+						{@render field(`block-${i}-${k}`, block.label, block.value)}
+					{/each}
+					{#if i === 1 && token}<p class="once">{t('connect.once', locale)}</p>{/if}
+				</li>
+			{/each}
+		</ol>
+		{#if recipe === 'chatgpt'}<p>{t('connect.chatgptNote', locale)}</p>{/if}
+		<p class="done">{t('connect.done', locale)}</p>
+	{/if}
+
+	<h2 id="agents" class="agents" tabindex="-1" bind:this={agentsHeading}>{t('connect.agents', locale)}</h2>
 	{#if data.agents.length}
 		<table aria-labelledby="agents">
 			<thead>
@@ -172,53 +245,6 @@
 		<p>{t('connect.empty', locale)}</p>
 	{/if}
 
-	<h2>{t('connect.add', locale)}</h2>
-	<fieldset>
-		<legend>{t('connect.tool', locale)}</legend>
-		{#each tools as value (value)}
-			<label class="choice"><input type="radio" name="tool" {value} bind:group={tool} />{t(`connect.tools.${value}`, locale)}</label>
-		{/each}
-	</fieldset>
-
-	{#if tool !== 'script'}
-		{@render field('server-url', t('connect.url', locale), data.mcpUrl)}
-	{/if}
-	<ol>
-		{#each t(`connect.steps.${tool}`, locale).split('\n') as step, i (i)}
-			<!-- Backticks in a step mark a command or file name: it is never translated. -->
-			<li>{#each step.split('`') as part, j (j)}{#if j % 2}<code>{part}</code>{:else}{part}{/if}{/each}</li>
-		{/each}
-	</ol>
-	{#if tool === 'chatgpt'}<p>{t('connect.chatgptNote', locale)}</p>{/if}
-
-	{#if tool === 'mcp' || tool === 'script'}
-		<form class="create" method="POST" action="?/create" use:enhance>
-			<input type="hidden" name="kind" value={tool} />
-			<label>
-				{t('connect.name', locale)}
-				<input
-					name="name"
-					class="mono"
-					required
-					maxlength="40"
-					defaultValue={form?.nameError ? form.name : ''}
-					aria-invalid={form?.nameError ? 'true' : undefined}
-					aria-describedby={form?.nameError ? 'name-error' : undefined}
-				/>
-			</label>
-			<button>{t('connect.create', locale)}</button>
-		</form>
-		{#if form?.nameError}
-			<p id="name-error" class="error" role="alert">{t(form.nameError, locale)}</p>
-		{/if}
-		{#if token}
-			{@render field('token', t('connect.token', locale), token)}
-			<p>{t('connect.once', locale)}</p>
-		{/if}
-	{/if}
-	{#each blocks as block, i (block.label)}
-		{@render field(`block-${i}`, block.label, block.value)}
-	{/each}
 </div>
 
 <dialog bind:this={renameDialog} aria-labelledby="rename-title" onclose={back}>
@@ -332,38 +358,79 @@
 	.actions {
 		justify-content: flex-end;
 	}
-	fieldset {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px 16px;
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		gap: 8px;
+	}
+	.tile {
+		position: relative;
+		padding: 12px 14px;
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius);
+		background: var(--ground);
+		font-weight: 500;
+		cursor: pointer;
+		transition: border-color var(--ease), background-color var(--ease);
+	}
+	.tile:hover {
+		background: var(--panel);
+	}
+	.tile:has(input:checked) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.tile:has(input:focus-visible) {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	/* The native radio, invisible, covers the whole tile: it takes clicks, keys and screen readers. */
+	.tile input {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
 		margin: 0;
-		padding: 0;
-		border: 0;
-	}
-	legend {
-		margin-bottom: 8px;
-		padding: 0;
-		font-weight: 600;
-	}
-	.choice {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 6px;
-		font-weight: 400;
+		opacity: 0;
 		cursor: pointer;
 	}
-	.choice input {
-		margin: 0;
-		accent-color: var(--accent);
-	}
-	ol {
-		margin: 0;
-		padding-left: 20px;
+	.steps {
+		margin: 8px 0 0;
+		padding: 0;
+		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		border-top: 1px solid var(--hairline);
+	}
+	.steps li {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 16px 0;
+		border-bottom: 1px solid var(--hairline);
+	}
+	.number {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+		color: var(--muted);
+	}
+	.steps .text {
+		color: var(--ink);
+		font-size: 14px;
 		line-height: 1.5;
+	}
+	/* The design system keeps green and amber for save and conflict states only. */
+	.once {
+		color: var(--ink);
+		font-weight: 500;
+	}
+	h2.agents {
+		margin-top: 32px;
+	}
+	button.primary {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #fff;
 	}
 	form {
 		margin: 0;
