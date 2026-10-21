@@ -308,4 +308,22 @@
 - Rejected: a SvelteKit route in the app (every self-hosted instance would ship the marketing page); a site generator (two pages do not need one).
 - Why: the landing page presents the open-source project, not one instance.
 - Owner's picks (2026-10-21): General Sans 500 for headings, Fragment Mono for all other text; logo track 02 (drop cut into text lines, `design/logo/showcase.html`).
-- Open: headline wording, hosting and domain, GitHub URL (`jonathanvouilloz/inkmesh` assumed).
+- Headlines (owner, 2026-10-21): EN "The shared workspace for people and AI agents", FR "Un espace partagé pour vos agents IA et vos clients". Installation lives in the README, not on the page.
+
+## 2026-10-21 — Landing on inkmesh.ch served from the VPS, app moved to app.inkmesh.ch
+- Choice: `deploy/landing.mjs` (Node, no dependency) serves `site/` on `127.0.0.1:9311` through the same named tunnel; every other path gets a 308 to `https://app.inkmesh.ch` with the same path, so old public links, invitations and `/mcp` still resolve. `INKMESH_URL=https://app.inkmesh.ch`.
+- Rejected: Cloudflare Pages (needs a browser login by the owner; the session's Cloudflare MCP lacks zone scopes); a Cloudflare redirect rule (same access problem).
+- Why: the shared space must be reachable by clients without a VPN; landing and app on one domain, each on its own host.
+- Reopen if: the landing must stay up while the VPS is down, or traffic on it becomes noticeable. Review: 2027-01.
+
+## 2026-10-21 — Public repository with a rewritten history
+- Choice: `github.com/jonathanvouilloz/inkmesh`, public, MIT. Before publishing, main's history was rewritten: author and committer email set to the GitHub noreply address, the owner's two addresses removed from old `handoff.md` versions (owner chose option A). Full bundles in `~/inkmesh-backups/comd-before-rewrite*.bundle`.
+- Rejected: publishing as is (personal emails public); a single fresh commit (loses history, complicates later pushes).
+- Why: open-source release without exposing personal contact data.
+- Reopen if: an old clone with the previous history resurfaces (it would diverge from `github/main`).
+
+## 2026-10-21 — Connect page: one recipe per situation, numbered tick-box steps
+- Choice: step 1 is the tool choice (tiles, three per row); Claude Code asks where it runs, and "On a server, over SSH" is its own recipe (`claude-code-ssh`: token plus `claude mcp add --scope user … --header`). Each later step carries its own copy block or form and a tick box; ticks are not saved. Plan limits (Claude Free, Team) moved to a note.
+- Rejected: sending SSH users to "Other MCP client" (the owner could not tell why); saving ticks (no need shown).
+- Why: the owner, a first-time user of his own page, got lost; the old command without `--scope user` registered the agent for one folder only.
+- Reopen if: users ask to resume a half-done setup later.
