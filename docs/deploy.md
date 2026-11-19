@@ -9,8 +9,6 @@ Production runs on the owner's VPS as the user `hermes`: two systemd user servic
 
 Create the prod clone once: `git clone -b main ~/personal-projects/inkmesh ~/inkmesh-app`.
 
-While the dev folder is still named `comd`, a symlink `~/personal-projects/inkmesh -> comd` makes the dev path valid; production does not depend on it. To rename for good: `cd ~/personal-projects && rm inkmesh && mv comd inkmesh`, then `git -C ~/inkmesh-app remote set-url origin ~/personal-projects/inkmesh` if the clone recorded the `comd` path.
-
 Rollback: `cd ~/inkmesh-app && git checkout <previous sha> && npm ci && npm run build && systemctl --user restart inkmesh`; the data directory is untouched. `git checkout main` before the next `scripts/deploy.sh`.
 
 ## Phase A: quick tunnel, no domain
